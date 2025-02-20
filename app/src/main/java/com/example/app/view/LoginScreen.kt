@@ -47,7 +47,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         // Título
-        Text(text = "Eventclix", style = MaterialTheme.typography.titleLarge)
+        Text(text = "Eventflix", style = MaterialTheme.typography.titleLarge)
         Text(text = "Inicia sesión", style = MaterialTheme.typography.headlineLarge)
 
         Spacer(modifier = Modifier.height(32.dp))
