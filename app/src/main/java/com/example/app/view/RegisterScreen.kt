@@ -9,13 +9,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import com.example.app.viewmodel.RegisterViewModel
 
 @Composable
 fun RegisterScreen(
-    navController: NavController,
+    onNavigateToLogin: () -> Unit,
     viewModel: RegisterViewModel = viewModel()
 ) {
     Column(
@@ -24,11 +24,31 @@ fun RegisterScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Barra superior
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            TextButton(onClick = {            }) {
+                Text(
+                    text = "← Volver atrás",
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            TextButton(onClick = onNavigateToLogin) {
+                Text(
+                    text = "Iniciar sesión",
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Título
-        Text(text = "Eventclix", style = MaterialTheme.typography.titleLarge)
-        Text(text = "Crea una cuenta", style = MaterialTheme.typography.headlineLarge)
+        Text(
+            text = "Crea una cuenta",
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.onBackground
+        )
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -63,15 +83,22 @@ fun RegisterScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Selección de Rol
-        Text("¿Qué eres?")
+        Text(
+            text = "¿Qué eres?",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontSize = 18.sp
+        )
+        Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Button(
                 onClick = { viewModel.role = "Organizador" },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (viewModel.role == "Organizador") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+                    containerColor = if (viewModel.role == "Organizador") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                    contentColor = if (viewModel.role == "Organizador") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                 )
             ) {
                 Text("Organizador")
@@ -79,7 +106,8 @@ fun RegisterScreen(
             Button(
                 onClick = { viewModel.role = "Participante" },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (viewModel.role == "Participante") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+                    containerColor = if (viewModel.role == "Participante") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                    contentColor = if (viewModel.role == "Participante") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                 )
             ) {
                 Text("Participante")
@@ -90,7 +118,9 @@ fun RegisterScreen(
 
         // Botón de Continuar
         Button(
-            onClick = { viewModel.onRegisterClick() },
+            onClick = {
+                viewModel.onRegisterClick()
+            },
             modifier = Modifier.fillMaxWidth(),
             enabled = !viewModel.isLoading
         ) {
@@ -104,12 +134,21 @@ fun RegisterScreen(
             }
         }
 
-        // Error
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Mostrar mensaje de error
         if (viewModel.errorMessage.isNotEmpty()) {
             Text(
                 text = viewModel.errorMessage,
                 color = MaterialTheme.colorScheme.error
             )
+        }
+
+        // Redirigir a Login en caso de registro exitoso
+        if (viewModel.isRegisterSuccessful) {
+            LaunchedEffect(Unit) {
+                onNavigateToLogin()
+            }
         }
     }
 }
