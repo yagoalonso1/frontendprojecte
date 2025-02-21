@@ -18,141 +18,111 @@ import com.example.app.R
 
 @Composable
 fun LoginScreen(
-    onNavigateToRegister: () -> Unit,  // Navegación hacia Register
+    onNavigateToRegister: () -> Unit,
     viewModel: LoginViewModel = viewModel()
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Volver atrás y Registrarse
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            TextButton(onClick = { /* Acción de Volver atrás (Opcional) */ }) {
-                Text(
-                    text = "← Volver atrás",
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            TextButton(onClick = onNavigateToRegister) {
-                Text(
-                    text = "Registrarse",
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
+    Box(modifier = Modifier.fillMaxSize()) {
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Iniciar Sesión
-        Text(
-            text = "Inicia sesión",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Correo Electrónico
-        OutlinedTextField(
-            value = viewModel.email,
-            onValueChange = { viewModel.email = it },
-            label = { Text("Correo electrónico") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            isError = viewModel.errorMessage.isNotEmpty()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Contraseña
-        OutlinedTextField(
-            value = viewModel.password,
-            onValueChange = { viewModel.password = it },
-            label = { Text("Contraseña") },
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth(),
-            isError = viewModel.errorMessage.isNotEmpty()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Mostrar mensaje de error
-        if (viewModel.errorMessage.isNotEmpty()) {
-            Text(
-                text = viewModel.errorMessage,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Botón de Continuar
-        Button(
-            onClick = {
-                viewModel.onLoginClick()
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !viewModel.isLoading
-        ) {
-            if (viewModel.isLoading) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(24.dp)
-                )
-            } else {
-                Text("Continuar")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Divider
-        Divider(color = MaterialTheme.colorScheme.onSurface)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Botón de Google
-        OutlinedButton(
-            onClick = {
-                // Acción de Iniciar sesión con Google
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = Color.Transparent,
-                contentColor = MaterialTheme.colorScheme.primary
-            )
-        ) {
-            Text("Continuar con Google")
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Imagen decorativa
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .padding(16.dp)
+                .align(Alignment.TopCenter),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Logo Eventflix",
-                modifier = Modifier.fillMaxSize()
-            )
-        }
+            // Volver atrás y Registrarse
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                TextButton(onClick = { /* Acción de Volver atrás (Opcional) */ }) {
+                    Text(
+                        text = "← Volver atrás",
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                TextButton(onClick = onNavigateToRegister) {
+                    Text(
+                        text = "Registrarse",
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
 
-        // Navegar si el inicio de sesión es exitoso
-        if (viewModel.isLoginSuccessful) {
-            LaunchedEffect(Unit) {
-                // Aquí puedes navegar a la pantalla principal (Home)
-                println("¡Inicio de sesión exitoso! Navegando a Home...")
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Iniciar Sesión
+            Text(
+                text = "Inicia sesión",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Correo Electrónico
+            OutlinedTextField(
+                value = viewModel.email,
+                onValueChange = { viewModel.email = it },
+                label = { Text("Correo electrónico") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                isError = viewModel.errorMessage.isNotEmpty()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Contraseña
+            OutlinedTextField(
+                value = viewModel.password,
+                onValueChange = { viewModel.password = it },
+                label = { Text("Contraseña") },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth(),
+                isError = viewModel.errorMessage.isNotEmpty()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Mostrar mensaje de error
+            if (viewModel.errorMessage.isNotEmpty()) {
+                Text(
+                    text = viewModel.errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Botón de Continuar
+            Button(
+                onClick = {
+                    viewModel.onLoginClick()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !viewModel.isLoading
+            ) {
+                if (viewModel.isLoading) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Text("Continuar")
+                }
             }
         }
+
+        // Imagen centrada abajo
+        Image(
+            painter = painterResource(id = R.drawable.logo),
+            contentDescription = "Logo Eventflix",
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 32.dp)
+                .size(100.dp)
+        )
     }
 }
