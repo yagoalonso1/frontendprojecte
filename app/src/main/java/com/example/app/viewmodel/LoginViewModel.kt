@@ -35,7 +35,7 @@ class LoginViewModel : ViewModel() {
         // Simulación de inicio de sesión
         isLoading = true
         viewModelScope.launch {
-            delay(2000)
+            delay(2000) // Simula una llamada a una API
 
             // Ejemplo: Verificación sencilla de usuario y contraseña
             if (email == "test@example.com" && password == "1234") {
