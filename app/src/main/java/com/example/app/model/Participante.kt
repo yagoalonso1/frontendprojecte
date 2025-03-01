@@ -1,4 +1,4 @@
-package com.example.app.data.models
+package com.example.app.data.model
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -11,8 +11,9 @@ import com.example.app.model.User
     foreignKeys = [
         ForeignKey(
             entity = User::class,
-            parentColumns = arrayOf("idUser"),
-            childColumns = arrayOf("idUser")
+            parentColumns = arrayOf("id"),
+            childColumns = arrayOf("idUser"),
+            onDelete = ForeignKey.CASCADE
         )
     ]
 )
@@ -32,4 +33,4 @@ data class Participante(
 
     @ColumnInfo(name = "deleted_at")
     val deletedAt: String? = null
-)
+) 

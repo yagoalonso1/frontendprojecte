@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.app.R
 import com.example.app.viewmodel.RegisterViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 @Composable
 fun ParticipanteScreen(
@@ -250,9 +252,9 @@ fun ParticipanteScreen(
                 Text(
                     text = "Error",
                     style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color(0xFFE53935)
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFE53935)
+                    )
                 ) 
             },
             text = { 
@@ -266,49 +268,51 @@ fun ParticipanteScreen(
                     Text(
                         text = "Aceptar",
                         style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = Color(0xFFE53935)
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFE53935)
+                        )
                     )
                 }
             },
             containerColor = Color.White,
-            shape = RoundedCornerShape(16.dp)
+            iconContentColor = Color(0xFFE53935)
         )
     }
     
     // Diálogo de éxito
-    if (viewModel.isRegisterSuccessful) {
+    val isRegisterSuccessful by viewModel.isRegisterSuccessful.collectAsState()
+    if (isRegisterSuccessful) {
         AlertDialog(
-            onDismissRequest = { /* No hacer nada */ },
+            onDismissRequest = { /* No hacer nada, la navegación se maneja en AppNavHost */ },
             title = { 
                 Text(
-                    text = "Registro Exitoso",
+                    text = "¡Registro Exitoso!",
                     style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color(0xFF4CAF50)
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF4CAF50)
+                    )
                 ) 
             },
             text = { 
                 Text(
-                    text = "Tu cuenta de participante ha sido creada correctamente.",
+                    text = "Tu cuenta ha sido creada correctamente. Serás redirigido a la pantalla de inicio de sesión.",
                     style = MaterialTheme.typography.bodyMedium
                 ) 
             },
             confirmButton = {
-                TextButton(onClick = { /* Navegar al login */ }) {
+                // Quitamos la acción del botón para evitar interferencias con la navegación automática
+                TextButton(onClick = { /* No hacer nada, la navegación se maneja en AppNavHost */ }) {
                     Text(
-                        text = "Aceptar",
+                        text = "Hecho",
                         style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = Color(0xFFE53935)
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF4CAF50)
+                        )
                     )
                 }
             },
             containerColor = Color.White,
-            shape = RoundedCornerShape(16.dp)
+            iconContentColor = Color(0xFF4CAF50)
         )
     }
     

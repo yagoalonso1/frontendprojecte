@@ -30,6 +30,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 @Composable
 fun OrganizadorScreen(
@@ -216,7 +218,8 @@ fun OrganizadorScreen(
             }
             
             // Diálogo de éxito
-            if (viewModel.isRegisterSuccessful) {
+            val isRegisterSuccessful by viewModel.isRegisterSuccessful.collectAsState()
+            if (isRegisterSuccessful) {
                 AlertDialog(
                     onDismissRequest = { /* No hacer nada */ },
                     title = { 

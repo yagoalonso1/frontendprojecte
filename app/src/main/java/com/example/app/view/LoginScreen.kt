@@ -28,18 +28,17 @@ import com.example.app.viewmodel.LoginViewModel
 import com.example.app.R
 import androidx.navigation.NavController
 import com.example.app.viewmodel.ForgotPasswordViewModel
+import androidx.compose.material3.HorizontalDivider
 
 @Composable
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
-    viewModel: LoginViewModel = viewModel(),
+    viewModel: LoginViewModel,
     navController: NavController
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val isLoading = viewModel.isLoading
+    val errorMessage = viewModel.errorMessage
+    val isError = viewModel.isError
     
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -75,8 +74,8 @@ fun LoginScreen(
                 
                 // Campos de formulario
                 OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
+                    value = viewModel.email,
+                    onValueChange = { viewModel.email = it },
                     label = { Text("Email") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -95,21 +94,21 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
+                    value = viewModel.password,
+                    onValueChange = { viewModel.password = it },
                     label = { Text("Contraseña") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    visualTransformation = if (viewModel.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
                         imeAction = ImeAction.Done
                     ),
                     trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        IconButton(onClick = { viewModel.passwordVisible = !viewModel.passwordVisible }) {
                             Icon(
-                                imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                                imageVector = if (viewModel.passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (viewModel.passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
                                 tint = Color(0xFFE53935)
                             )
                         }
@@ -139,11 +138,7 @@ fun LoginScreen(
                 
                 // Botón de inicio de sesión
                 Button(
-                    onClick = { 
-                        isLoading = true
-                        // Simulación de inicio de sesión
-                        // Aquí iría la lógica real de autenticación
-                    },
+                    onClick = { viewModel.onLoginClick() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
@@ -168,22 +163,21 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Divider(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp),
-                        color = Color.Gray.copy(alpha = 0.5f)
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        thickness = 1.dp,
+                        color = Color.LightGray
                     )
                     Text(
-                        text = "o",
+                        text = "O",
+                        modifier = Modifier.padding(horizontal = 8.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
                     )
-                    Divider(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(start = 8.dp),
-                        color = Color.Gray.copy(alpha = 0.5f)
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        thickness = 1.dp,
+                        color = Color.LightGray
                     )
                 }
                 
@@ -240,9 +234,9 @@ fun LoginScreen(
             }
             
             // Diálogo de error
-            if (errorMessage != null) {
+            if (isError) {
                 AlertDialog(
-                    onDismissRequest = { errorMessage = null },
+                    onDismissRequest = { viewModel.clearError() },
                     title = { 
                         Text(
                             text = "Error",
@@ -259,7 +253,7 @@ fun LoginScreen(
                         ) 
                     },
                     confirmButton = {
-                        TextButton(onClick = { errorMessage = null }) {
+                        TextButton(onClick = { viewModel.clearError() }) {
                             Text(
                                 text = "Aceptar",
                                 style = MaterialTheme.typography.labelLarge.copy(

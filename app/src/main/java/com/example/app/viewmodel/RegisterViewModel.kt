@@ -12,6 +12,9 @@ import java.util.regex.Pattern
 import com.example.app.api.RetrofitClient
 import com.example.app.model.register.RegisterRequest
 import com.example.app.model.register.RegisterResponse
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class RegisterViewModel : ViewModel() {
     // Estados del formulario principal
@@ -46,7 +49,6 @@ class RegisterViewModel : ViewModel() {
     
     // Estados de UI
     var isLoading by mutableStateOf(false)
-    var isRegisterSuccessful by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
     var isError by mutableStateOf(false)
     
@@ -56,6 +58,10 @@ class RegisterViewModel : ViewModel() {
     private val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"
     private val phoneRegex = "^[0-9]{9}$"
     private val passwordRegex = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[.@#$%^&+=!*()_\\-])(?=\\S+$).{8,}$"
+
+    // Cambiamos a StateFlow para poder observarlo en el NavHost
+    private val _isRegisterSuccessful = MutableStateFlow(false)
+    val isRegisterSuccessful = _isRegisterSuccessful.asStateFlow()
 
     // Funciones de formato
     fun formatName(input: String): String {
@@ -226,27 +232,78 @@ class RegisterViewModel : ViewModel() {
 
                 Log.d("RegisterViewModel", "Código de respuesta: ${response.code()}")
                 Log.d("RegisterViewModel", "Cuerpo de respuesta: ${response.body()}")
-                Log.d("RegisterViewModel", "Error body: ${response.errorBody()?.string()}")
-
+                
                 if (response.isSuccessful) {
                     val registerResponse = response.body()
                     if (registerResponse != null) {
-                        isRegisterSuccessful = true
+                        _isRegisterSuccessful.value = true
                         clearFields()
                     } else {
                         setError("Error desconocido durante el registro")
                     }
                 } else {
-                    // Intentar obtener el mensaje de error del cuerpo de la respuesta
-                    try {
-                        val errorBody = response.errorBody()?.string()
-                        Log.e("RegisterViewModel", "Error body: $errorBody")
-                        val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
-                        val message = errorResponse["message"] as? String ?: "Error en la comunicación con el servidor"
-                        setError(message)
-                    } catch (e: Exception) {
-                        setError("Error en la comunicación con el servidor: ${response.code()}")
-                        Log.e("RegisterViewModel", "Error al procesar la respuesta", e)
+                    // Manejar errores específicos según el código de respuesta
+                    when (response.code()) {
+                        409 -> {
+                            // Conflicto - recurso ya existe
+                            if (role.lowercase() == "participante") {
+                                setError("Ya existe un participante con este DNI o correo electrónico")
+                            } else {
+                                setError("Ya existe un organizador con este correo electrónico")
+                            }
+                        }
+                        422 -> {
+                            // Error de validación
+                            try {
+                                val errorBody = response.errorBody()?.string()
+                                Log.d("RegisterViewModel", "Error body: $errorBody")
+                                
+                                // Intentar extraer mensajes de error específicos
+                                val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
+                                val errors = errorResponse["errors"] as? Map<*, *>
+                                
+                                if (errors != null) {
+                                    // Construir un mensaje de error más amigable
+                                    val errorMessages = mutableListOf<String>()
+                                    
+                                    if (errors.containsKey("email")) {
+                                        errorMessages.add("El correo electrónico ya está en uso")
+                                    }
+                                    
+                                    if (errors.containsKey("dni")) {
+                                        errorMessages.add("El DNI ya está registrado")
+                                    }
+                                    
+                                    if (errorMessages.isNotEmpty()) {
+                                        setError(errorMessages.joinToString("\n"))
+                                    } else {
+                                        // Mensaje genérico si no podemos identificar el error específico
+                                        val message = errorResponse["message"] as? String
+                                        setError(message ?: "Error de validación en los datos enviados")
+                                    }
+                                } else {
+                                    val message = errorResponse["message"] as? String
+                                    setError(message ?: "Error de validación en los datos enviados")
+                                }
+                            } catch (e: Exception) {
+                                Log.e("RegisterViewModel", "Error al procesar respuesta de error", e)
+                                setError("Error de validación: Verifica que los datos sean correctos")
+                            }
+                        }
+                        401, 403 -> setError("No tienes permiso para realizar esta acción")
+                        404 -> setError("El recurso solicitado no existe")
+                        500 -> setError("Error interno del servidor. Inténtalo más tarde")
+                        else -> {
+                            try {
+                                val errorBody = response.errorBody()?.string()
+                                Log.e("RegisterViewModel", "Error body: $errorBody")
+                                val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
+                                val message = errorResponse["message"] as? String
+                                setError(message ?: "Error en la comunicación con el servidor: ${response.code()}")
+                            } catch (e: Exception) {
+                                setError("Error en la comunicación con el servidor: ${response.code()}")
+                            }
+                        }
                     }
                 }
                 
@@ -291,5 +348,10 @@ class RegisterViewModel : ViewModel() {
     fun setError(message: String) {
         isError = true
         errorMessage = message
+    }
+
+    // Función para resetear el estado de registro exitoso
+    fun resetSuccessState() {
+        _isRegisterSuccessful.value = false
     }
 } 
