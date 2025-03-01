@@ -1,128 +1,272 @@
 package com.example.app.view
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.app.viewmodel.LoginViewModel
 import com.example.app.R
+import androidx.navigation.NavController
+import com.example.app.viewmodel.ForgotPasswordViewModel
+import androidx.compose.material3.HorizontalDivider
 
 @Composable
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
-    viewModel: LoginViewModel = viewModel()
+    viewModel: LoginViewModel,
+    navController: NavController
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .align(Alignment.TopCenter),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Volver atrás y Registrarse
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+    val isLoading = viewModel.isLoading
+    val errorMessage = viewModel.errorMessage
+    val isError = viewModel.isError
+    
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color.White // Fondo blanco para una interfaz minimalista
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                TextButton(onClick = { /* Acción de Volver atrás (Opcional) */ }) {
-                    Text(
-                        text = "← Volver atrás",
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                TextButton(onClick = onNavigateToRegister) {
-                    Text(
-                        text = "Registrarse",
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Iniciar Sesión
-            Text(
-                text = "Inicia sesión",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Correo Electrónico
-            OutlinedTextField(
-                value = viewModel.email,
-                onValueChange = { viewModel.email = it },
-                label = { Text("Correo electrónico") },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                isError = viewModel.errorMessage.isNotEmpty()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Contraseña
-            OutlinedTextField(
-                value = viewModel.password,
-                onValueChange = { viewModel.password = it },
-                label = { Text("Contraseña") },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth(),
-                isError = viewModel.errorMessage.isNotEmpty()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Mostrar mensaje de error
-            if (viewModel.errorMessage.isNotEmpty()) {
+                // Logo
+                Image(
+                    painter = painterResource(id = R.drawable.logo),
+                    contentDescription = "EventFlix Logo",
+                    modifier = Modifier
+                        .size(180.dp)
+                        .padding(vertical = 16.dp),
+                    contentScale = ContentScale.Fit
+                )
+                
+                // Título
                 Text(
-                    text = viewModel.errorMessage,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium
+                    text = "Iniciar Sesión",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFE53935) // Color rojo del logo
+                    ),
+                    modifier = Modifier.padding(bottom = 24.dp),
+                    textAlign = TextAlign.Center
+                )
+                
+                // Campos de formulario
+                OutlinedTextField(
+                    value = viewModel.email,
+                    onValueChange = { viewModel.email = it },
+                    label = { Text("Email") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Email,
+                        imeAction = ImeAction.Next
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFE53935),
+                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
+                        focusedLabelColor = Color(0xFFE53935),
+                        unfocusedLabelColor = Color.Gray
+                    )
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                OutlinedTextField(
+                    value = viewModel.password,
+                    onValueChange = { viewModel.password = it },
+                    label = { Text("Contraseña") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = if (viewModel.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
+                    trailingIcon = {
+                        IconButton(onClick = { viewModel.passwordVisible = !viewModel.passwordVisible }) {
+                            Icon(
+                                imageVector = if (viewModel.passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (viewModel.passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                                tint = Color(0xFFE53935)
+                            )
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFE53935),
+                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
+                        focusedLabelColor = Color(0xFFE53935),
+                        unfocusedLabelColor = Color.Gray
+                    )
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Enlace "Olvidé mi contraseña"
+                Text(
+                    text = "¿Olvidaste tu contraseña?",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = Color(0xFFE53935),
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(bottom = 24.dp)
+                        .clickable { navController.navigate("forgot-password") }
+                )
+                
+                // Botón de inicio de sesión
+                Button(
+                    onClick = { viewModel.onLoginClick() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE53935)
+                    )
+                ) {
+                    Text(
+                        text = "Iniciar Sesión",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Separador "o"
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        thickness = 1.dp,
+                        color = Color.LightGray
+                    )
+                    Text(
+                        text = "O",
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        thickness = 1.dp,
+                        color = Color.LightGray
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Botón de registro
+                OutlinedButton(
+                    onClick = onNavigateToRegister,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                        width = 1.dp,
+                        brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFE53935))
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFE53935)
+                    )
+                ) {
+                    Text(
+                        text = "Crear Cuenta",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                }
+                
+                Spacer(modifier = Modifier.weight(1f))
+                
+                // Texto de derechos de autor
+                Text(
+                    text = "© 2023 EventFlix. Todos los derechos reservados.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Botón de Continuar
-            Button(
-                onClick = {
-                    viewModel.onLoginClick()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !viewModel.isLoading
-            ) {
-                if (viewModel.isLoading) {
+            
+            // Indicador de carga
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
                     CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp)
+                        color = Color(0xFFE53935),
+                        modifier = Modifier.size(64.dp)
                     )
-                } else {
-                    Text("Continuar")
                 }
             }
+            
+            // Diálogo de error
+            if (isError) {
+                AlertDialog(
+                    onDismissRequest = { viewModel.clearError() },
+                    title = { 
+                        Text(
+                            text = "Error",
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = Color(0xFFE53935)
+                        ) 
+                    },
+                    text = { 
+                        Text(
+                            text = errorMessage ?: "",
+                            style = MaterialTheme.typography.bodyMedium
+                        ) 
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { viewModel.clearError() }) {
+                            Text(
+                                text = "Aceptar",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = Color(0xFFE53935)
+                            )
+                        }
+                    },
+                    containerColor = Color.White,
+                    shape = RoundedCornerShape(16.dp)
+                )
+            }
         }
-
-        // Imagen centrada abajo
-        Image(
-            painter = painterResource(id = R.drawable.logo),
-            contentDescription = "Logo Eventflix",
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 32.dp)
-                .size(100.dp)
-        )
     }
 }
