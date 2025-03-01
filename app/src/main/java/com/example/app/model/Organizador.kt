@@ -16,6 +16,7 @@ import com.example.app.model.User
         )
     ]
 )
+
 data class Organizador(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "idOrganizador")
