@@ -15,6 +15,8 @@ import com.example.app.model.register.RegisterResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.LiveData
 
 class RegisterViewModel : ViewModel() {
     // Estados del formulario principal
@@ -62,6 +64,10 @@ class RegisterViewModel : ViewModel() {
     // Cambiamos a StateFlow para poder observarlo en el NavHost
     private val _isRegisterSuccessful = MutableStateFlow(false)
     val isRegisterSuccessful = _isRegisterSuccessful.asStateFlow()
+
+    // Cambia el nombre de la variable para evitar conflictos
+    private val _debugMessage = MutableLiveData<String>()
+    val debugMessage: LiveData<String> = _debugMessage
 
     // Funciones de formato
     fun formatName(input: String): String {
@@ -142,23 +148,61 @@ class RegisterViewModel : ViewModel() {
         }
     }
 
-    fun validateAllFields(): Boolean {
-        validateField("name", name)
-        validateField("apellido1", apellido1)
-        validateField("apellido2", apellido2)
-        validateField("email", email)
-        validateField("dni", dni)
-        validateField("telefono", telefono)
-        validateField("password", password)
-        validateField("repeatPassword", repeatPassword)
+    private fun validateAllFields(): Boolean {
+        var isValid = true
         
-        return !isNameError && !isApellido1Error && !isApellido2Error &&
-               !isEmailError && !isDniError && !isTelefonoError &&
-               !isPasswordError && !isRepeatPasswordError &&
-               name.isNotEmpty() && apellido1.isNotEmpty() && 
-               email.isNotEmpty() && dni.isNotEmpty() &&
-               telefono.isNotEmpty() && password.isNotEmpty() &&
-               repeatPassword.isNotEmpty()
+        // Validar nombre
+        if (name.isBlank()) {
+            Log.d("REGISTRO_DEBUG", "Validación fallida: Nombre en blanco")
+            isValid = false
+        }
+        
+        // Validar apellido1
+        if (apellido1.isBlank()) {
+            Log.d("REGISTRO_DEBUG", "Validación fallida: Apellido1 en blanco")
+            isValid = false
+        }
+        
+        // Validar email
+        if (!isValidEmail(email)) {
+            Log.d("REGISTRO_DEBUG", "Validación fallida: Email inválido: $email")
+            isValid = false
+        }
+        
+        // Validar contraseña
+        if (password.length < 6) {
+            Log.d("REGISTRO_DEBUG", "Validación fallida: Contraseña demasiado corta: ${password.length} caracteres")
+            isValid = false
+        }
+        
+        // Validaciones específicas según el rol
+        if (role.lowercase() == "organizador") {
+            if (nombreOrganizacion.isBlank()) {
+                Log.d("REGISTRO_DEBUG", "Validación fallida: Nombre de organización en blanco")
+                isValid = false
+            }
+            if (telefonoContacto.isBlank()) {
+                Log.d("REGISTRO_DEBUG", "Validación fallida: Teléfono de contacto en blanco")
+                isValid = false
+            }
+        } else if (role.lowercase() == "participante") {
+            if (dni.isBlank()) {
+                Log.d("REGISTRO_DEBUG", "Validación fallida: DNI en blanco")
+                isValid = false
+            }
+            if (telefono.isBlank()) {
+                Log.d("REGISTRO_DEBUG", "Validación fallida: Teléfono en blanco")
+                isValid = false
+            }
+        }
+        
+        if (!isValid) {
+            Log.d("REGISTRO_DEBUG", "Validación fallida: Hay campos inválidos")
+        } else {
+            Log.d("REGISTRO_DEBUG", "Validación exitosa: Todos los campos son válidos")
+        }
+        
+        return isValid
     }
 
     fun validateOrganizadorFields(): Boolean {
@@ -181,9 +225,17 @@ class RegisterViewModel : ViewModel() {
         return validateAllFields()
     }
 
+    // Modifica la función mostrarMensaje para usar la nueva variable
+    private fun mostrarMensaje(mensaje: String) {
+        _debugMessage.value = mensaje
+        Log.d("REGISTRO_DEBUG", mensaje)
+    }
+
     fun onRegisterClick() {
         viewModelScope.launch {
             try {
+                mostrarMensaje("Iniciando registro de ${role.lowercase()}...")
+                
                 isLoading = true
                 clearError()
                 
@@ -208,6 +260,9 @@ class RegisterViewModel : ViewModel() {
                     }
                 }
 
+                // Antes de crear el RegisterRequest
+                mostrarMensaje("Validación completada. Preparando datos...")
+
                 // Crear objeto de petición
                 val registerRequest = RegisterRequest(
                     nombre = name,
@@ -221,27 +276,47 @@ class RegisterViewModel : ViewModel() {
                     dni = if (role.lowercase() == "participante") dni else null,
                     telefono = if (role.lowercase() == "participante") telefono else null
                 )
-
-                // Añadir logs para depuración
-                Log.d("RegisterViewModel", "Enviando petición: $registerRequest")
+                
+                // Mostrar los datos que se van a enviar
+                mostrarMensaje("Enviando datos: $registerRequest")
+                
+                // Si es organizador, mostrar datos específicos
+                if (role.lowercase() == "organizador") {
+                    mostrarMensaje("Datos de organizador: nombreOrganizacion=$nombreOrganizacion, telefonoContacto=$telefonoContacto")
+                }
 
                 // Llamar a la API
+                mostrarMensaje("Conectando con el servidor...")
                 val response = withContext(kotlinx.coroutines.Dispatchers.IO) {
                     RetrofitClient.apiService.registerUser(registerRequest)
                 }
-
-                Log.d("RegisterViewModel", "Código de respuesta: ${response.code()}")
-                Log.d("RegisterViewModel", "Cuerpo de respuesta: ${response.body()}")
                 
+                // Mostrar resultado
                 if (response.isSuccessful) {
-                    val registerResponse = response.body()
-                    if (registerResponse != null) {
-                        _isRegisterSuccessful.value = true
-                        clearFields()
-                    } else {
-                        setError("Error desconocido durante el registro")
-                    }
+                    mostrarMensaje("Registro exitoso: ${response.body()}")
+                    _isRegisterSuccessful.value = true
+                    clearFields()
                 } else {
+                    val errorBody = response.errorBody()?.string()
+                    mostrarMensaje("Error ${response.code()}: $errorBody")
+                    
+                    // Intentar parsear el error para obtener más detalles
+                    try {
+                        val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
+                        val message = errorResponse["message"] as? String
+                        val errors = errorResponse["errors"] as? Map<*, *>
+                        
+                        if (errors != null) {
+                            for ((key, value) in errors) {
+                                mostrarMensaje("Error en campo $key: $value")
+                            }
+                        } else if (message != null) {
+                            mostrarMensaje("Mensaje de error: $message")
+                        }
+                    } catch (e: Exception) {
+                        mostrarMensaje("No se pudo parsear el error: ${e.message}")
+                    }
+                    
                     // Manejar errores específicos según el código de respuesta
                     when (response.code()) {
                         409 -> {
@@ -255,9 +330,6 @@ class RegisterViewModel : ViewModel() {
                         422 -> {
                             // Error de validación
                             try {
-                                val errorBody = response.errorBody()?.string()
-                                Log.d("RegisterViewModel", "Error body: $errorBody")
-                                
                                 // Intentar extraer mensajes de error específicos
                                 val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
                                 val errors = errorResponse["errors"] as? Map<*, *>
@@ -295,8 +367,6 @@ class RegisterViewModel : ViewModel() {
                         500 -> setError("Error interno del servidor. Inténtalo más tarde")
                         else -> {
                             try {
-                                val errorBody = response.errorBody()?.string()
-                                Log.e("RegisterViewModel", "Error body: $errorBody")
                                 val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
                                 val message = errorResponse["message"] as? String
                                 setError(message ?: "Error en la comunicación con el servidor: ${response.code()}")
@@ -308,8 +378,8 @@ class RegisterViewModel : ViewModel() {
                 }
                 
             } catch (e: Exception) {
-                Log.e("RegisterViewModel", "Error durante el registro", e)
-                setError("Error durante el registro: ${e.message}")
+                mostrarMensaje("Excepción: ${e.message}")
+                setError("Error de conexión: ${e.message}")
             } finally {
                 isLoading = false
             }
@@ -345,9 +415,10 @@ class RegisterViewModel : ViewModel() {
         errorMessage = null
     }
 
-    fun setError(message: String) {
+    fun setError(error: String?) {
         isError = true
-        errorMessage = message
+        errorMessage = error
+        Log.e("REGISTRO_DEBUG", "ERROR: $error")
     }
 
     // Función para resetear el estado de registro exitoso
