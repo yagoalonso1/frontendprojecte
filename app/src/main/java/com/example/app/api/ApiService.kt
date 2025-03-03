@@ -1,9 +1,12 @@
 package com.example.app.api
 
 import com.example.app.model.login.LoginRequest
+import com.example.app.model.login.LoginResponse
 import com.example.app.model.logout.LogoutResponse
 import com.example.app.model.register.RegisterRequest
 import com.example.app.model.register.RegisterResponse
+import com.example.app.model.resetpassword.ResetPasswordRequest
+import com.example.app.model.resetpassword.ResetPasswordResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.Header
@@ -18,4 +21,7 @@ interface ApiService {
     
     @POST("logout")
     suspend fun logoutUser(@Header("Authorization") token: String): Response<LogoutResponse>
-} 
+    
+    @POST("api/reset-password")
+    suspend fun resetPassword(@Body resetRequest: ResetPasswordRequest): Response<ResetPasswordResponse>
+}

@@ -1,3 +1,5 @@
+package com.example.app.model.login
+
 import com.example.app.model.User
 import com.google.gson.annotations.SerializedName
 
