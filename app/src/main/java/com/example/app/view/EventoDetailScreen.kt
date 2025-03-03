@@ -15,12 +15,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -39,11 +41,11 @@ fun EventoDetailScreen(
     val isError = viewModel.isError
     val errorMessage = viewModel.errorMessage
     
-    // Colores consistentes con LoginScreen
+    // Colores consistentes con EventosScreen
     val primaryColor = Color(0xFFE53935)  // Rojo del logo
     val backgroundColor = Color.White
     val textPrimaryColor = Color.Black
-    val textSecondaryColor = Color.Gray
+    val textSecondaryColor = Color.DarkGray
     val successColor = Color(0xFF4CAF50)  // Verde para elementos gratuitos
     
     Surface(
@@ -55,11 +57,13 @@ fun EventoDetailScreen(
                 TopAppBar(
                     title = { 
                         Text(
-                            "Detalle del Evento",
-                            style = MaterialTheme.typography.headlineMedium.copy(
+                            text = "DETALLE EVENTO",
+                            style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
+                                fontSize = 22.sp,
+                                letterSpacing = 1.sp
+                            ),
+                            color = primaryColor
                         ) 
                     },
                     navigationIcon = {
@@ -67,14 +71,14 @@ fun EventoDetailScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack, 
                                 contentDescription = "Volver",
-                                tint = Color.White
+                                tint = primaryColor
                             )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = primaryColor,
-                        titleContentColor = Color.White,
-                        navigationIconContentColor = Color.White
+                        containerColor = Color.White,
+                        titleContentColor = primaryColor,
+                        navigationIconContentColor = primaryColor
                     )
                 )
             }
@@ -83,12 +87,11 @@ fun EventoDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
+                    .background(backgroundColor)
             ) {
                 if (isLoading) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.White),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(
@@ -104,9 +107,9 @@ fun EventoDetailScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = errorMessage ?: "Error al cargar el evento",
+                            text = errorMessage ?: "Error desconocido",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = primaryColor,
+                            color = Color.Red,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -120,11 +123,11 @@ fun EventoDetailScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(200.dp)
+                                .height(250.dp)
                         ) {
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
-                                    .data("https://eventflix.es/storage/${evento.imagen}")
+                                    .data("https://eventosapp.jmrp.es/storage/${evento.imagen}")
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = "Imagen del evento",
@@ -136,8 +139,8 @@ fun EventoDetailScreen(
                             Box(
                                 modifier = Modifier
                                     .padding(16.dp)
-                                    .align(Alignment.TopEnd)
-                                    .clip(RoundedCornerShape(16.dp))
+                                    .align(Alignment.TopStart)
+                                    .clip(RoundedCornerShape(4.dp))
                                     .background(primaryColor.copy(alpha = 0.8f))
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
@@ -151,171 +154,191 @@ fun EventoDetailScreen(
                         }
                         
                         // Contenido del evento
-                        Column(
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
+                                .offset(y = (-20).dp)
+                                .shadow(
+                                    elevation = 8.dp,
+                                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                                    spotColor = Color.Black.copy(alpha = 0.2f)
+                                ),
+                            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.White
+                            )
                         ) {
-                            // Título
-                            Text(
-                                text = evento.titulo,
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = textPrimaryColor
-                            )
-                            
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
-                            // Información de fecha y hora
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Color(0xFFF5F5F5)
-                                ),
-                                shape = RoundedCornerShape(8.dp)
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp)
-                                ) {
-                                    // Fecha
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.CalendarMonth,
-                                            contentDescription = "Fecha",
-                                            tint = primaryColor,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        
-                                        Text(
-                                            text = formatDate(evento.fechaEvento, true),
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = textPrimaryColor
-                                        )
-                                    }
-                                    
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    
-                                    // Hora
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Schedule,
-                                            contentDescription = "Hora",
-                                            tint = primaryColor,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        
-                                        Text(
-                                            text = if (evento.hora.length >= 5) evento.hora.substring(0, 5) else evento.hora,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = textPrimaryColor
-                                        )
-                                    }
-                                    
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    
-                                    // Ubicación
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.LocationOn,
-                                            contentDescription = "Ubicación",
-                                            tint = primaryColor,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        
-                                        Text(
-                                            text = evento.ubicacion,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = textPrimaryColor
-                                        )
-                                    }
-                                }
-                            }
-                            
-                            Spacer(modifier = Modifier.height(24.dp))
-                            
-                            // Descripción
-                            Text(
-                                text = "Descripción",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = textPrimaryColor
-                            )
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            Text(
-                                text = evento.descripcion,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = textSecondaryColor
-                            )
-                            
-                            Spacer(modifier = Modifier.height(24.dp))
-                            
-                            // Precio
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (evento.precio > 0) 
-                                        primaryColor.copy(alpha = 0.05f) 
-                                    else 
-                                        successColor.copy(alpha = 0.05f)
-                                ),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp)
-                                ) {
-                                    Text(
-                                        text = "Precio",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = textPrimaryColor
-                                    )
-                                    
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    
-                                    Text(
-                                        text = if (evento.precio > 0) "${evento.precio}€" else "Gratuito",
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (evento.precio > 0) primaryColor else successColor
-                                    )
-                                }
-                            }
-                            
-                            Spacer(modifier = Modifier.height(32.dp))
-                            
-                            // Botón de inscripción
-                            Button(
-                                onClick = { /* TODO: Implementar inscripción */ },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = primaryColor
-                                ),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
+                                // Título
                                 Text(
-                                    "Inscribirse",
-                                    style = MaterialTheme.typography.bodyLarge.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    modifier = Modifier.padding(vertical = 8.dp)
+                                    text = evento.titulo,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = textPrimaryColor
                                 )
+                                
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                // Información de fecha, hora y ubicación
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .shadow(4.dp, RoundedCornerShape(12.dp)),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color(0xFFF8F8F8)
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(16.dp)
+                                    ) {
+                                        // Fecha
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.CalendarMonth,
+                                                contentDescription = "Fecha",
+                                                tint = primaryColor,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                            
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            
+                                            Text(
+                                                text = formatDate(evento.fechaEvento, true),
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = textPrimaryColor
+                                            )
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        
+                                        // Hora
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Schedule,
+                                                contentDescription = "Hora",
+                                                tint = primaryColor,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                            
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            
+                                            Text(
+                                                text = if (evento.hora.length >= 5) evento.hora.substring(0, 5) else evento.hora,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = textPrimaryColor
+                                            )
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        
+                                        // Ubicación
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.LocationOn,
+                                                contentDescription = "Ubicación",
+                                                tint = primaryColor,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                            
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            
+                                            Text(
+                                                text = evento.ubicacion,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = textPrimaryColor
+                                            )
+                                        }
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.height(24.dp))
+                                
+                                // Descripción
+                                Text(
+                                    text = "Descripción",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = textPrimaryColor
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Text(
+                                    text = evento.descripcion,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = textSecondaryColor
+                                )
+                                
+                                Spacer(modifier = Modifier.height(24.dp))
+                                
+                                // Precio
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (evento.precio > 0) 
+                                            primaryColor.copy(alpha = 0.05f) 
+                                        else 
+                                            successColor.copy(alpha = 0.05f)
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(16.dp)
+                                    ) {
+                                        Text(
+                                            text = "Precio",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = textPrimaryColor
+                                        )
+                                        
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        
+                                        Text(
+                                            text = if (evento.precio > 0) "${evento.precio}€" else "Gratuito",
+                                            style = MaterialTheme.typography.headlineSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (evento.precio > 0) primaryColor else successColor
+                                        )
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.height(32.dp))
+                                
+                                // Botón de inscripción
+                                Button(
+                                    onClick = { /* TODO: Implementar inscripción */ },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp)
+                                        .shadow(8.dp, RoundedCornerShape(8.dp)),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = primaryColor
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(
+                                        text = "INSCRIBIRSE",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 1.sp
+                                        )
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.height(16.dp))
                             }
-                            
-                            Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
                 } else {

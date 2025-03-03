@@ -202,7 +202,6 @@ fun EventosScreen(
                                         .shadow(4.dp, RoundedCornerShape(8.dp)),
                                     placeholder = { Text("Buscar eventos...") },
                                     singleLine = true,
-                                    shape = RoundedCornerShape(8.dp),
                                     colors = TextFieldDefaults.outlinedTextFieldColors(
                                         containerColor = Color.White,
                                         focusedBorderColor = primaryColor,
@@ -212,22 +211,24 @@ fun EventosScreen(
                                         imeAction = ImeAction.Search
                                     ),
                                     keyboardActions = KeyboardActions(
-                                        onSearch = {
-                                            focusManager.clearFocus()
-                                        }
-                                    )
+                                        onSearch = { focusManager.clearFocus() }
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
                                 )
                                 
                                 Spacer(modifier = Modifier.width(8.dp))
                                 
                                 // Botón de búsqueda
-                                IconButton(
+                                Button(
                                     onClick = { focusManager.clearFocus() },
                                     modifier = Modifier
                                         .size(48.dp)
-                                        .shadow(4.dp, CircleShape)
-                                        .clip(CircleShape)
-                                        .background(primaryColor)
+                                        .shadow(4.dp, CircleShape),
+                                    contentPadding = PaddingValues(0.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = primaryColor
+                                    ),
+                                    shape = CircleShape
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Search,
@@ -353,7 +354,7 @@ fun EventoCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     
                     Text(
-                        text = formatDate(evento.fechaEvento, false),
+                        text = formatDate(evento.fechaEvento, true),  // Ahora incluye el año
                         style = MaterialTheme.typography.bodyMedium,
                         color = textSecondaryColor
                     )
