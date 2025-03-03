@@ -3,6 +3,7 @@
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel>
       <module name="App.app" target="21" />
+      <module name="gotapp.app" target="21" />
     </bytecodeTargetLevel>
   </component>
 </project>

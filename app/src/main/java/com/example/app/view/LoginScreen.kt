@@ -33,8 +33,9 @@ import androidx.compose.material3.HorizontalDivider
 @Composable
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
-    viewModel: LoginViewModel,
-    navController: NavController
+    onNavigateToForgotPassword: () -> Unit,
+    navController: NavController,
+    viewModel: LoginViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val isLoading = viewModel.isLoading
     val errorMessage = viewModel.errorMessage
@@ -124,17 +125,14 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 // Enlace "Olvidé mi contraseña"
-                Text(
-                    text = "¿Olvidaste tu contraseña?",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = Color(0xFFE53935),
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .padding(bottom = 24.dp)
-                        .clickable { navController.navigate("forgot-password") }
-                )
+                TextButton(
+                    onClick = { 
+                        navController.navigate("forgot_password") 
+                    },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text("¿Olvidaste tu contraseña?")
+                }
                 
                 // Botón de inicio de sesión
                 Button(
