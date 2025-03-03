@@ -4,9 +4,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,452 +25,223 @@ import com.example.app.viewmodel.ForgotPasswordViewModel
 
 @Composable
 fun ForgotPasswordScreen(
-    onNavigateToLogin: () -> Unit,
-    viewModel: ForgotPasswordViewModel = viewModel()
+    viewModel: ForgotPasswordViewModel = viewModel(),
+    onNavigateToLogin: () -> Unit
 ) {
-    var currentStep by remember { mutableStateOf(1) }
-    var email by remember { mutableStateOf("") }
-    var securityAnswer by remember { mutableStateOf("") }
-    var newPassword by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
+    // Observar navegación
+    val navigateToLogin by viewModel.navigateToLogin.observeAsState(false)
+    if (navigateToLogin) {
+        LaunchedEffect(key1 = true) {
+            viewModel.onLoginNavigated()
+            onNavigateToLogin()
+        }
+    }
     
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Color.White
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Column(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(48.dp))
+            
+            // Título
+            Text(
+                text = "Recuperar Contraseña",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = Color(0xFFE53935),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            
+            // Descripción
+            Text(
+                text = "Introduce tu correo electrónico y tu DNI o teléfono para recuperar tu contraseña",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
+            
+            // Campo de email
+            OutlinedTextField(
+                value = viewModel.email,
+                onValueChange = { viewModel.onEmailChange(it) },
+                label = { Text("Correo Electrónico") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFE53935),
+                    unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
+                    focusedLabelColor = Color(0xFFE53935),
+                    unfocusedLabelColor = Color.Gray
+                )
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Campo de identificador (DNI o teléfono)
+            OutlinedTextField(
+                value = viewModel.identificador,
+                onValueChange = { viewModel.onIdentificadorChange(it) },
+                label = { Text("DNI o Teléfono") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { viewModel.onResetPasswordClick() }
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFE53935),
+                    unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
+                    focusedLabelColor = Color(0xFFE53935),
+                    unfocusedLabelColor = Color.Gray
+                )
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Botón de enviar
+            Button(
+                onClick = { viewModel.onResetPasswordClick() },
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFE53935)
+                ),
+                enabled = !viewModel.isLoading
             ) {
-                // Logo
-                Image(
-                    painter = painterResource(id = R.drawable.logo),
-                    contentDescription = "EventFlix Logo",
-                    modifier = Modifier
-                        .size(150.dp)
-                        .padding(vertical = 16.dp),
-                    contentScale = ContentScale.Fit
-                )
-                
-                // Título
-                Text(
-                    text = "Recuperar Contraseña",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFE53935)
-                    ),
-                    modifier = Modifier.padding(bottom = 24.dp),
-                    textAlign = TextAlign.Center
-                )
-                
-                // Indicador de pasos
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 24.dp),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    StepIndicator(step = 1, currentStep = currentStep)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    StepIndicator(step = 2, currentStep = currentStep)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    StepIndicator(step = 3, currentStep = currentStep)
-                }
-                
-                // Contenido según el paso actual
-                when (currentStep) {
-                    1 -> {
-                        // Paso 1: Ingresar email
-                        Text(
-                            text = "Ingresa tu correo electrónico para buscar tu cuenta",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-                        
-                        OutlinedTextField(
-                            value = email,
-                            onValueChange = { email = it },
-                            label = { Text("Email") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Email,
-                                imeAction = ImeAction.Done
-                            ),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFFE53935),
-                                unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
-                                focusedLabelColor = Color(0xFFE53935),
-                                unfocusedLabelColor = Color.Gray
-                            )
-                        )
-                        
-                        Spacer(modifier = Modifier.height(24.dp))
-                        
-                        Button(
-                            onClick = { 
-                                if (email.isNotEmpty()) {
-                                    // Simulamos verificación del email
-                                    viewModel.verifyEmail(email)
-                                    currentStep = 2
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFE53935)
-                            )
-                        ) {
-                            Text(
-                                text = "Buscar Cuenta",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = Color.White
-                            )
-                        }
-                    }
-                    2 -> {
-                        // Paso 2: Responder pregunta de seguridad
-                        Text(
-                            text = "Responde tu pregunta de seguridad",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-                        
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFFF5F5F5)
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp)
-                            ) {
-                                Text(
-                                    text = "Pregunta de seguridad:",
-                                    style = MaterialTheme.typography.titleSmall.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = Color(0xFF333333),
-                                    modifier = Modifier.padding(bottom = 8.dp)
-                                )
-                                
-                                Text(
-                                    text = "¿Cuál es el nombre de tu primera mascota?",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color(0xFF333333)
-                                )
-                            }
-                        }
-                        
-                        OutlinedTextField(
-                            value = securityAnswer,
-                            onValueChange = { securityAnswer = it },
-                            label = { Text("Tu respuesta") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Done
-                            ),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFFE53935),
-                                unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
-                                focusedLabelColor = Color(0xFFE53935),
-                                unfocusedLabelColor = Color.Gray
-                            )
-                        )
-                        
-                        Spacer(modifier = Modifier.height(24.dp))
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            OutlinedButton(
-                                onClick = { currentStep = 1 },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                                    .padding(end = 8.dp),
-                                shape = RoundedCornerShape(8.dp),
-                                border = ButtonDefaults.outlinedButtonBorder.copy(
-                                    width = 1.dp,
-                                    brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFE53935))
-                                ),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color(0xFFE53935)
-                                )
-                            ) {
-                                Text(
-                                    text = "Atrás",
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                )
-                            }
-                            
-                            Button(
-                                onClick = { 
-                                    if (securityAnswer.isNotEmpty()) {
-                                        // Verificamos la respuesta (simulado)
-                                        if (viewModel.verifySecurityAnswer(securityAnswer)) {
-                                            currentStep = 3
-                                        } else {
-                                            // Mostrar error
-                                            viewModel.setError("Respuesta incorrecta. Inténtalo de nuevo.")
-                                        }
-                                    }
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                                    .padding(start = 8.dp),
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFE53935)
-                                )
-                            ) {
-                                Text(
-                                    text = "Verificar",
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = Color.White
-                                )
-                            }
-                        }
-                    }
-                    3 -> {
-                        // Paso 3: Crear nueva contraseña
-                        Text(
-                            text = "Crea una nueva contraseña",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-                        
-                        OutlinedTextField(
-                            value = newPassword,
-                            onValueChange = { newPassword = it },
-                            label = { Text("Nueva contraseña") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Password,
-                                imeAction = ImeAction.Next
-                            ),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFFE53935),
-                                unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
-                                focusedLabelColor = Color(0xFFE53935),
-                                unfocusedLabelColor = Color.Gray
-                            )
-                        )
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        OutlinedTextField(
-                            value = confirmPassword,
-                            onValueChange = { confirmPassword = it },
-                            label = { Text("Confirmar contraseña") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Password,
-                                imeAction = ImeAction.Done
-                            ),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFFE53935),
-                                unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
-                                focusedLabelColor = Color(0xFFE53935),
-                                unfocusedLabelColor = Color.Gray
-                            )
-                        )
-                        
-                        Spacer(modifier = Modifier.height(24.dp))
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            OutlinedButton(
-                                onClick = { currentStep = 2 },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                                    .padding(end = 8.dp),
-                                shape = RoundedCornerShape(8.dp),
-                                border = ButtonDefaults.outlinedButtonBorder.copy(
-                                    width = 1.dp,
-                                    brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFE53935))
-                                ),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color(0xFFE53935)
-                                )
-                            ) {
-                                Text(
-                                    text = "Atrás",
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                )
-                            }
-                            
-                            Button(
-                                onClick = { 
-                                    if (newPassword.isNotEmpty() && confirmPassword.isNotEmpty()) {
-                                        if (newPassword == confirmPassword) {
-                                            // Resetear contraseña (simulado)
-                                            viewModel.resetPassword(email, newPassword)
-                                            // Mostrar diálogo de éxito
-                                            viewModel.markSuccess()
-                                        } else {
-                                            // Mostrar error
-                                            viewModel.setError("Las contraseñas no coinciden")
-                                        }
-                                    }
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                                    .padding(start = 8.dp),
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFE53935)
-                                )
-                            ) {
-                                Text(
-                                    text = "Restablecer",
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = Color.White
-                                )
-                            }
-                        }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.weight(1f))
-                
-                // Botón para volver al login
-                TextButton(
-                    onClick = onNavigateToLogin,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                ) {
+                if (viewModel.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White
+                    )
+                } else {
                     Text(
-                        text = "Volver a Iniciar Sesión",
-                        color = Color(0xFFE53935),
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Medium
-                        )
+                        text = "Recuperar Contraseña",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White
                     )
                 }
             }
             
-            // Indicador de carga
-            if (viewModel.isLoading) {
-                Box(
+            // Mostrar contraseña recuperada si está disponible
+            if (viewModel.recoveredPassword.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Card(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f)),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFE8F5E9)
+                    )
                 ) {
-                     CircularProgressIndicator(
-                        color = Color(0xFFE53935),
-                        modifier = Modifier.size(64.dp)
-                     )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Tu contraseña es:",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = Color(0xFF2E7D32),
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        
+                        Text(
+                            text = viewModel.recoveredPassword,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = Color(0xFF2E7D32)
+                        )
+                    }
                 }
             }
             
-            // Diálogo de error
-            if (viewModel.isError) {
-                AlertDialog(
-                    onDismissRequest = { viewModel.clearError() },
-                    title = { 
+            Spacer(modifier = Modifier.weight(1f))
+            
+            // Botón para volver al login
+            TextButton(
+                onClick = onNavigateToLogin,
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                Text(
+                    text = "Volver a Iniciar Sesión",
+                    color = Color(0xFFE53935),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium
+                    )
+                )
+            }
+        }
+        
+        // Indicador de carga
+        if (viewModel.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                 CircularProgressIndicator(
+                    color = Color(0xFFE53935),
+                    modifier = Modifier.size(64.dp)
+                 )
+            }
+        }
+        
+        // Diálogo de error
+        if (viewModel.isError) {
+            AlertDialog(
+                onDismissRequest = { /* No hacer nada */ },
+                title = { 
+                    Text(
+                        text = "Error",
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color(0xFFE53935)
+                    ) 
+                },
+                text = { 
+                    Text(
+                        text = viewModel.errorMessage ?: "",
+                        style = MaterialTheme.typography.bodyMedium
+                    ) 
+                },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.setError(null) }) {
                         Text(
-                            text = "Error",
-                            style = MaterialTheme.typography.headlineSmall.copy(
+                            text = "Aceptar",
+                            style = MaterialTheme.typography.labelLarge.copy(
                                 fontWeight = FontWeight.Bold
                             ),
                             color = Color(0xFFE53935)
-                        ) 
-                    },
-                    text = { 
-                        Text(
-                            text = viewModel.errorMessage ?: "",
-                            style = MaterialTheme.typography.bodyMedium
-                        ) 
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { viewModel.clearError() }) {
-                            Text(
-                                text = "Aceptar",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = Color(0xFFE53935)
-                            )
-                        }
-                    },
-                    containerColor = Color.White,
-                    shape = RoundedCornerShape(16.dp)
-                )
-            }
-            
-            // Diálogo de éxito
-            if (viewModel.successState) {
-                AlertDialog(
-                    onDismissRequest = { /* No hacer nada */ },
-                    title = { 
-                        Text(
-                            text = "¡Contraseña Restablecida!",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = Color(0xFF4CAF50)
-                        ) 
-                    },
-                    text = { 
-                        Text(
-                            text = "Tu contraseña ha sido restablecida correctamente. Ahora puedes iniciar sesión con tu nueva contraseña.",
-                            style = MaterialTheme.typography.bodyMedium
-                        ) 
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { 
-                            viewModel.clearSuccess()
-                            onNavigateToLogin()
-                        }) {
-                            Text(
-                                text = "Ir a Iniciar Sesión",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = Color(0xFFE53935)
-                            )
-                        }
-                    },
-                    containerColor = Color.White,
-                    shape = RoundedCornerShape(16.dp)
-                )
-            }
+                        )
+                    }
+                },
+                containerColor = Color.White,
+                shape = RoundedCornerShape(16.dp)
+            )
         }
     }
 }
