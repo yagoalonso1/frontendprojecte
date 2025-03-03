@@ -32,10 +32,8 @@ import com.example.app.viewmodel.EventoDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EventoDetailScreen(
-    navController: NavController,
-    viewModel: EventoDetailViewModel = viewModel()
-) {
+fun EventoDetailScreen() {
+    val viewModel: EventoDetailViewModel = viewModel()
     val evento = viewModel.evento
     val isLoading = viewModel.isLoading
     val isError = viewModel.isError
@@ -67,7 +65,7 @@ fun EventoDetailScreen(
                         ) 
                     },
                     navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
+                        IconButton(onClick = { /* TODO: Implementar navegación */ }) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack, 
                                 contentDescription = "Volver",

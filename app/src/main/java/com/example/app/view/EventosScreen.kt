@@ -50,14 +50,22 @@ import com.example.app.model.Evento
 import com.example.app.util.formatDate
 import com.example.app.viewmodel.EventoViewModel
 import kotlinx.coroutines.launch
+import com.example.app.routes.BottomNavigationBar
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventosScreen(
     onEventoClick: (Evento) -> Unit,
-    onProfileClick: () -> Unit = {},
-    viewModel: EventoViewModel = viewModel()
+    navController: NavController = rememberNavController()
 ) {
+    // Obtener el rol del usuario desde el savedStateHandle
+    val userRole = navController.previousBackStackEntry
+        ?.savedStateHandle
+        ?.get<String>("user_role") ?: ""
+    
+    val viewModel: EventoViewModel = viewModel()
     val eventos = viewModel.eventos
     val isLoading = viewModel.isLoading
     val isError = viewModel.isError
@@ -98,165 +106,165 @@ fun EventosScreen(
     val textSecondaryColor = Color.DarkGray  // Más oscuro para mejor contraste
     val successColor = Color(0xFF4CAF50)  // Verde para elementos gratuitos
     
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = backgroundColor
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { 
-                        Text(
-                            text = "EVENTOS",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 22.sp,
-                                letterSpacing = 1.sp
-                            ),
-                            color = primaryColor,
-                            modifier = Modifier.padding(start = 8.dp)
-                        ) 
-                    },
-                    actions = {
-                        // Botón de perfil de usuario
-                        IconButton(
-                            onClick = onProfileClick,
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Text(
+                        text = "EVENTOS",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp,
+                            letterSpacing = 1.sp
+                        ),
+                        color = primaryColor,
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) 
+                },
+                actions = {
+                    // Botón de perfil de usuario
+                    IconButton(
+                        onClick = { /* Implementa el clic del botón de perfil */ },
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, primaryColor, CircleShape)
+                            .background(Color.White)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Perfil de usuario",
+                            tint = primaryColor,
                             modifier = Modifier
-                                .padding(end = 8.dp)
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .border(2.dp, primaryColor, CircleShape)
-                                .background(Color.White)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Perfil de usuario",
-                                tint = primaryColor,
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .padding(2.dp)
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.White,  // Fondo blanco para la barra superior
-                        titleContentColor = primaryColor
-                    )
+                                .size(24.dp)
+                                .padding(2.dp)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,  // Fondo blanco para la barra superior
+                    titleContentColor = primaryColor
                 )
-            }
-        ) { paddingValues ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .background(backgroundColor)
-            ) {
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.White),
-                        contentAlignment = Alignment.Center
+            )
+        },
+        bottomBar = {
+            BottomNavigationBar(
+                navController = navController,
+                userRole = userRole
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = primaryColor,
+                        modifier = Modifier.size(64.dp)
+                    )
+                }
+            } else if (isError) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = viewModel.errorMessage ?: "Error desconocido",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Red,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // Barra de búsqueda animada
+                    AnimatedVisibility(
+                        visible = isSearchBarVisible.value,
+                        enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
+                        exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
                     ) {
-                        CircularProgressIndicator(
-                            color = primaryColor,
-                            modifier = Modifier.size(64.dp)
-                        )
-                    }
-                } else if (isError) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = viewModel.errorMessage ?: "Error desconocido",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Red,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        // Barra de búsqueda animada
-                        AnimatedVisibility(
-                            visible = isSearchBarVisible.value,
-                            enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
-                            exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
+                            // Campo de búsqueda
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .weight(1f)
+                                    .shadow(4.dp, RoundedCornerShape(8.dp)),
+                                placeholder = { Text("Buscar eventos...") },
+                                singleLine = true,
+                                colors = TextFieldDefaults.outlinedTextFieldColors(
+                                    containerColor = Color.White,
+                                    focusedBorderColor = primaryColor,
+                                    unfocusedBorderColor = Color.LightGray
+                                ),
+                                keyboardOptions = KeyboardOptions.Default.copy(
+                                    imeAction = ImeAction.Search
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onSearch = { focusManager.clearFocus() }
+                                ),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            
+                            Spacer(modifier = Modifier.width(8.dp))
+                            
+                            // Botón de búsqueda
+                            Button(
+                                onClick = { focusManager.clearFocus() },
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .shadow(4.dp, CircleShape),
+                                contentPadding = PaddingValues(0.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = primaryColor
+                                ),
+                                shape = CircleShape
                             ) {
-                                // Campo de búsqueda
-                                OutlinedTextField(
-                                    value = searchQuery,
-                                    onValueChange = { searchQuery = it },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .shadow(4.dp, RoundedCornerShape(8.dp)),
-                                    placeholder = { Text("Buscar eventos...") },
-                                    singleLine = true,
-                                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                                        containerColor = Color.White,
-                                        focusedBorderColor = primaryColor,
-                                        unfocusedBorderColor = Color.LightGray
-                                    ),
-                                    keyboardOptions = KeyboardOptions.Default.copy(
-                                        imeAction = ImeAction.Search
-                                    ),
-                                    keyboardActions = KeyboardActions(
-                                        onSearch = { focusManager.clearFocus() }
-                                    ),
-                                    shape = RoundedCornerShape(8.dp)
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = "Buscar",
+                                    tint = Color.White
                                 )
-                                
-                                Spacer(modifier = Modifier.width(8.dp))
-                                
-                                // Botón de búsqueda
-                                Button(
-                                    onClick = { focusManager.clearFocus() },
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .shadow(4.dp, CircleShape),
-                                    contentPadding = PaddingValues(0.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = primaryColor
-                                    ),
-                                    shape = CircleShape
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Search,
-                                        contentDescription = "Buscar",
-                                        tint = Color.White
-                                    )
-                                }
                             }
                         }
-                        
-                        // Lista de eventos
-                        LazyColumn(
-                            state = lazyListState,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(filteredEventos) { evento ->
-                                EventoCard(
-                                    evento = evento,
-                                    onClick = { onEventoClick(evento) },
-                                    primaryColor = primaryColor,
-                                    textPrimaryColor = textPrimaryColor,
-                                    textSecondaryColor = textSecondaryColor,
-                                    successColor = successColor
-                                )
-                            }
+                    }
+                    
+                    // Lista de eventos
+                    LazyColumn(
+                        state = lazyListState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(filteredEventos) { evento ->
+                            EventoCard(
+                                evento = evento,
+                                onClick = { onEventoClick(evento) },
+                                primaryColor = primaryColor,
+                                textPrimaryColor = textPrimaryColor,
+                                textSecondaryColor = textSecondaryColor,
+                                successColor = successColor
+                            )
                         }
                     }
                 }
