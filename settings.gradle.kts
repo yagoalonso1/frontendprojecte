@@ -14,6 +14,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "gotapp"
+rootProject.name = "app"
 include(":app")
  
