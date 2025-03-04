@@ -73,6 +73,12 @@ fun BottomNavigationBar(
                 title = "Perfil",
                 icon = Icons.Default.Person,
                 userType = UserType.ALL
+            ),
+            NavItem(
+                route = "favoritos",
+                title = "Favoritos",
+                icon = Icons.Default.Favorite,
+                userType = UserType.ALL
             )
         )
     } else {

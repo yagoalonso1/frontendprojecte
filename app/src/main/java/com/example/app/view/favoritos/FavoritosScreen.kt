@@ -1,0 +1,316 @@
+package com.example.app.view.favoritos
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.app.model.Evento
+import com.example.app.routes.BottomNavigationBar
+import com.example.app.routes.Routes
+import com.example.app.util.formatDate
+import com.example.app.viewmodel.EventoViewModel
+import com.example.app.view.EventoCard
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FavoritosScreen(
+    navController: NavHostController,
+    viewModel: EventoViewModel = viewModel()
+) {
+    val eventos = viewModel.eventos
+    val isLoading = viewModel.isLoading
+    val isError = viewModel.isError
+    val errorMessage = viewModel.errorMessage
+    
+    // Filtrar solo los eventos favoritos
+    val eventosFavoritos = remember(eventos) {
+        eventos.filter { evento -> evento.isFavorito }
+    }
+    
+    // Colores consistentes
+    val primaryColor = Color(0xFFE53935)
+    val backgroundColor = Color.White
+    val textPrimaryColor = Color.Black
+    val textSecondaryColor = Color.DarkGray
+    val successColor = Color(0xFF4CAF50)
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Text(
+                        text = "MIS FAVORITOS",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp,
+                            letterSpacing = 1.sp
+                        ),
+                        color = primaryColor
+                    ) 
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = primaryColor
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = primaryColor
+                )
+            )
+        },
+        bottomBar = {
+            BottomNavigationBar(
+                navController = navController,
+                userRole = "Participante"
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.White),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = primaryColor,
+                            modifier = Modifier.size(64.dp)
+                        )
+                    }
+                }
+                isError -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = errorMessage ?: "Error desconocido",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Red,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                eventosFavoritos.isEmpty() -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No tienes eventos favoritos",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = textSecondaryColor,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(eventosFavoritos) { evento ->
+                            EventoCard(
+                                evento = evento,
+                                onClick = { 
+                                    navController.navigate("evento_detalle/${evento.id.toString()}")
+                                },
+                                primaryColor = primaryColor,
+                                textPrimaryColor = textPrimaryColor,
+                                textSecondaryColor = textSecondaryColor,
+                                successColor = successColor
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventoCard(
+    evento: Evento,
+    onClick: () -> Unit,
+    primaryColor: Color,
+    textPrimaryColor: Color,
+    textSecondaryColor: Color,
+    successColor: Color
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(12.dp),
+                spotColor = Color.Black.copy(alpha = 0.2f)
+            )
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        )
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data("https://eventosapp.jmrp.es/storage/${evento.imagen}")
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Imagen del evento",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .width(120.dp)
+                    .height(140.dp)
+                    .clip(RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp))
+            )
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(primaryColor.copy(alpha = 0.1f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = evento.categoria,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = primaryColor,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = evento.titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = textPrimaryColor
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarMonth,
+                        contentDescription = "Fecha",
+                        tint = primaryColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(4.dp))
+                    
+                    Text(
+                        text = formatDate(evento.fechaEvento, true),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = textSecondaryColor
+                    )
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = "Hora",
+                        tint = primaryColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(4.dp))
+                    
+                    Text(
+                        text = if (evento.hora.length >= 5) evento.hora.substring(0, 5) else evento.hora,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = textSecondaryColor
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Ubicación",
+                        tint = primaryColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(4.dp))
+                    
+                    Text(
+                        text = evento.ubicacion,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = textSecondaryColor
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = if (evento.precio > 0) "${evento.precio}€" else "Gratuito",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (evento.precio > 0) primaryColor else successColor
+                )
+            }
+        }
+    }
+}

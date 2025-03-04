@@ -18,13 +18,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.app.R
 import com.example.app.viewmodel.RegisterViewModel
@@ -74,12 +79,11 @@ fun ParticipanteScreen(
 
             // Título
             item {
-                Text(
+                androidx.compose.material3.Text(
                     text = "Datos de Participante",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFE53935) // Color rojo del logo
-                    ),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFE53935),
                     modifier = Modifier.padding(bottom = 24.dp),
                     textAlign = TextAlign.Center
                 )
@@ -246,31 +250,30 @@ fun ParticipanteScreen(
     
     // Diálogo de error
     if (viewModel.isError) {
+        val errorMessageState by viewModel.errorMessage.collectAsState()
         AlertDialog(
             onDismissRequest = { viewModel.clearError() },
             title = { 
-                Text(
+                androidx.compose.material3.Text(
                     text = "Error",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFE53935)
-                    )
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFE53935)
                 ) 
             },
             text = { 
-                Text(
-                    text = viewModel.errorMessage ?: "",
+                androidx.compose.material3.Text(
+                    text = errorMessageState ?: "",
                     style = MaterialTheme.typography.bodyMedium
                 ) 
             },
             confirmButton = {
                 TextButton(onClick = { viewModel.clearError() }) {
-                    Text(
+                    androidx.compose.material3.Text(
                         text = "Aceptar",
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFE53935)
-                        )
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFE53935)
                     )
                 }
             },

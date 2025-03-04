@@ -14,5 +14,6 @@ data class RegisterRequest(
     @SerializedName("telefono_contacto") val telefonoContacto: String?,
     // Datos específicos de Participante
     @SerializedName("dni") val dni: String?,
-    @SerializedName("telefono") val telefono: String?
+    @SerializedName("telefono") val telefono: String?,
+    @SerializedName("direccion") val direccion: String?
 )

@@ -1,6 +1,8 @@
 package com.example.app.viewmodel
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -59,25 +61,62 @@ class EventoViewModel : ViewModel() {
                         setError("No se pudieron cargar los eventos: Respuesta vacía")
                     }
                 } else {
-                    val errorBody = response.errorBody()?.string()
-                    Log.e("EVENTOS", "Error: ${response.code()} - $errorBody")
-                    
-                    try {
-                        val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
-                        val message = errorResponse?.get("message") as? String ?: errorResponse?.get("error") as? String
-                        setError(message ?: "No se pudieron cargar los eventos (${response.code()})")
-                    } catch (e: Exception) {
-                        setError("No se pudieron cargar los eventos: ${response.message()} (${response.code()})")
-                    }
+                    handleErrorResponse(response)
                 }
-                
-                isLoading = false
             } catch (e: Exception) {
+                handleException(e)
+            } finally {
                 isLoading = false
-                Log.e("EVENTOS", "Excepción: ${e.message}", e)
-                setError("Error de conexión: ${e.message}")
             }
         }
+    }
+    
+    fun toggleFavorito(eventoId: Int) {
+        viewModelScope.launch {
+            try {
+                Log.d("FAVORITOS", "Toggle favorito para evento $eventoId")
+                
+                val response = withContext(Dispatchers.IO) {
+                    RetrofitClient.apiService.toggleFavorito(eventoId)
+                }
+                
+                // Verificar el código de respuesta
+                when (response.code()) {
+                    200 -> {
+                        // Actualizar el estado del evento en la lista local
+                        eventos = eventos.map { evento ->
+                            if (evento.id == eventoId) {
+                                evento.copy(isFavorito = !evento.isFavorito)
+                            } else {
+                                evento
+                            }
+                        }
+                        Log.d("FAVORITOS", "Favorito actualizado correctamente")
+                    }
+                    else -> handleErrorResponse(response)
+                }
+            } catch (e: Exception) {
+                handleException(e)
+            }
+        }
+    }
+    
+    private fun handleErrorResponse(response: retrofit2.Response<*>) {
+        val errorBody = response.errorBody()?.string()
+        Log.e("EVENTOS", "Error: ${response.code()} - $errorBody")
+        
+        try {
+            val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
+            val message = errorResponse?.get("message") as? String ?: errorResponse?.get("error") as? String
+            setError(message ?: "Error en la operación (${response.code()})")
+        } catch (e: Exception) {
+            setError("Error en la operación: ${response.message()} (${response.code()})")
+        }
+    }
+    
+    private fun handleException(e: Exception) {
+        Log.e("EVENTOS", "Excepción: ${e.message}", e)
+        setError("Error de conexión: ${e.message}")
     }
     
     // Función para establecer error
@@ -88,6 +127,7 @@ class EventoViewModel : ViewModel() {
     }
     
     // Función para parsear la fecha
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun parseDate(dateString: String): LocalDate {
         return try {
             LocalDate.parse(dateString, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
@@ -98,6 +138,7 @@ class EventoViewModel : ViewModel() {
     }
     
     // Función para parsear la hora
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun parseTime(timeString: String): LocalTime {
         return try {
             LocalTime.parse(timeString, DateTimeFormatter.ofPattern("HH:mm:ss"))
@@ -106,4 +147,4 @@ class EventoViewModel : ViewModel() {
             LocalTime.of(23, 59, 59)
         }
     }
-} 
+}

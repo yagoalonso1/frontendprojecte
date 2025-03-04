@@ -19,55 +19,76 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.LiveData
 
 class RegisterViewModel : ViewModel() {
-    // Estados del formulario principal
+    // Datos básicos del usuario
     var name by mutableStateOf("")
     var apellido1 by mutableStateOf("")
     var apellido2 by mutableStateOf("")
     var email by mutableStateOf("")
+    var password by mutableStateOf("")
+    var confirmPassword by mutableStateOf("")
+    var role by mutableStateOf("participante")
+
+    // Datos específicos del organizador
+    var nombreOrganizacion by mutableStateOf("")
+    var telefonoContacto by mutableStateOf("")
+
+    // Datos específicos del participante
     var dni by mutableStateOf("")
     var telefono by mutableStateOf("")
-    var password by mutableStateOf("")
-    var repeatPassword by mutableStateOf("")
-    var role by mutableStateOf("")
-    
-    // Estados de error del formulario principal
+    var direccion by mutableStateOf("")
+
+    // Estados de error para campos básicos
     var isNameError by mutableStateOf(false)
     var isApellido1Error by mutableStateOf(false)
     var isApellido2Error by mutableStateOf(false)
     var isEmailError by mutableStateOf(false)
-    var isDniError by mutableStateOf(false)
-    var isTelefonoError by mutableStateOf(false)
     var isPasswordError by mutableStateOf(false)
-    var isRepeatPasswordError by mutableStateOf(false)
-    
-    // Estados específicos de Organizador
-    var nombreOrganizacion by mutableStateOf("")
-    var telefonoContacto by mutableStateOf("")
+    var isConfirmPasswordError by mutableStateOf(false)
+
+    // Estados de error para campos de organizador
     var isNombreOrganizacionError by mutableStateOf(false)
     var isTelefonoContactoError by mutableStateOf(false)
-    
-    // Estados específicos de Participante
-    // (Ya tenemos dni y telefono en el formulario principal)
-    
-    // Estados de UI
+
+    // Estados de error para campos de participante
+    var isDniError by mutableStateOf(false)
+    var isTelefonoError by mutableStateOf(false)
+    var isDireccionError by mutableStateOf(false)
+
+    // Mensajes de error
+    var nameErrorMessage by mutableStateOf("")
+    var apellido1ErrorMessage by mutableStateOf("")
+    var apellido2ErrorMessage by mutableStateOf("")
+    var emailErrorMessage by mutableStateOf("")
+    var passwordErrorMessage by mutableStateOf("")
+    var confirmPasswordErrorMessage by mutableStateOf("")
+    var nombreOrganizacionErrorMessage by mutableStateOf("")
+    var telefonoContactoErrorMessage by mutableStateOf("")
+    var dniErrorMessage by mutableStateOf("")
+    var telefonoErrorMessage by mutableStateOf("")
+    var direccionErrorMessage by mutableStateOf("")
+
+    // Estado de carga y registro
     var isLoading by mutableStateOf(false)
-    var errorMessage by mutableStateOf<String?>(null)
+    private val _isRegisterSuccessful = MutableStateFlow(false)
+    val isRegisterSuccessful: StateFlow<Boolean> = _isRegisterSuccessful
+
+    // Estado de error
     var isError by mutableStateOf(false)
-    
+        private set
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
+    // Debug message
+    private val _debugMessage = MutableStateFlow<String>("")
+    val debugMessage: StateFlow<String> = _debugMessage
+
     // Validaciones de formato
     private val nameRegex = "^[A-Za-zÁ-ÿ\\s]{2,}$"
     private val dniRegex = "^[0-9]{8}[A-Z]$"
     private val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"
     private val phoneRegex = "^[0-9]{9}$"
     private val passwordRegex = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[.@#$%^&+=!*()_\\-])(?=\\S+$).{8,}$"
-
-    // Cambiamos a StateFlow para poder observarlo en el NavHost
-    private val _isRegisterSuccessful = MutableStateFlow(false)
-    val isRegisterSuccessful = _isRegisterSuccessful.asStateFlow()
-
-    // Cambia el nombre de la variable para evitar conflictos
-    private val _debugMessage = MutableLiveData<String>()
-    val debugMessage: LiveData<String> = _debugMessage
 
     // Funciones de formato
     fun formatName(input: String): String {
@@ -123,13 +144,18 @@ class RegisterViewModel : ViewModel() {
     }
 
     fun doPasswordsMatch(): Boolean {
-        return password == repeatPassword && password.isNotEmpty()
+        return password == confirmPassword && password.isNotEmpty()
     }
 
     fun isValidNombreOrganizacion(nombre: String): Boolean {
         // Permitir espacios en el nombre de la organización
         // Solo verificar que no esté vacío y tenga al menos 3 caracteres en total
         return nombre.trim().isNotEmpty() && nombre.trim().length >= 3
+    }
+
+    fun isValidDireccion(direccion: String): Boolean {
+        // Verificar que la dirección no esté vacía y tenga al menos 5 caracteres
+        return direccion.trim().length >= 5
     }
 
     // Validación de campos
@@ -142,52 +168,203 @@ class RegisterViewModel : ViewModel() {
             "dni" -> isDniError = !isValidDNI(value)
             "telefono" -> isTelefonoError = !isValidPhone(value)
             "password" -> isPasswordError = !isValidPassword(value)
-            "repeatPassword" -> isRepeatPasswordError = !doPasswordsMatch()
+            "confirmPassword" -> isConfirmPasswordError = !doPasswordsMatch()
             "nombreOrganizacion" -> isNombreOrganizacionError = !isValidNombreOrganizacion(value)
             "telefonoContacto" -> isTelefonoContactoError = !isValidPhone(value)
+            "direccion" -> isDireccionError = !isValidDireccion(value)
         }
     }
 
     fun validateAllFields(): Boolean {
-        validateField("name", name)
-        validateField("apellido1", apellido1)
-        validateField("apellido2", apellido2)
-        validateField("email", email)
-        validateField("dni", dni)
-        validateField("telefono", telefono)
-        validateField("password", password)
-        validateField("repeatPassword", repeatPassword)
-        
-        return !isNameError && !isApellido1Error && !isApellido2Error &&
-               !isEmailError && !isDniError && !isTelefonoError &&
-               !isPasswordError && !isRepeatPasswordError &&
-               name.isNotEmpty() && apellido1.isNotEmpty() && 
-               email.isNotEmpty() && dni.isNotEmpty() &&
-               telefono.isNotEmpty() && password.isNotEmpty() &&
-               repeatPassword.isNotEmpty()
+        var isValid = true
+
+        // Validar campos básicos
+        if (name.isBlank()) {
+            isNameError = true
+            nameErrorMessage = "El nombre es requerido"
+            isValid = false
+        } else {
+            isNameError = false
+            nameErrorMessage = ""
+        }
+
+        if (apellido1.isBlank()) {
+            isApellido1Error = true
+            apellido1ErrorMessage = "El primer apellido es requerido"
+            isValid = false
+        } else {
+            isApellido1Error = false
+            apellido1ErrorMessage = ""
+        }
+
+        // Validar email
+        if (email.isBlank()) {
+            isEmailError = true
+            emailErrorMessage = "El email es requerido"
+            isValid = false
+        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            isEmailError = true
+            emailErrorMessage = "Email inválido"
+            isValid = false
+        } else {
+            isEmailError = false
+            emailErrorMessage = ""
+        }
+
+        // Validar contraseña
+        if (password.isBlank()) {
+            isPasswordError = true
+            passwordErrorMessage = "La contraseña es requerida"
+            isValid = false
+        } else if (password.length < 6) {
+            isPasswordError = true
+            passwordErrorMessage = "La contraseña debe tener al menos 6 caracteres"
+            isValid = false
+        } else {
+            isPasswordError = false
+            passwordErrorMessage = ""
+        }
+
+        // Validar confirmación de contraseña
+        if (confirmPassword != password) {
+            isConfirmPasswordError = true
+            confirmPasswordErrorMessage = "Las contraseñas no coinciden"
+            isValid = false
+        } else {
+            isConfirmPasswordError = false
+            confirmPasswordErrorMessage = ""
+        }
+
+        // Validar campos específicos según el rol
+        when (role.lowercase()) {
+            "organizador" -> isValid = isValid && validateOrganizadorFields()
+            "participante" -> isValid = isValid && validateParticipanteFields()
+        }
+
+        return isValid
     }
 
     fun validateOrganizadorFields(): Boolean {
-        validateField("nombreOrganizacion", nombreOrganizacion)
-        validateField("telefonoContacto", telefonoContacto)
+        var isValid = true
         
-        return !isNombreOrganizacionError && !isTelefonoContactoError &&
-               nombreOrganizacion.isNotEmpty() && telefonoContacto.isNotEmpty()
+        if (nombreOrganizacion.isBlank()) {
+            isNombreOrganizacionError = true
+            nombreOrganizacionErrorMessage = "El nombre de la organización es requerido"
+            isValid = false
+        } else {
+            isNombreOrganizacionError = false
+            nombreOrganizacionErrorMessage = ""
+        }
+
+        if (telefonoContacto.isBlank()) {
+            isTelefonoContactoError = true
+            telefonoContactoErrorMessage = "El teléfono de contacto es requerido"
+            isValid = false
+        } else if (!telefonoContacto.matches(Regex("^[0-9]{9}$"))) {
+            isTelefonoContactoError = true
+            telefonoContactoErrorMessage = "El teléfono debe tener 9 dígitos"
+            isValid = false
+        } else {
+            isTelefonoContactoError = false
+            telefonoContactoErrorMessage = ""
+        }
+
+        return isValid
     }
 
     fun validateParticipanteFields(): Boolean {
-        validateField("dni", dni)
-        validateField("telefono", telefono)
+        var isValid = true
+
+        if (dni.isBlank()) {
+            isDniError = true
+            dniErrorMessage = "El DNI es requerido"
+            isValid = false
+        } else if (!dni.matches(Regex("^[0-9]{8}[A-Z]$"))) {
+            isDniError = true
+            dniErrorMessage = "DNI inválido (8 números y 1 letra)"
+            isValid = false
+        } else {
+            isDniError = false
+            dniErrorMessage = ""
+        }
+
+        if (telefono.isBlank()) {
+            isTelefonoError = true
+            telefonoErrorMessage = "El teléfono es requerido"
+            isValid = false
+        } else if (!telefono.matches(Regex("^[0-9]{9}$"))) {
+            isTelefonoError = true
+            telefonoErrorMessage = "El teléfono debe tener 9 dígitos"
+            isValid = false
+        } else {
+            isTelefonoError = false
+            telefonoErrorMessage = ""
+        }
+
+        if (direccion.isBlank()) {
+            isDireccionError = true
+            direccionErrorMessage = "La dirección es requerida"
+            isValid = false
+        } else {
+            isDireccionError = false
+            direccionErrorMessage = ""
+        }
+
+        return isValid
+    }
+
+    // Función para limpiar error
+    fun clearError() {
+        isError = false
+        _errorMessage.value = null
+    }
+
+    // Función para establecer error
+    fun setError(message: String) {
+        isError = true
+        _errorMessage.value = message
+    }
+
+    private fun clearFields() {
+        name = ""
+        apellido1 = ""
+        apellido2 = ""
+        email = ""
+        password = ""
+        confirmPassword = ""
+        nombreOrganizacion = ""
+        telefonoContacto = ""
+        dni = ""
+        telefono = ""
+        direccion = ""
         
-        return !isDniError && !isTelefonoError &&
-               dni.isNotEmpty() && telefono.isNotEmpty()
+        // Limpiar estados de error
+        isNameError = false
+        isApellido1Error = false
+        isApellido2Error = false
+        isEmailError = false
+        isPasswordError = false
+        isConfirmPasswordError = false
+        isNombreOrganizacionError = false
+        isTelefonoContactoError = false
+        isDniError = false
+        isTelefonoError = false
+        isDireccionError = false
+        
+        // Limpiar mensajes de error
+        nameErrorMessage = ""
+        apellido1ErrorMessage = ""
+        apellido2ErrorMessage = ""
+        emailErrorMessage = ""
+        passwordErrorMessage = ""
+        confirmPasswordErrorMessage = ""
+        nombreOrganizacionErrorMessage = ""
+        telefonoContactoErrorMessage = ""
+        dniErrorMessage = ""
+        telefonoErrorMessage = ""
+        direccionErrorMessage = ""
     }
 
-    fun isAllFieldsValid(): Boolean {
-        return validateAllFields()
-    }
-
-    // Modifica la función mostrarMensaje para usar la nueva variable
     private fun mostrarMensaje(mensaje: String) {
         _debugMessage.value = mensaje
         Log.d("REGISTRO_DEBUG", mensaje)
@@ -206,26 +383,21 @@ class RegisterViewModel : ViewModel() {
                     return@launch
                 }
 
-                // Validar campos específicos según el rol
                 when (role.lowercase()) {
                     "organizador" -> {
                         if (!validateOrganizadorFields()) {
-                            setError("Por favor, completa los datos del organizador")
+                            setError("Por favor, completa los datos del organizador correctamente")
                             return@launch
                         }
                     }
                     "participante" -> {
                         if (!validateParticipanteFields()) {
-                            setError("Por favor, completa los datos del participante")
+                            setError("Por favor, completa los datos del participante correctamente")
                             return@launch
                         }
                     }
                 }
 
-                // Antes de crear el RegisterRequest
-                mostrarMensaje("Validación completada. Preparando datos...")
-
-                // Crear objeto de petición
                 val registerRequest = RegisterRequest(
                     nombre = name,
                     apellido1 = apellido1,
@@ -236,130 +408,30 @@ class RegisterViewModel : ViewModel() {
                     nombreOrganizacion = if (role.lowercase() == "organizador") nombreOrganizacion else null,
                     telefonoContacto = if (role.lowercase() == "organizador") telefonoContacto else null,
                     dni = if (role.lowercase() == "participante") dni else null,
-                    telefono = if (role.lowercase() == "participante") telefono else null
+                    telefono = if (role.lowercase() == "participante") telefono else null,
+                    direccion = if (role.lowercase() == "participante") direccion else null
                 )
-                
-                // Mostrar los datos que se van a enviar
+
                 mostrarMensaje("Enviando datos: $registerRequest")
                 
-                // Si es organizador, mostrar datos específicos
-                if (role.lowercase() == "organizador") {
-                    mostrarMensaje("Datos de organizador: nombreOrganizacion=$nombreOrganizacion, telefonoContacto=$telefonoContacto")
-                }
-
-                // Llamar a la API
-                mostrarMensaje("Conectando con el servidor...")
-                val response = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    RetrofitClient.apiService.registerUser(registerRequest)
-                }
+                val response = RetrofitClient.apiService.registerUser(registerRequest)
                 
-                // Mostrar resultado
                 if (response.isSuccessful) {
                     mostrarMensaje("Registro exitoso: ${response.body()}")
                     _isRegisterSuccessful.value = true
                     clearFields()
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    mostrarMensaje("Error ${response.code()}: $errorBody")
-                    
-                    // Intentar parsear el error para obtener más detalles
-                    try {
-                        val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
-                        val message = errorResponse["message"] as? String
-                        val errors = errorResponse["errors"] as? Map<*, *>
-                        
-                        if (errors != null) {
-                            for ((key, value) in errors) {
-                                mostrarMensaje("Error en campo $key: $value")
-                            }
-                        } else if (message != null) {
-                            mostrarMensaje("Mensaje de error: $message")
-                        }
-                    } catch (e: Exception) {
-                        mostrarMensaje("No se pudo parsear el error: ${e.message}")
-                    }
-                    
-                    // Manejar errores específicos según el código de respuesta
-                    when (response.code()) {
-                        409 -> {
-                            // Conflicto - recurso ya existe
-                            if (role.lowercase() == "participante") {
-                                setError("Ya existe un participante con este DNI o correo electrónico")
-                            } else {
-                                setError("Ya existe un organizador con este correo electrónico")
-                            }
-                        }
-                        422 -> {
-                            // Error de validación
-                            try {
-                                // Intentar extraer mensajes de error específicos
-                                val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
-                                val errors = errorResponse["errors"] as? Map<*, *>
-                                
-                                if (errors != null) {
-                                    // Construir un mensaje de error más amigable
-                                    val errorMessages = mutableListOf<String>()
-                                    
-                                    if (errors.containsKey("email")) {
-                                        errorMessages.add("El correo electrónico ya está en uso")
-                                    }
-                                    
-                                    if (errors.containsKey("dni")) {
-                                        errorMessages.add("El DNI ya está registrado")
-                                    }
-                                    
-                                    if (errorMessages.isNotEmpty()) {
-                                        setError(errorMessages.joinToString("\n"))
-                                    } else {
-                                        // Mensaje genérico si no podemos identificar el error específico
-                                        val message = errorResponse["message"] as? String
-                                        setError(message ?: "Error de validación en los datos enviados")
-                                    }
-                                } else {
-                                    val message = errorResponse["message"] as? String
-                                    setError(message ?: "Error de validación en los datos enviados")
-                                }
-                            } catch (e: Exception) {
-                                Log.e("RegisterViewModel", "Error al procesar respuesta de error", e)
-                                setError("Error de validación: Verifica que los datos sean correctos")
-                            }
-                        }
-                        401, 403 -> setError("No tienes permiso para realizar esta acción")
-                        404 -> setError("El recurso solicitado no existe")
-                        500 -> setError("Error interno del servidor. Inténtalo más tarde")
-                        else -> {
-                            try {
-                                val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
-                                val message = errorResponse["message"] as? String
-                                setError(message ?: "Error en la comunicación con el servidor: ${response.code()}")
-                            } catch (e: Exception) {
-                                setError("Error en la comunicación con el servidor: ${response.code()}")
-                            }
-                        }
-                    }
+                    mostrarMensaje("Error en el registro: $errorBody")
+                    setError("Error en el registro: ${response.message()}")
                 }
-                
             } catch (e: Exception) {
-                mostrarMensaje("Excepción: ${e.message}")
+                mostrarMensaje("Error: ${e.message}")
                 setError("Error de conexión: ${e.message}")
             } finally {
                 isLoading = false
             }
         }
-    }
-
-    private fun clearFields() {
-        name = ""
-        apellido1 = ""
-        apellido2 = ""
-        email = ""
-        dni = ""
-        telefono = ""
-        password = ""
-        repeatPassword = ""
-        nombreOrganizacion = ""
-        telefonoContacto = ""
-        role = ""
     }
 
     fun getPasswordRequirements(): List<String> {
@@ -370,17 +442,6 @@ class RegisterViewModel : ViewModel() {
             "Al menos un número",
             "Al menos un carácter especial (@#$%^&+=)"
         )
-    }
-
-    fun clearError() {
-        isError = false
-        errorMessage = null
-    }
-
-    fun setError(error: String?) {
-        isError = true
-        errorMessage = error
-        Log.e("REGISTRO_DEBUG", "ERROR: $error")
     }
 
     // Función para resetear el estado de registro exitoso

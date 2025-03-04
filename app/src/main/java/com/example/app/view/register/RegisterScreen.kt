@@ -19,7 +19,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.app.R
 import com.example.app.viewmodel.RegisterViewModel
@@ -37,7 +39,7 @@ fun RegisterScreen(
 ) {
     var showPasswordRequirements by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
-    var repeatPasswordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
     
     // Verificamos los campos solo si el usuario ha interactuado con ellos
     val nameValid = viewModel.name.isEmpty() || !viewModel.isNameError
@@ -45,20 +47,20 @@ fun RegisterScreen(
     val apellido2Valid = viewModel.apellido2.isEmpty() || !viewModel.isApellido2Error
     val emailValid = viewModel.email.isEmpty() || !viewModel.isEmailError
     val passwordValid = viewModel.password.isEmpty() || !viewModel.isPasswordError
-    val repeatPasswordValid = viewModel.repeatPassword.isEmpty() || !viewModel.isRepeatPasswordError
+    val confirmPasswordValid = viewModel.confirmPassword.isEmpty() || !viewModel.isConfirmPasswordError
     
     // Verificamos si todos los campos requeridos están completos y válidos
     val allFieldsFilled = viewModel.name.isNotEmpty() && 
                          viewModel.apellido1.isNotEmpty() && 
                          viewModel.email.isNotEmpty() && 
                          viewModel.password.isNotEmpty() && 
-                         viewModel.repeatPassword.isNotEmpty()
+                         viewModel.confirmPassword.isNotEmpty()
     
     val allFieldsValid = !viewModel.isNameError && 
                          !viewModel.isApellido1Error && 
                          !viewModel.isEmailError && 
                          !viewModel.isPasswordError && 
-                         !viewModel.isRepeatPasswordError &&
+                         !viewModel.isConfirmPasswordError &&
                          viewModel.doPasswordsMatch()
     
     val buttonsEnabled = allFieldsFilled && allFieldsValid
@@ -117,10 +119,13 @@ fun RegisterScreen(
                             }
                         },
                         label = { Text("Nombre") },
-                        isError = !nameValid,
+                        isError = viewModel.isNameError,
                         supportingText = {
-                            if (!nameValid) {
-                                Text("Nombre inválido")
+                            if (viewModel.isNameError) {
+                                Text(
+                                    text = viewModel.nameErrorMessage,
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -149,10 +154,13 @@ fun RegisterScreen(
                             }
                         },
                         label = { Text("Primer Apellido") },
-                        isError = !apellido1Valid,
+                        isError = viewModel.isApellido1Error,
                         supportingText = {
-                            if (!apellido1Valid) {
-                                Text("Apellido inválido")
+                            if (viewModel.isApellido1Error) {
+                                Text(
+                                    text = viewModel.apellido1ErrorMessage,
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -213,10 +221,13 @@ fun RegisterScreen(
                             }
                         },
                         label = { Text("Email") },
-                        isError = !emailValid,
+                        isError = viewModel.isEmailError,
                         supportingText = {
-                            if (!emailValid) {
-                                Text("Email inválido")
+                            if (viewModel.isEmailError) {
+                                Text(
+                                    text = viewModel.emailErrorMessage,
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -246,10 +257,13 @@ fun RegisterScreen(
                             }
                         },
                         label = { Text("Contraseña") },
-                        isError = !passwordValid,
+                        isError = viewModel.isPasswordError,
                         supportingText = {
-                            if (!passwordValid) {
-                                Text("Contraseña inválida")
+                            if (viewModel.isPasswordError) {
+                                Text(
+                                    text = viewModel.passwordErrorMessage,
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -348,34 +362,37 @@ fun RegisterScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     OutlinedTextField(
-                        value = viewModel.repeatPassword,
+                        value = viewModel.confirmPassword,
                         onValueChange = { 
-                            viewModel.repeatPassword = it
+                            viewModel.confirmPassword = it
                             if (it.isNotEmpty()) {
-                                viewModel.validateField("repeatPassword", it)
+                                viewModel.validateField("confirmPassword", it)
                             } else {
-                                viewModel.isRepeatPasswordError = false
+                                viewModel.isConfirmPasswordError = false
                             }
                         },
                         label = { Text("Confirmar Contraseña") },
-                        isError = !repeatPasswordValid,
+                        isError = viewModel.isConfirmPasswordError,
                         supportingText = {
-                            if (!repeatPasswordValid) {
-                                Text("Las contraseñas no coinciden")
+                            if (viewModel.isConfirmPasswordError) {
+                                Text(
+                                    text = viewModel.confirmPasswordErrorMessage,
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        visualTransformation = if (repeatPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done
                         ),
                         trailingIcon = {
-                            IconButton(onClick = { repeatPasswordVisible = !repeatPasswordVisible }) {
+                            IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                                 Icon(
-                                    imageVector = if (repeatPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                    contentDescription = if (repeatPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                                    imageVector = if (confirmPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                    contentDescription = if (confirmPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
                                     tint = Color(0xFFE53935)
                                 )
                             }
@@ -496,32 +513,29 @@ fun RegisterScreen(
     }
     
     // Diálogo de error
+    val errorMessageState by viewModel.errorMessage.collectAsState()
     if (viewModel.isError) {
         AlertDialog(
             onDismissRequest = { viewModel.clearError() },
             title = { 
-                Text(
+                androidx.compose.material3.Text(
                     text = "Error",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color(0xFFE53935)
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
                 ) 
             },
             text = { 
-                Text(
-                    text = viewModel.errorMessage ?: "",
+                androidx.compose.material3.Text(
+                    text = errorMessageState ?: "",
                     style = MaterialTheme.typography.bodyMedium
                 ) 
             },
             confirmButton = {
                 TextButton(onClick = { viewModel.clearError() }) {
-                    Text(
+                    androidx.compose.material3.Text(
                         text = "Aceptar",
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = Color(0xFFE53935)
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             },
