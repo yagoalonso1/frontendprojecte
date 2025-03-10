@@ -183,37 +183,17 @@ fun OrganizadorScreen(
             }
             
             // Diálogo de error
+            val errorMessage by viewModel.errorMessage.collectAsState()
             if (viewModel.isError) {
                 AlertDialog(
                     onDismissRequest = { viewModel.clearError() },
-                    title = { 
-                        Text(
-                            text = "Error",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = Color(0xFFE53935)
-                        ) 
-                    },
-                    text = { 
-                        Text(
-                            text = viewModel.errorMessage ?: "",
-                            style = MaterialTheme.typography.bodyMedium
-                        ) 
-                    },
+                    title = { Text("Error") },
+                    text = { Text(errorMessage ?: "") },
                     confirmButton = {
                         TextButton(onClick = { viewModel.clearError() }) {
-                            Text(
-                                text = "Aceptar",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = Color(0xFFE53935)
-                            )
+                            Text("Aceptar")
                         }
-                    },
-                    containerColor = Color.White,
-                    shape = RoundedCornerShape(16.dp)
+                    }
                 )
             }
             

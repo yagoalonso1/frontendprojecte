@@ -16,29 +16,26 @@ import kotlinx.coroutines.withContext
 class EventoDetailViewModel(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
-    // Obtener el ID del evento de los argumentos de navegación
-    private val eventoId: Int = checkNotNull(savedStateHandle["eventoId"])
+    private val eventoId: String = checkNotNull(savedStateHandle["eventoId"]) {
+        "eventoId parameter not found"
+    }
     
-    // Estado para el evento
     var evento by mutableStateOf<Evento?>(null)
         private set
     
-    // Estado para indicar carga
-    var isLoading by mutableStateOf(false)
+    var isLoading by mutableStateOf(true)
         private set
     
-    // Estado para errores
     var errorMessage by mutableStateOf<String?>(null)
         private set
     var isError by mutableStateOf(false)
         private set
     
-    // Cargar evento al iniciar
     init {
+        Log.d("EventoDetailViewModel", "Inicializando con eventoId: $eventoId")
         loadEvento()
     }
     
-    // Función para cargar el evento
     fun loadEvento() {
         viewModelScope.launch {
             try {
@@ -46,46 +43,32 @@ class EventoDetailViewModel(
                 errorMessage = null
                 isError = false
                 
-                Log.d("EVENTO_DETAIL", "Cargando evento con ID: $eventoId")
+                Log.d("EventoDetailViewModel", "Cargando evento con ID: $eventoId")
                 
                 val response = withContext(Dispatchers.IO) {
                     RetrofitClient.apiService.getEventoById(eventoId)
                 }
                 
-                if (response.isSuccessful) {
-                    val eventoResponse = response.body()
-                    if (eventoResponse != null) {
-                        evento = eventoResponse.evento
-                        Log.d("EVENTO_DETAIL", "Evento cargado: ${evento?.titulo}")
-                    } else {
-                        setError("No se pudo cargar el evento: Respuesta vacía")
-                    }
+                if (response.isSuccessful && response.body() != null) {
+                    evento = response.body()?.evento
+                    Log.d("EventoDetailViewModel", "Evento cargado exitosamente: ${evento?.titulo}")
                 } else {
-                    val errorBody = response.errorBody()?.string()
-                    Log.e("EVENTO_DETAIL", "Error: ${response.code()} - $errorBody")
-                    
-                    try {
-                        val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
-                        val message = errorResponse?.get("message") as? String ?: errorResponse?.get("error") as? String
-                        setError(message ?: "No se pudo cargar el evento (${response.code()})")
-                    } catch (e: Exception) {
-                        setError("No se pudo cargar el evento: ${response.message()} (${response.code()})")
-                    }
+                    val error = response.errorBody()?.string() ?: "Error desconocido"
+                    Log.e("EventoDetailViewModel", "Error al cargar evento: $error")
+                    setError("No se pudo cargar el evento: ${response.message()}")
                 }
-                
-                isLoading = false
             } catch (e: Exception) {
+                Log.e("EventoDetailViewModel", "Excepción al cargar evento", e)
+                setError("Error de conexión: ${e.localizedMessage}")
+            } finally {
                 isLoading = false
-                Log.e("EVENTO_DETAIL", "Excepción: ${e.message}", e)
-                setError("Error de conexión: ${e.message}")
             }
         }
     }
     
-    // Función para establecer error
-    private fun setError(error: String?) {
-        isError = error != null
+    private fun setError(error: String) {
         errorMessage = error
-        Log.e("EVENTO_DETAIL", "ERROR: $error")
+        isError = true
+        Log.e("EventoDetailViewModel", "Error establecido: $error")
     }
 } 

@@ -22,6 +22,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.navigation.compose.rememberNavController
 import com.example.app.view.EventoDetailScreen
 import com.example.app.view.EventosScreen
 import com.example.app.view.LoginScreen
@@ -33,17 +34,16 @@ private var isUserAuthenticated = false
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(
-    navController: NavHostController
+    navController: NavHostController = rememberNavController()
 ) {
-    // Estado para almacenar el tipo de usuario después del login
     var userType by remember { mutableStateOf<UserType>(UserType.PARTICIPANT) }
     
     // Interceptar la navegación para manejar el inicio de sesión
     DisposableEffect(navController) {
         val listener = NavController.OnDestinationChangedListener { controller, destination, _ ->
-            // Si el usuario está autenticado y navega de vuelta a la pantalla de login, redirigirlo a home
+            // Si el usuario está autenticado y navega de vuelta a la pantalla de login, redirigirlo a eventos
             if (isUserAuthenticated && destination.route == Routes.Login.route) {
-                controller.navigate(Routes.Home.route) {
+                controller.navigate(Routes.Eventos.route) {
                     popUpTo(Routes.Login.route) { inclusive = true }
                 }
             }
@@ -57,7 +57,7 @@ fun AppNavigation(
     
     NavHost(
         navController = navController,
-        startDestination = if (isUserAuthenticated) Routes.Home.route else Routes.Login.route
+        startDestination = if (isUserAuthenticated) Routes.Eventos.route else Routes.Login.route
     ) {
         // Pantalla de login
         composable(Routes.Login.route) {
@@ -73,20 +73,18 @@ fun AppNavigation(
             navController.currentBackStackEntry?.savedStateHandle?.get<Boolean>("login_successful")?.let { success ->
                 if (success) {
                     isUserAuthenticated = true
-                    // Determinar el tipo de usuario (puedes obtenerlo de SharedPreferences o ViewModel)
                     val role = navController.currentBackStackEntry?.savedStateHandle?.get<String>("user_role") ?: ""
                     userType = when (role) {
                         "organizador" -> UserType.ORGANIZER
                         "participante" -> UserType.PARTICIPANT
-                        else -> UserType.PARTICIPANT // Por defecto
+                        else -> UserType.PARTICIPANT
                     }
                     
-                    // Navegar a la pantalla principal
-                    navController.navigate(Routes.Home.route) {
+                    // Navegar a la pantalla de eventos
+                    navController.navigate(Routes.Eventos.route) {
                         popUpTo(Routes.Login.route) { inclusive = true }
                     }
                     
-                    // Limpiar el estado para evitar navegaciones repetidas
                     navController.currentBackStackEntry?.savedStateHandle?.remove<Boolean>("login_successful")
                 }
             }
@@ -104,16 +102,24 @@ fun AppNavigation(
         }
         
         // Pantalla principal con menú de navegación
-        composable(Routes.Home.route) {
+        composable(Routes.Eventos.route) {
             HomeScreenWithBottomNav(navController, userType)
         }
         
         // Pantalla de detalle de evento
         composable(
             route = Routes.EventoDetalle.route,
-            arguments = listOf(navArgument("eventoId") { type = NavType.IntType })
-        ) {
-            EventoDetailScreen()
+            arguments = listOf(
+                navArgument("eventoId") { 
+                    type = NavType.StringType 
+                    defaultValue = ""
+                }
+            )
+        ) { backStackEntry ->
+            EventoDetailScreen(
+                navController = navController,
+                eventoId = backStackEntry.arguments?.getString("eventoId") ?: ""
+            )
         }
     }
 }

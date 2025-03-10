@@ -1,5 +1,6 @@
 package com.example.app.view
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.app.util.formatDate
@@ -32,8 +35,19 @@ import com.example.app.viewmodel.EventoDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EventoDetailScreen() {
+fun EventoDetailScreen(
+    navController: NavController,
+    eventoId: String
+) {
+    Log.d("EventoDetailScreen", "Renderizando pantalla con eventoId: $eventoId")
+    
     val viewModel: EventoDetailViewModel = viewModel()
+    
+    LaunchedEffect(eventoId) {
+        Log.d("EventoDetailScreen", "LaunchedEffect: Cargando evento")
+        viewModel.loadEvento()
+    }
+
     val evento = viewModel.evento
     val isLoading = viewModel.isLoading
     val isError = viewModel.isError
@@ -65,7 +79,7 @@ fun EventoDetailScreen() {
                         ) 
                     },
                     navigationIcon = {
-                        IconButton(onClick = { /* TODO: Implementar navegación */ }) {
+                        IconButton(onClick = { navController.popBackStack() }) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack, 
                                 contentDescription = "Volver",
@@ -81,34 +95,27 @@ fun EventoDetailScreen() {
                 )
             }
         ) { paddingValues ->
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .background(backgroundColor)
+                    .padding(16.dp)
             ) {
                 if (isLoading) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(
-                            color = primaryColor,
-                            modifier = Modifier.size(64.dp)
-                        )
+                        CircularProgressIndicator()
                     }
                 } else if (isError) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = errorMessage ?: "Error desconocido",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Red,
-                            textAlign = TextAlign.Center
+                            color = Color.Red
                         )
                     }
                 } else if (evento != null) {
