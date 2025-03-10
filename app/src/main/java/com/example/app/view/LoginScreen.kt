@@ -29,6 +29,7 @@ import com.example.app.R
 import androidx.navigation.NavController
 import com.example.app.viewmodel.ForgotPasswordViewModel
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.runtime.LaunchedEffect
 
 @Composable
 fun LoginScreen(
@@ -39,7 +40,22 @@ fun LoginScreen(
 ) {
     val isLoading = viewModel.isLoading
     val errorMessage = viewModel.errorMessage
-    val isError = viewModel.isError
+    val isError = errorMessage != null
+    val isLoginSuccessful = viewModel.isLoginSuccessful.collectAsState().value
+    
+    // Efecto para manejar la navegación después del inicio de sesión exitoso
+    LaunchedEffect(isLoginSuccessful) {
+        if (isLoginSuccessful) {
+            // Establecer el estado de autenticación
+            navController.currentBackStackEntry?.savedStateHandle?.set("login_successful", true)
+            navController.currentBackStackEntry?.savedStateHandle?.set("user_role", viewModel.user?.role ?: "")
+            
+            // Navegar a la pantalla de eventos en lugar de la pantalla principal
+            navController.navigate("eventos") {
+                popUpTo("login") { inclusive = true }
+            }
+        }
+    }
     
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -81,7 +97,7 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Email,
+                        keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Next
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -102,7 +118,7 @@ fun LoginScreen(
                     singleLine = true,
                     visualTransformation = if (viewModel.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
+                        keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
                     ),
                     trailingIcon = {
@@ -129,9 +145,12 @@ fun LoginScreen(
                     onClick = { 
                         navController.navigate("forgot_password") 
                     },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.End)
                 ) {
-                    Text("¿Olvidaste tu contraseña?")
+                    Text(
+                        text = "¿Olvidaste tu contraseña?",
+                        color = Color(0xFFE53935)
+                    )
                 }
                 
                 // Botón de inicio de sesión
@@ -181,9 +200,85 @@ fun LoginScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
+                // Botones de inicio de sesión con redes sociales
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Botón de Facebook
+                    Button(
+                        onClick = { /* TODO: Implementar inicio de sesión con Facebook */ },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF1877F2) // Color azul de Facebook
+                        )
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.logo_facebook),
+                                contentDescription = "Facebook",
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Continuar con Facebook",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = Color.White
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Botón de Google
+                    OutlinedButton(
+                        onClick = { /* TODO: Implementar inicio de sesión con Google */ },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            width = 1.dp,
+                            brush = androidx.compose.ui.graphics.SolidColor(Color.Gray.copy(alpha = 0.5f))
+                        )
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.logo_google),
+                                contentDescription = "Google",
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Continuar con Google",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = Color.Black.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
                 // Botón de registro
                 OutlinedButton(
-                    onClick = onNavigateToRegister,
+                    onClick = { 
+                        // Navegar directamente a la pantalla de registro
+                        navController.navigate("register")
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),

@@ -9,16 +9,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.app.model.User
 import com.example.app.viewmodel.LoginViewModel
 
 @Composable
 fun HomeScreen(
-    navController: NavController,
     user: User?,
     viewModel: LoginViewModel
 ) {
+    val isLogoutSuccessful by viewModel.isLogoutSuccessful.collectAsState()
+    
+    // Observar el estado de cierre de sesión
+    LaunchedEffect(isLogoutSuccessful) {
+        if (isLogoutSuccessful) {
+            // Aquí no podemos navegar directamente porque no tenemos acceso al NavController
+            // En su lugar, usamos un enfoque basado en eventos
+            viewModel.resetLogoutState() // Resetear el estado para evitar navegaciones repetidas
+        }
+    }
+    
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color.White
@@ -31,36 +42,37 @@ fun HomeScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "¡Iniciado Correctamente!",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFE53935)
-                ),
-                textAlign = TextAlign.Center
+                text = "¡Bienvenido!",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFE53935)
             )
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = "Bienvenido, ${user?.email ?: "Usuario"}",
-                style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Center
+                text = "Has iniciado sesión como ${user?.email ?: "Usuario"}",
+                fontSize = 16.sp
             )
             
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "Rol: ${user?.role ?: "No especificado"}",
+                fontSize = 16.sp
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
             
             Button(
                 onClick = {
                     viewModel.onLogoutClick()
-                    navController.navigate("login") {
-                        popUpTo("home") { inclusive = true }
-                    }
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFE53935)
                 )
             ) {
-                Text("Cerrar Sesión")
+                Text("Cerrar sesión")
             }
         }
     }

@@ -27,41 +27,29 @@ import com.example.app.view.HomeScreen
 import com.example.app.viewmodel.LoginViewModel
 import com.example.app.view.EventosScreen
 import com.example.app.view.EventoDetailScreen
+import com.example.app.model.Evento
 import kotlinx.coroutines.delay
 
 // Configuración centralizada del NavHost
 @Composable
 fun AppNavHost(
     navController: NavHostController = rememberNavController(),
-    startDestination: String = "splash"
+    startDestination: String = "login"
 ) {
-    // Creamos los ViewModels compartidos
+    // ViewModel compartido para el proceso de registro
     val sharedRegisterViewModel: RegisterViewModel = viewModel()
     val sharedLoginViewModel: LoginViewModel = viewModel()
     
-    // Observamos el estado de registro exitoso
-    val isRegisterSuccessful by sharedRegisterViewModel.isRegisterSuccessful.collectAsState()
-    
-    // Observamos el estado de login exitoso
-    val isLoginSuccessful by sharedLoginViewModel.isLoginSuccessful.collectAsState()
-    
-    // Efecto para navegar a Eventos cuando el login es exitoso
-    LaunchedEffect(isLoginSuccessful) {
-        if (isLoginSuccessful) {
-            navController.navigate("eventos") {
-                popUpTo("login") { inclusive = true }
-            }
-        }
-    }
-    
-    // Efecto para navegar a Login cuando el registro es exitoso
-    LaunchedEffect(isRegisterSuccessful) {
-        if (isRegisterSuccessful) {
-            // Esperamos un momento para que el usuario vea el mensaje de éxito
-            delay(1500)
+    // Observamos el estado de cierre de sesión
+    val isLogoutSuccessful by sharedLoginViewModel.isLogoutSuccessful.collectAsState()
+
+    // Efecto para navegar a Login cuando el cierre de sesión es exitoso
+    LaunchedEffect(isLogoutSuccessful) {
+        if (isLogoutSuccessful) {
             navController.navigate("login") {
-                popUpTo("register") { inclusive = true }
+                popUpTo(0) { inclusive = true }
             }
+            sharedLoginViewModel.resetLogoutState()
         }
     }
     
@@ -69,27 +57,7 @@ fun AppNavHost(
         navController = navController,
         startDestination = startDestination
     ) {
-        composable("splash") {
-            // Pantalla de splash que redirige a login después de un tiempo
-            LaunchedEffect(key1 = true) {
-                delay(2000)
-                navController.navigate("login") {
-                    popUpTo("splash") { inclusive = true }
-                }
-            }
-            
-            // Contenido de la pantalla de splash
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Splash Screen",
-                    style = MaterialTheme.typography.headlineLarge
-                )
-            }
-        }
-        
+        // Pantalla de inicio de sesión
         composable("login") {
             LoginScreen(
                 onNavigateToRegister = { navController.navigate("register") },
@@ -99,50 +67,28 @@ fun AppNavHost(
             )
         }
         
-        composable("register") {
-            RegisterScreen(
-                onNavigateToLogin = { navController.navigate("login") },
-                onNavigateToOrganizador = { navController.navigate("register/organizador") },
-                onNavigateToParticipante = { navController.navigate("register/participante") },
-                viewModel = sharedRegisterViewModel
-            )
-        }
-        
-        composable("register/organizador") {
-            OrganizadorScreen(
-                viewModel = sharedRegisterViewModel
-            )
-        }
-        
-        composable("register/participante") {
-            ParticipanteScreen(
-                viewModel = sharedRegisterViewModel
-            )
-        }
-        
+        // Pantalla de recuperación de contraseña
         composable("forgot_password") {
             ForgotPasswordScreen(
-                onNavigateToLogin = { navController.navigate("login") {
-                    popUpTo("forgot_password") { inclusive = true }
-                }}
+                onNavigateToLogin = { navController.navigate("login") }
             )
         }
         
+        // Pantalla principal
         composable("home") {
             HomeScreen(
-                navController = navController,
                 user = sharedLoginViewModel.user,
                 viewModel = sharedLoginViewModel
             )
         }
         
-        // Ruta para la pantalla de eventos
+        // Pantalla de eventos
         composable("eventos") {
             EventosScreen(
-                onEventoClick = { evento ->
-                    // Asumiendo que el campo ID en tu modelo Evento es "id"
+                onEventoClick = { evento: Evento ->
                     navController.navigate("evento_detalle/${evento.id}")
-                }
+                },
+                navController = navController
             )
         }
         
@@ -153,8 +99,28 @@ fun AppNavHost(
                 navArgument("eventoId") { type = NavType.IntType }
             )
         ) {
-            EventoDetailScreen(
-                navController = navController
+            EventoDetailScreen()
+        }
+        
+        // Pantalla de registro
+        composable("register") {
+            RegisterScreen(
+                navController = navController,
+                viewModel = sharedRegisterViewModel
+            )
+        }
+        
+        // Pantalla de registro para organizador
+        composable("register/organizador") {
+            OrganizadorScreen(
+                viewModel = sharedRegisterViewModel
+            )
+        }
+        
+        // Pantalla de registro para participante
+        composable("register/participante") {
+            ParticipanteScreen(
+                viewModel = sharedRegisterViewModel
             )
         }
     }

@@ -28,12 +28,11 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.navigation.NavController
 
 @Composable
 fun RegisterScreen(
-    onNavigateToLogin: () -> Unit,
-    onNavigateToOrganizador: () -> Unit,
-    onNavigateToParticipante: () -> Unit,
+    navController: NavController,
     viewModel: RegisterViewModel = viewModel()
 ) {
     var showPasswordRequirements by remember { mutableStateOf(false) }
@@ -415,7 +414,7 @@ fun RegisterScreen(
                         Button(
                             onClick = {
                                 viewModel.role = "Organizador"
-                                onNavigateToOrganizador()
+                                navController.navigate("register/organizador")
                             },
                             modifier = Modifier
                                 .weight(1f)
@@ -440,7 +439,7 @@ fun RegisterScreen(
                         Button(
                             onClick = {
                                 viewModel.role = "Participante"
-                                onNavigateToParticipante()
+                                navController.navigate("register/participante")
                             },
                             modifier = Modifier
                                 .weight(1f)
@@ -479,7 +478,9 @@ fun RegisterScreen(
             // Botón para volver al login
             item {
                 TextButton(
-                    onClick = onNavigateToLogin,
+                    onClick = { 
+                        navController.navigate("login") 
+                    },
                     modifier = Modifier.padding(top = 8.dp)
                 ) {
                     Text(

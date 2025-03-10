@@ -148,61 +148,23 @@ class RegisterViewModel : ViewModel() {
         }
     }
 
-    private fun validateAllFields(): Boolean {
-        var isValid = true
+    fun validateAllFields(): Boolean {
+        validateField("name", name)
+        validateField("apellido1", apellido1)
+        validateField("apellido2", apellido2)
+        validateField("email", email)
+        validateField("dni", dni)
+        validateField("telefono", telefono)
+        validateField("password", password)
+        validateField("repeatPassword", repeatPassword)
         
-        // Validar nombre
-        if (name.isBlank()) {
-            Log.d("REGISTRO_DEBUG", "Validación fallida: Nombre en blanco")
-            isValid = false
-        }
-        
-        // Validar apellido1
-        if (apellido1.isBlank()) {
-            Log.d("REGISTRO_DEBUG", "Validación fallida: Apellido1 en blanco")
-            isValid = false
-        }
-        
-        // Validar email
-        if (!isValidEmail(email)) {
-            Log.d("REGISTRO_DEBUG", "Validación fallida: Email inválido: $email")
-            isValid = false
-        }
-        
-        // Validar contraseña
-        if (password.length < 6) {
-            Log.d("REGISTRO_DEBUG", "Validación fallida: Contraseña demasiado corta: ${password.length} caracteres")
-            isValid = false
-        }
-        
-        // Validaciones específicas según el rol
-        if (role.lowercase() == "organizador") {
-            if (nombreOrganizacion.isBlank()) {
-                Log.d("REGISTRO_DEBUG", "Validación fallida: Nombre de organización en blanco")
-                isValid = false
-            }
-            if (telefonoContacto.isBlank()) {
-                Log.d("REGISTRO_DEBUG", "Validación fallida: Teléfono de contacto en blanco")
-                isValid = false
-            }
-        } else if (role.lowercase() == "participante") {
-            if (dni.isBlank()) {
-                Log.d("REGISTRO_DEBUG", "Validación fallida: DNI en blanco")
-                isValid = false
-            }
-            if (telefono.isBlank()) {
-                Log.d("REGISTRO_DEBUG", "Validación fallida: Teléfono en blanco")
-                isValid = false
-            }
-        }
-        
-        if (!isValid) {
-            Log.d("REGISTRO_DEBUG", "Validación fallida: Hay campos inválidos")
-        } else {
-            Log.d("REGISTRO_DEBUG", "Validación exitosa: Todos los campos son válidos")
-        }
-        
-        return isValid
+        return !isNameError && !isApellido1Error && !isApellido2Error &&
+               !isEmailError && !isDniError && !isTelefonoError &&
+               !isPasswordError && !isRepeatPasswordError &&
+               name.isNotEmpty() && apellido1.isNotEmpty() && 
+               email.isNotEmpty() && dni.isNotEmpty() &&
+               telefono.isNotEmpty() && password.isNotEmpty() &&
+               repeatPassword.isNotEmpty()
     }
 
     fun validateOrganizadorFields(): Boolean {
