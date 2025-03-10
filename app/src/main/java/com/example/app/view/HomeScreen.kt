@@ -17,16 +17,17 @@ import com.example.app.viewmodel.LoginViewModel
 @Composable
 fun HomeScreen(
     user: User?,
-    viewModel: LoginViewModel
+    viewModel: LoginViewModel,
+    navController: NavController
 ) {
     val isLogoutSuccessful by viewModel.isLogoutSuccessful.collectAsState()
     
-    // Observar el estado de cierre de sesión
     LaunchedEffect(isLogoutSuccessful) {
         if (isLogoutSuccessful) {
-            // Aquí no podemos navegar directamente porque no tenemos acceso al NavController
-            // En su lugar, usamos un enfoque basado en eventos
-            viewModel.resetLogoutState() // Resetear el estado para evitar navegaciones repetidas
+            navController.navigate("login") {
+                popUpTo(0) { inclusive = true }
+            }
+            viewModel.resetLogoutState()
         }
     }
     
@@ -66,7 +67,7 @@ fun HomeScreen(
             
             Button(
                 onClick = {
-                    viewModel.onLogoutClick()
+                    viewModel.performLogout()
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFE53935)

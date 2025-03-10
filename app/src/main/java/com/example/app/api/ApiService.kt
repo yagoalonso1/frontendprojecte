@@ -30,7 +30,9 @@ interface ApiService {
     suspend fun loginUser(@Body loginRequest: LoginRequest): Response<LoginResponse>
     
     @POST("logout")
-    suspend fun logoutUser(@Header("Authorization") token: String): Response<LogoutResponse>
+    suspend fun logoutUser(
+        @Header("Authorization") token: String
+    ): Response<LogoutResponse>
     
     @POST("api/reset-password")
     suspend fun resetPassword(@Body resetRequest: ResetPasswordRequest): Response<ResetPasswordResponse>
