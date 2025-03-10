@@ -1,37 +1,28 @@
 package com.example.app.routes
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.app.view.EventoDetailScreen
+import com.example.app.view.EventosScreen
+import com.example.app.view.ForgotPasswordScreen
 import com.example.app.view.LoginScreen
-import com.example.app.view.register.RegisterScreen
+import com.example.app.view.favoritos.FavoritosScreen
 import com.example.app.view.register.OrganizadorScreen
 import com.example.app.view.register.ParticipanteScreen
-import com.example.app.viewmodel.RegisterViewModel
-import com.example.app.view.ForgotPasswordScreen
-import com.example.app.view.HomeScreen
+import com.example.app.view.register.RegisterScreen
 import com.example.app.viewmodel.LoginViewModel
-import com.example.app.view.EventosScreen
-import com.example.app.view.EventoDetailScreen
-import com.example.app.model.Evento
-import com.example.app.view.favoritos.FavoritosScreen
+import com.example.app.viewmodel.RegisterViewModel
 import kotlinx.coroutines.delay
-
-// Configuración centralizada del NavHost
+import android.util.Log
 @Composable
 fun AppNavHost(
     navController: NavHostController = rememberNavController(),
@@ -91,7 +82,18 @@ fun AppNavHost(
         composable(Routes.Eventos.route) {
             EventosScreen(
                 onEventoClick = { evento ->
-                    navController.navigate(Routes.EventoDetalle.createRoute(evento.id.toString()))
+                    Log.d("Navigation", "Clicked on evento with id: ${evento.id}")
+                    val route = Routes.EventoDetalle.createRoute(evento.id.toString())
+                    Log.d("Navigation", "Created route: $route")
+                    try {
+                        navController.navigate(route) {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                        Log.d("Navigation", "Successfully navigated to route: $route")
+                    } catch (e: Exception) {
+                        Log.e("Navigation", "Error navigating to route: $route", e)
+                    }
                 },
                 navController = navController
             )
@@ -102,13 +104,22 @@ fun AppNavHost(
             arguments = listOf(
                 navArgument("eventoId") { 
                     type = NavType.StringType 
-                    defaultValue = ""
+                    nullable = false
+                    defaultValue = "-1"
                 }
             )
         ) { backStackEntry ->
+            Log.d("Navigation", "Entering EventoDetailScreen composition")
+            val eventoId = backStackEntry.arguments?.getString("eventoId") ?: "-1"
+            Log.d("Navigation", "EventoDetailScreen received eventoId: $eventoId")
+            
+            LaunchedEffect(eventoId) {
+                Log.d("Navigation", "EventoDetailScreen LaunchedEffect triggered with eventoId: $eventoId")
+            }
+            
             EventoDetailScreen(
                 navController = navController,
-                eventoId = backStackEntry.arguments?.getString("eventoId") ?: ""
+                eventoId = eventoId
             )
         }
         
@@ -119,11 +130,11 @@ fun AppNavHost(
             )
         }
         
-        composable("register/organizador") {
+        composable(Routes.RegisterOrganizador.route) {
             OrganizadorScreen(viewModel = sharedRegisterViewModel)
         }
         
-        composable("register/participante") {
+        composable(Routes.RegisterParticipante.route) {
             ParticipanteScreen(viewModel = sharedRegisterViewModel)
         }
 

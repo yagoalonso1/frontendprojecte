@@ -39,7 +39,7 @@ interface ApiService {
     suspend fun getAllEventos(): Response<EventoResponse>
     
     @GET("api/eventos/{id}")
-    suspend fun getEventoById(@Path("id") id: Int): Response<EventoDetailResponse>
+    suspend fun getEventoById(@Path("id") id: String): Response<EventoDetailResponse>
     
     @GET("api/favoritos")
     suspend fun getFavoritos(

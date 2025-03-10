@@ -1,5 +1,6 @@
 package com.example.app.api
 
+import android.util.Log
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -11,13 +12,26 @@ object RetrofitClient {
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
+        setLevel(HttpLoggingInterceptor.Level.HEADERS)
     }
     
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor)
-        .connectTimeout(60, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
+        .addInterceptor { chain ->
+            val request = chain.request()
+            Log.d("Retrofit", "Making request to: ${request.url}")
+            try {
+                val response = chain.proceed(request)
+                Log.d("Retrofit", "Received response from: ${request.url}")
+                response
+            } catch (e: Exception) {
+                Log.e("Retrofit", "Error in request to: ${request.url}", e)
+                throw e
+            }
+        }
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
         .build()
     
     private val retrofit = Retrofit.Builder()
