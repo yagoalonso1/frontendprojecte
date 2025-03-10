@@ -151,6 +151,38 @@ class LoginViewModel : ViewModel() {
         _isLogoutSuccessful.value = false
     }
 
+    // Función que será llamada desde el HomeScreen
+    fun performLogout() {
+        viewModelScope.launch {
+            try {
+                // Obtener el token almacenado (asumiendo que lo tienes guardado)
+                val token = "Bearer ${getUserToken()}"
+                
+                // Llamar al endpoint de logout
+                val response = RetrofitClient.apiService.logoutUser(token)
+                
+                if (response.isSuccessful) {
+                    // Limpiar datos locales
+                    clearUserData()
+                    _isLogoutSuccessful.value = true
+                } else {
+                    Log.e("LoginViewModel", "Error en logout: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                Log.e("LoginViewModel", "Error durante el logout", e)
+            }
+        }
+    }
+
+    private fun getUserToken(): String {
+        // Implementa la lógica para obtener el token almacenado
+        return "tu_token_almacenado"
+    }
+
+    private fun clearUserData() {
+        // Implementa la lógica para limpiar los datos del usuario
+    }
+
     private fun validateFields(): Boolean {
         if (email.isEmpty() || password.isEmpty()) {
             setError("Por favor, completa todos los campos")
