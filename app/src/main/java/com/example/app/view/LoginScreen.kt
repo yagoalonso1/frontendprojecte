@@ -303,7 +303,7 @@ fun LoginScreen(
                 
                 // Texto de derechos de autor
                 Text(
-                    text = "© 2023 EventFlix. Todos los derechos reservados.",
+                    text = "© 2025 EventFlix. Todos los derechos reservados.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray,
                     textAlign = TextAlign.Center,
