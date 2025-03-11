@@ -37,11 +37,12 @@ fun RegisterScreen(
     navController: NavController,
     viewModel: RegisterViewModel = viewModel()
 ) {
+    // Estados para mostrar/ocultar contraseñas
     var showPasswordRequirements by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     
-    // Verificamos los campos solo si el usuario ha interactuado con ellos
+    // Validación de campos
     val nameValid = viewModel.name.isEmpty() || !viewModel.isNameError
     val apellido1Valid = viewModel.apellido1.isEmpty() || !viewModel.isApellido1Error
     val apellido2Valid = viewModel.apellido2.isEmpty() || !viewModel.isApellido2Error
@@ -49,7 +50,7 @@ fun RegisterScreen(
     val passwordValid = viewModel.password.isEmpty() || !viewModel.isPasswordError
     val confirmPasswordValid = viewModel.confirmPassword.isEmpty() || !viewModel.isConfirmPasswordError
     
-    // Verificamos si todos los campos requeridos están completos y válidos
+    // Verificar si se puede activar los botones
     val allFieldsFilled = viewModel.name.isNotEmpty() && 
                          viewModel.apellido1.isNotEmpty() && 
                          viewModel.email.isNotEmpty() && 

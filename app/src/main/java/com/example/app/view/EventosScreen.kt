@@ -61,7 +61,7 @@ fun EventosScreen(
     onEventoClick: (Evento) -> Unit,
     navController: NavController = rememberNavController()
 ) {
-    // Obtener el rol del usuario desde el savedStateHandle
+    // Obtener rol del usuario
     val userRole = navController.previousBackStackEntry
         ?.savedStateHandle
         ?.get<String>("user_role") ?: ""
@@ -107,7 +107,9 @@ fun EventosScreen(
     val textSecondaryColor = Color.DarkGray  // Más oscuro para mejor contraste
     val successColor = Color(0xFF4CAF50)  // Verde para elementos gratuitos
     
+    // Pantalla principal
     Scaffold(
+        // Barra superior
         topBar = {
             TopAppBar(
                 title = { 
@@ -149,6 +151,7 @@ fun EventosScreen(
                 )
             )
         },
+        // Barra de navegación inferior
         bottomBar = {
             BottomNavigationBar(
                 navController = navController,
@@ -161,6 +164,7 @@ fun EventosScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Pantalla de carga
             if (isLoading) {
                 Box(
                     modifier = Modifier
@@ -173,7 +177,9 @@ fun EventosScreen(
                         modifier = Modifier.size(64.dp)
                     )
                 }
-            } else if (isError) {
+            } 
+            // Pantalla de error
+            else if (isError) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -187,11 +193,13 @@ fun EventosScreen(
                         textAlign = TextAlign.Center
                     )
                 }
-            } else {
+            } 
+            // Lista de eventos
+            else {
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // Barra de búsqueda animada
+                    // Barra de búsqueda
                     AnimatedVisibility(
                         visible = isSearchBarVisible.value,
                         enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),

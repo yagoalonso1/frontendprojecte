@@ -38,37 +38,40 @@ fun LoginScreen(
     navController: NavController,
     viewModel: LoginViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
+    // Estados básicos
     val isLoading = viewModel.isLoading
     val errorMessage = viewModel.errorMessage
     val isError = errorMessage != null
     val isLoginSuccessful = viewModel.isLoginSuccessful.collectAsState().value
     
-    // Efecto para manejar la navegación después del inicio de sesión exitoso
+    // Navegar cuando el login es exitoso
     LaunchedEffect(isLoginSuccessful) {
         if (isLoginSuccessful) {
-            // Establecer el estado de autenticación
+            // Guardar datos del usuario
             navController.currentBackStackEntry?.savedStateHandle?.set("login_successful", true)
             navController.currentBackStackEntry?.savedStateHandle?.set("user_role", viewModel.user?.role ?: "")
             
-            // Navegar a la pantalla de eventos en lugar de la pantalla principal
+            // Ir a eventos
             navController.navigate("eventos") {
                 popUpTo("login") { inclusive = true }
             }
         }
     }
     
+    // Pantalla completa
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color.White // Fondo blanco para una interfaz minimalista
+        color = Color.White
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
+            // Contenido principal
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Logo
+                // Logo de la app
                 Image(
                     painter = painterResource(id = R.drawable.logo),
                     contentDescription = "EventFlix Logo",
@@ -78,18 +81,18 @@ fun LoginScreen(
                     contentScale = ContentScale.Fit
                 )
                 
-                // Título
+                // Título de login
                 Text(
                     text = "Iniciar Sesión",
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFE53935) // Color rojo del logo
+                        color = Color(0xFFE53935)
                     ),
                     modifier = Modifier.padding(bottom = 24.dp),
                     textAlign = TextAlign.Center
                 )
                 
-                // Campos de formulario
+                // Campo de email
                 OutlinedTextField(
                     value = viewModel.email,
                     onValueChange = { viewModel.email = it },
@@ -140,7 +143,7 @@ fun LoginScreen(
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                // Enlace "Olvidé mi contraseña"
+                // Enlace olvidé contraseña
                 TextButton(
                     onClick = { 
                         navController.navigate("forgot_password") 
@@ -153,7 +156,7 @@ fun LoginScreen(
                     )
                 }
                 
-                // Botón de inicio de sesión
+                // Botón iniciar sesión
                 Button(
                     onClick = { viewModel.onLoginClick() },
                     modifier = Modifier
@@ -175,7 +178,7 @@ fun LoginScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Separador "o"
+                // Separador
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -200,7 +203,7 @@ fun LoginScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Botones de inicio de sesión con redes sociales
+                // Botones redes sociales
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -213,7 +216,7 @@ fun LoginScreen(
                             .height(48.dp),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1877F2) // Color azul de Facebook
+                            containerColor = Color(0xFF1877F2)
                         )
                     ) {
                         Row(
@@ -273,7 +276,7 @@ fun LoginScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Botón de registro
+                // Botón crear cuenta
                 OutlinedButton(
                     onClick = { 
                         // Navegar directamente a la pantalla de registro
@@ -301,7 +304,7 @@ fun LoginScreen(
                 
                 Spacer(modifier = Modifier.weight(1f))
                 
-                // Texto de derechos de autor
+                // Copyright
                 Text(
                     text = "© 2025 EventFlix. Todos los derechos reservados.",
                     style = MaterialTheme.typography.bodySmall,
@@ -311,7 +314,7 @@ fun LoginScreen(
                 )
             }
             
-            // Indicador de carga
+            // Círculo de carga
             if (isLoading) {
                 Box(
                     modifier = Modifier
@@ -326,7 +329,7 @@ fun LoginScreen(
                 }
             }
             
-            // Diálogo de error
+            // Mensaje de error
             if (isError) {
                 AlertDialog(
                     onDismissRequest = { viewModel.clearError() },

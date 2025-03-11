@@ -39,32 +39,34 @@ fun EventoDetailScreen(
     navController: NavController,
     eventoId: String
 ) {
-    Log.d("EventoDetailScreen", "Renderizando pantalla con eventoId: $eventoId")
-    
+    // Inicializar ViewModel
     val viewModel: EventoDetailViewModel = viewModel()
     
+    // Cargar datos del evento
     LaunchedEffect(eventoId) {
-        Log.d("EventoDetailScreen", "LaunchedEffect: Cargando evento")
         viewModel.loadEvento()
     }
 
+    // Estados básicos
     val evento = viewModel.evento
     val isLoading = viewModel.isLoading
     val isError = viewModel.isError
     val errorMessage = viewModel.errorMessage
     
-    // Colores consistentes con EventosScreen
+    // Colores de la app
     val primaryColor = Color(0xFFE53935)  // Rojo del logo
     val backgroundColor = Color.White
     val textPrimaryColor = Color.Black
     val textSecondaryColor = Color.DarkGray
     val successColor = Color(0xFF4CAF50)  // Verde para elementos gratuitos
     
+    // Pantalla principal
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = backgroundColor
     ) {
         Scaffold(
+            // Barra superior
             topBar = {
                 TopAppBar(
                     title = { 
@@ -101,6 +103,7 @@ fun EventoDetailScreen(
                     .padding(paddingValues)
                     .padding(16.dp)
             ) {
+                // Pantalla de carga
                 if (isLoading) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -108,7 +111,9 @@ fun EventoDetailScreen(
                     ) {
                         CircularProgressIndicator()
                     }
-                } else if (isError) {
+                } 
+                // Pantalla de error
+                else if (isError) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -118,7 +123,9 @@ fun EventoDetailScreen(
                             color = Color.Red
                         )
                     }
-                } else if (evento != null) {
+                } 
+                // Detalles del evento
+                else if (evento != null) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -346,8 +353,9 @@ fun EventoDetailScreen(
                             }
                         }
                     }
-                } else {
-                    // Caso en que evento es null pero no hay error
+                } 
+                // Evento no encontrado
+                else {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()

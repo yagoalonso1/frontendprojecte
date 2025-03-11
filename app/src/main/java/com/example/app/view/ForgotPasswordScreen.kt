@@ -28,7 +28,7 @@ fun ForgotPasswordScreen(
     viewModel: ForgotPasswordViewModel = viewModel(),
     onNavigateToLogin: () -> Unit
 ) {
-    // Observar navegación
+    // Control de navegación
     val navigateToLogin by viewModel.navigateToLogin.observeAsState(false)
     if (navigateToLogin) {
         LaunchedEffect(key1 = true) {
@@ -46,7 +46,7 @@ fun ForgotPasswordScreen(
         ) {
             Spacer(modifier = Modifier.height(48.dp))
             
-            // Título
+            // Título principal
             Text(
                 text = "Recuperar Contraseña",
                 style = MaterialTheme.typography.headlineMedium.copy(
@@ -56,7 +56,7 @@ fun ForgotPasswordScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
             
-            // Descripción
+            // Texto explicativo
             Text(
                 text = "Introduce tu correo electrónico y tu DNI o teléfono para recuperar tu contraseña",
                 style = MaterialTheme.typography.bodyMedium,
@@ -65,7 +65,7 @@ fun ForgotPasswordScreen(
                 modifier = Modifier.padding(bottom = 32.dp)
             )
             
-            // Campo de email
+            // Campo para email
             OutlinedTextField(
                 value = viewModel.email,
                 onValueChange = { viewModel.onEmailChange(it) },
@@ -86,7 +86,7 @@ fun ForgotPasswordScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Campo de identificador (DNI o teléfono)
+            // Campo para DNI o teléfono
             OutlinedTextField(
                 value = viewModel.identificador,
                 onValueChange = { viewModel.onIdentificadorChange(it) },
@@ -110,7 +110,7 @@ fun ForgotPasswordScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Botón de enviar
+            // Botón recuperar
             Button(
                 onClick = { viewModel.onResetPasswordClick() },
                 modifier = Modifier
@@ -138,7 +138,7 @@ fun ForgotPasswordScreen(
                 }
             }
             
-            // Mostrar contraseña recuperada si está disponible
+            // Mostrar contraseña si existe
             if (viewModel.recoveredPassword.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(24.dp))
                 
@@ -179,7 +179,7 @@ fun ForgotPasswordScreen(
             
             Spacer(modifier = Modifier.weight(1f))
             
-            // Botón para volver al login
+            // Botón volver
             TextButton(
                 onClick = onNavigateToLogin,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -194,7 +194,7 @@ fun ForgotPasswordScreen(
             }
         }
         
-        // Indicador de carga
+        // Círculo de carga
         if (viewModel.isLoading) {
             Box(
                 modifier = Modifier
@@ -209,7 +209,7 @@ fun ForgotPasswordScreen(
             }
         }
         
-        // Diálogo de error
+        // Mensaje de error
         if (viewModel.isError) {
             AlertDialog(
                 onDismissRequest = { /* No hacer nada */ },

@@ -16,31 +16,31 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class ForgotPasswordViewModel : ViewModel() {
-    // Estado para el email e identificador
+    // Datos del formulario
     var email by mutableStateOf("")
         private set
     var identificador by mutableStateOf("")
         private set
     
-    // Estado para la contraseña recuperada
+    // Contraseña recuperada
     var recoveredPassword by mutableStateOf("")
         private set
     
-    // Estado para mostrar errores
+    // Debug
     private val _debugMessage = MutableLiveData<String>()
     val debugMessage: LiveData<String> = _debugMessage
     
-    // Estado para errores
+    // Error
     var errorMessage by mutableStateOf<String?>(null)
         private set
     var isError by mutableStateOf(false)
         private set
     
-    // Estado para navegación
+    // Navegación
     private val _navigateToLogin = MutableLiveData<Boolean>()
     val navigateToLogin: LiveData<Boolean> = _navigateToLogin
     
-    // Estado para indicar carga
+    // Estado de carga
     var isLoading by mutableStateOf(false)
         private set
     

@@ -37,11 +37,12 @@ import androidx.compose.runtime.getValue
 fun OrganizadorScreen(
     viewModel: RegisterViewModel
 ) {
-    // Establecer el rol explícitamente
+    // Definir el tipo de usuario
     LaunchedEffect(Unit) {
         viewModel.role = "Organizador"
     }
     
+    // Pantalla principal
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color.White
@@ -54,7 +55,7 @@ fun OrganizadorScreen(
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Logo
+                // Logo de la app
                 Image(
                     painter = painterResource(id = R.drawable.logo),
                     contentDescription = "EventFlix Logo",
@@ -64,7 +65,7 @@ fun OrganizadorScreen(
                     contentScale = ContentScale.Fit
                 )
                 
-                // Título
+                // Título de la pantalla
                 Text(
                     text = "Datos de Organizador",
                     style = MaterialTheme.typography.headlineMedium.copy(
@@ -75,7 +76,7 @@ fun OrganizadorScreen(
                     textAlign = TextAlign.Center
                 )
                 
-                // Tarjeta de resumen
+                // Resumen de datos personales
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -113,7 +114,7 @@ fun OrganizadorScreen(
                     }
                 }
                 
-                // Campo de nombre de organización
+                // Campo para nombre de la organización
                 OutlinedTextField(
                     value = viewModel.nombreOrganizacion,
                     onValueChange = { viewModel.nombreOrganizacion = it },
@@ -131,7 +132,7 @@ fun OrganizadorScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Campo de teléfono de contacto
+                // Campo para teléfono
                 OutlinedTextField(
                     value = viewModel.telefonoContacto,
                     onValueChange = { 
@@ -157,7 +158,7 @@ fun OrganizadorScreen(
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
-                // Botón de registro
+                // Botón para completar registro
                 Button(
                     onClick = {
                         if (viewModel.nombreOrganizacion.isNotEmpty() && viewModel.telefonoContacto.length == 9) {
@@ -182,7 +183,7 @@ fun OrganizadorScreen(
                 }
             }
             
-            // Diálogo de error
+            // Mensaje de error
             val errorMessage by viewModel.errorMessage.collectAsState()
             if (viewModel.isError) {
                 AlertDialog(
@@ -197,7 +198,7 @@ fun OrganizadorScreen(
                 )
             }
             
-            // Diálogo de éxito
+            // Mensaje de éxito
             val isRegisterSuccessful by viewModel.isRegisterSuccessful.collectAsState()
             if (isRegisterSuccessful) {
                 AlertDialog(
