@@ -12,20 +12,29 @@ object RetrofitClient {
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
-        setLevel(HttpLoggingInterceptor.Level.HEADERS)
     }
     
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor)
         .addInterceptor { chain ->
             val request = chain.request()
-            Log.d("Retrofit", "Making request to: ${request.url}")
+            Log.d("Retrofit", "Enviando petición a: ${request.url}")
+            Log.d("Retrofit", "Headers: ${request.headers}")
+            Log.d("Retrofit", "Método: ${request.method}")
+            
             try {
                 val response = chain.proceed(request)
-                Log.d("Retrofit", "Received response from: ${request.url}")
+                Log.d("Retrofit", "Respuesta recibida de: ${request.url}")
+                Log.d("Retrofit", "Código de respuesta: ${response.code}")
+                Log.d("Retrofit", "Headers de respuesta: ${response.headers}")
+                
+                // Leer y loggear el cuerpo de la respuesta
+                val responseBody = response.peekBody(Long.MAX_VALUE).string()
+                Log.d("Retrofit", "Cuerpo de la respuesta: $responseBody")
+                
                 response
             } catch (e: Exception) {
-                Log.e("Retrofit", "Error in request to: ${request.url}", e)
+                Log.e("Retrofit", "Error en la petición a: ${request.url}", e)
                 throw e
             }
         }
@@ -41,4 +50,4 @@ object RetrofitClient {
         .build()
     
     val apiService: ApiService = retrofit.create(ApiService::class.java)
-} 
+}

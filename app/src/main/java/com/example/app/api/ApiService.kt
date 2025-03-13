@@ -68,6 +68,11 @@ interface ApiService {
     
     @POST("eventos/{eventoId}/favorito")
     suspend fun toggleFavorito(@Path("eventoId") eventoId: Int): Response<Unit>
+    
+    @GET("api/mis-eventos")
+    suspend fun getMisEventos(
+        @Header("Authorization") token: String
+    ): Response<EventoResponse>
 }
 
 data class FavoritosResponse(

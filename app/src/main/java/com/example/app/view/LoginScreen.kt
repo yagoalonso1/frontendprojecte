@@ -1,5 +1,6 @@
 package com.example.app.view
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +31,7 @@ import androidx.navigation.NavController
 import com.example.app.viewmodel.ForgotPasswordViewModel
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.LaunchedEffect
+import com.example.app.util.SessionManager
 
 @Composable
 fun LoginScreen(
@@ -47,9 +49,16 @@ fun LoginScreen(
     // Navegar cuando el login es exitoso
     LaunchedEffect(isLoginSuccessful) {
         if (isLoginSuccessful) {
+            // Obtener el rol del usuario
+            val userRole = viewModel.user?.role ?: ""
+            Log.d("LoginScreen", "Rol del usuario en login: $userRole")
+            
+            // Guardar en SessionManager
+            SessionManager.saveUserRole(userRole)
+            Log.d("LoginScreen", "Rol guardado en SessionManager: ${SessionManager.getUserRole()}")
+            
             // Guardar datos del usuario
             navController.currentBackStackEntry?.savedStateHandle?.set("login_successful", true)
-            navController.currentBackStackEntry?.savedStateHandle?.set("user_role", viewModel.user?.role ?: "")
             
             // Ir a eventos
             navController.navigate("eventos") {

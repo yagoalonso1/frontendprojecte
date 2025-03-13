@@ -8,6 +8,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +29,9 @@ import com.example.app.view.EventoDetailScreen
 import com.example.app.view.EventosScreen
 import com.example.app.view.LoginScreen
 import com.example.app.view.ForgotPasswordScreen
+import com.example.app.view.MisEventosScreen
+import com.example.app.util.SessionManager
+import android.util.Log
 
 // Variable global para rastrear si el usuario está autenticado
 private var isUserAuthenticated = false
@@ -36,22 +41,18 @@ private var isUserAuthenticated = false
 fun AppNavigation(
     navController: NavHostController = rememberNavController()
 ) {
-    var userType by remember { mutableStateOf<UserType>(UserType.PARTICIPANT) }
+    // Estado para el rol
+    var currentRole by remember { 
+        mutableStateOf(SessionManager.getUserRole() ?: "participante") 
+    }
     
-    // Interceptar la navegación para manejar el inicio de sesión
-    DisposableEffect(navController) {
-        val listener = NavController.OnDestinationChangedListener { controller, destination, _ ->
-            // Si el usuario está autenticado y navega de vuelta a la pantalla de login, redirigirlo a eventos
-            if (isUserAuthenticated && destination.route == Routes.Login.route) {
-                controller.navigate(Routes.Eventos.route) {
-                    popUpTo(Routes.Login.route) { inclusive = true }
-                }
-            }
-        }
-        
-        navController.addOnDestinationChangedListener(listener)
-        onDispose {
-            navController.removeOnDestinationChangedListener(listener)
+    // Efecto para actualizar el rol cuando la composición se inicie
+    LaunchedEffect(Unit) {
+        val role = SessionManager.getUserRole()
+        Log.d("AppNavigation", "LaunchedEffect - Rol inicial: $role")
+        if (role != null) {
+            currentRole = role
+            Log.d("AppNavigation", "LaunchedEffect - currentRole actualizado a: $currentRole")
         }
     }
     
@@ -73,12 +74,10 @@ fun AppNavigation(
             navController.currentBackStackEntry?.savedStateHandle?.get<Boolean>("login_successful")?.let { success ->
                 if (success) {
                     isUserAuthenticated = true
-                    val role = navController.currentBackStackEntry?.savedStateHandle?.get<String>("user_role") ?: ""
-                    userType = when (role) {
-                        "organizador" -> UserType.ORGANIZER
-                        "participante" -> UserType.PARTICIPANT
-                        else -> UserType.PARTICIPANT
-                    }
+                    val role = SessionManager.getUserRole() ?: ""
+                    Log.d("AppNavigation", "Login exitoso - Rol obtenido: $role")
+                    currentRole = role
+                    Log.d("AppNavigation", "Login exitoso - currentRole actualizado a: $currentRole")
                     
                     // Navegar a la pantalla de eventos
                     navController.navigate(Routes.Eventos.route) {
@@ -90,48 +89,32 @@ fun AppNavigation(
             }
         }
         
-        // Pantalla de recuperación de contraseña
-        composable(Routes.ForgotPassword.route) {
-            ForgotPasswordScreen(
-                onNavigateToLogin = {
-                    navController.navigate(Routes.Login.route) {
-                        popUpTo(Routes.ForgotPassword.route) { inclusive = true }
-                    }
-                }
-            )
-        }
-        
         // Pantalla principal con menú de navegación
         composable(Routes.Eventos.route) {
-            HomeScreenWithBottomNav(navController, userType)
+            Log.d("AppNavigation", "Composable Eventos - currentRole: $currentRole")
+            HomeScreenWithBottomNav(
+                navController = navController,
+                userRole = currentRole
+            )
         }
         
-        // Pantalla de detalle de evento
-        composable(
-            route = Routes.EventoDetalle.route,
-            arguments = listOf(
-                navArgument("eventoId") { 
-                    type = NavType.StringType 
-                    defaultValue = ""
-                }
-            )
-        ) { backStackEntry ->
-            EventoDetailScreen(
-                navController = navController,
-                eventoId = backStackEntry.arguments?.getString("eventoId") ?: ""
-            )
-        }
+        // Resto de rutas...
     }
 }
 
 @Composable
-fun HomeScreenWithBottomNav(navController: NavController, userType: UserType) {
-    // Aquí implementa tu pantalla principal con el BottomNavigationBar
+fun HomeScreenWithBottomNav(
+    navController: NavController,
+    userRole: String
+) {
+    Log.d("HomeScreenWithBottomNav", "Iniciando con userRole: $userRole")
+    
     Scaffold(
         bottomBar = {
+            Log.d("HomeScreenWithBottomNav", "Construyendo BottomBar con userRole: $userRole")
             BottomNavigationBar(
                 navController = navController,
-                userRole = if (userType == UserType.ORGANIZER) "Organizador" else "Participante"
+                userRole = userRole
             )
         }
     ) { paddingValues ->
@@ -141,10 +124,12 @@ fun HomeScreenWithBottomNav(navController: NavController, userType: UserType) {
                 .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "Pantalla Principal",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
+            EventosScreen(
+                onEventoClick = { evento ->
+                    val route = Routes.EventoDetalle.createRoute(evento.id.toString())
+                    navController.navigate(route)
+                },
+                navController = navController
             )
         }
     }

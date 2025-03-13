@@ -23,6 +23,8 @@ import com.example.app.viewmodel.LoginViewModel
 import com.example.app.viewmodel.RegisterViewModel
 import kotlinx.coroutines.delay
 import android.util.Log
+import com.example.app.view.MisEventosScreen
+
 @Composable
 fun AppNavHost(
     navController: NavHostController = rememberNavController(),
@@ -140,7 +142,16 @@ fun AppNavHost(
 
         // Rutas adicionales para el menú de navegación
         composable(Routes.MisEventos.route) {
-            // Implementar pantalla de Mis Eventos
+            MisEventosScreen(
+                navController = navController,
+                onEventoClick = { evento ->
+                    val route = Routes.EventoDetalle.createRoute(evento.id.toString())
+                    navController.navigate(route)
+                },
+                onCreateEventoClick = {
+                    navController.navigate(Routes.CrearEvento.route)
+                }
+            )
         }
         
         composable(Routes.CrearEvento.route) {

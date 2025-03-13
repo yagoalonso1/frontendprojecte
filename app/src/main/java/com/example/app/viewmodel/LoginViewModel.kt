@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import com.example.app.model.login.LoginRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import com.example.app.util.SessionManager
 
 class LoginViewModel : ViewModel() {
     // Campos del formulario
@@ -58,15 +59,40 @@ class LoginViewModel : ViewModel() {
                     isLoading = false
                     if (response.isSuccessful) {
                         val loginResponse = response.body()
+                        Log.d("LoginViewModel", "Respuesta del servidor recibida: $loginResponse")
+                        Log.d("LoginViewModel", "Código de respuesta: ${response.code()}")
+                        
                         if (loginResponse != null) {
-                            // Guardar el token y la información del usuario
-                            token = loginResponse.accessToken
-                            user = loginResponse.user
-                            clearFields()
-                            _isLoginSuccessful.value = true
+                            Log.d("LoginViewModel", "Verificando token...")
+                            val auth = loginResponse.auth
+                            val accessToken = auth.accessToken
+                            Log.d("LoginViewModel", "Token recibido: ${accessToken ?: "null"}")
                             
-                            // No llamamos a onLoginSuccess aquí porque navController podría no estar disponible
-                            // La navegación se manejará en la vista a través del estado isLoginSuccessful
+                            if (accessToken.isNotBlank()) {
+                                // Guardar el token y la información del usuario
+                                token = accessToken
+                                user = loginResponse.user
+                                
+                                Log.d("LoginViewModel", "Login exitoso")
+                                Log.d("LoginViewModel", "Token: $token")
+                                Log.d("LoginViewModel", "Usuario: ${user?.email}")
+                                Log.d("LoginViewModel", "Rol recibido: ${loginResponse.role}")
+                                Log.d("LoginViewModel", "Usuario completo: $user")
+                                
+                                // Guardar en SessionManager
+                                SessionManager.saveToken(accessToken)
+                                SessionManager.saveUserRole(loginResponse.role)
+                                
+                                // Verificar que se guardó correctamente
+                                val savedRole = SessionManager.getUserRole()
+                                Log.d("LoginViewModel", "Rol guardado en SessionManager: $savedRole")
+                                
+                                clearFields()
+                                _isLoginSuccessful.value = true
+                            } else {
+                                setError("No se recibió un token válido del servidor")
+                                Log.e("LoginViewModel", "Token recibido es nulo o vacío")
+                            }
                         } else {
                             setError("Error desconocido durante el inicio de sesión")
                         }
