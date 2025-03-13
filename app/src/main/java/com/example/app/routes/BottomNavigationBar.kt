@@ -1,5 +1,6 @@
 package com.example.app.routes
 
+import android.util.Log
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -25,7 +26,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.app.R
+import androidx.compose.runtime.remember
 
 // Enumeración para los tipos de usuario
 enum class UserType {
@@ -47,68 +48,76 @@ fun BottomNavigationBar(
     navController: NavController,
     userRole: String
 ) {
-    val items = if (userRole.equals("Organizador", ignoreCase = true)) {
-        // Elementos de navegación para organizadores
-        listOf(
-            NavItem(
-                route = "eventos",
-                title = "Eventos",
-                icon = Icons.Default.Home,
-                userType = UserType.ALL
-            ),
-            NavItem(
-                route = "mis_eventos",
-                title = "Mis Eventos",
-                icon = Icons.Default.ConfirmationNumber,
-                userType = UserType.ORGANIZER
-            ),
-            NavItem(
-                route = "crear_evento",
-                title = "Crear",
-                icon = Icons.Default.Add,
-                userType = UserType.ORGANIZER
-            ),
-            NavItem(
-                route = "perfil",
-                title = "Perfil",
-                icon = Icons.Default.Person,
-                userType = UserType.ALL
-            ),
-            NavItem(
-                route = "favoritos",
-                title = "Favoritos",
-                icon = Icons.Default.Favorite,
-                userType = UserType.ALL
-            )
-        )
-    } else {
-        // Elementos de navegación para participantes
-        listOf(
-            NavItem(
-                route = "eventos",
-                title = "Eventos",
-                icon = Icons.Default.Home,
-                userType = UserType.ALL
-            ),
-            NavItem(
-                route = "mis_tickets",
-                title = "Mis Tickets",
-                icon = Icons.Default.ConfirmationNumber,
-                userType = UserType.PARTICIPANT
-            ),
-            NavItem(
-                route = "favoritos",
-                title = "Favoritos",
-                icon = Icons.Default.Favorite,
-                userType = UserType.PARTICIPANT
-            ),
-            NavItem(
-                route = "perfil",
-                title = "Perfil",
-                icon = Icons.Default.Person,
-                userType = UserType.ALL
-            )
-        )
+    Log.d("BottomNavigationBar", "Iniciando BottomNavigationBar con userRole: '$userRole'")
+    
+    val normalizedRole = userRole.trim().lowercase()
+    Log.d("BottomNavigationBar", "Rol normalizado: $normalizedRole")
+    
+    val items = remember(normalizedRole) {
+        when (normalizedRole) {
+            "organizador" -> {
+                Log.d("BottomNavigationBar", "Creando menú de Organizador")
+                listOf(
+                    NavItem(
+                        route = "eventos",
+                        title = "Eventos",
+                        icon = Icons.Default.Home,
+                        userType = UserType.ALL
+                    ),
+                    NavItem(
+                        route = "mis_eventos",
+                        title = "Mis Eventos",
+                        icon = Icons.Default.ConfirmationNumber,
+                        userType = UserType.ORGANIZER
+                    ),
+                    NavItem(
+                        route = "crear_evento",
+                        title = "Crear",
+                        icon = Icons.Default.Add,
+                        userType = UserType.ORGANIZER
+                    ),
+                    NavItem(
+                        route = "perfil",
+                        title = "Perfil",
+                        icon = Icons.Default.Person,
+                        userType = UserType.ALL
+                    )
+                ).also {
+                    Log.d("BottomNavigationBar", "Menú de Organizador creado con ${it.size} items")
+                }
+            }
+            else -> {
+                Log.d("BottomNavigationBar", "Creando menú de Participante")
+                listOf(
+                    NavItem(
+                        route = "eventos",
+                        title = "Eventos",
+                        icon = Icons.Default.Home,
+                        userType = UserType.ALL
+                    ),
+                    NavItem(
+                        route = "mis_tickets",
+                        title = "Mis Tickets",
+                        icon = Icons.Default.ConfirmationNumber,
+                        userType = UserType.PARTICIPANT
+                    ),
+                    NavItem(
+                        route = "favoritos",
+                        title = "Favoritos",
+                        icon = Icons.Default.Favorite,
+                        userType = UserType.PARTICIPANT
+                    ),
+                    NavItem(
+                        route = "perfil",
+                        title = "Perfil",
+                        icon = Icons.Default.Person,
+                        userType = UserType.ALL
+                    )
+                ).also {
+                    Log.d("BottomNavigationBar", "Menú de Participante creado con ${it.size} items")
+                }
+            }
+        }
     }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -151,4 +160,4 @@ fun BottomNavigationBar(
             )
         }
     }
-} 
+}

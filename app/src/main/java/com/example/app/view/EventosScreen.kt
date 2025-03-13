@@ -54,60 +54,57 @@ import kotlinx.coroutines.launch
 import com.example.app.routes.BottomNavigationBar
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import android.util.Log
+import com.example.app.util.SessionManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventosScreen(
     onEventoClick: (Evento) -> Unit,
-    navController: NavController = rememberNavController()
+    navController: NavController,
+    viewModel: EventoViewModel = viewModel()
 ) {
-    // Obtener rol del usuario
-    val userRole = navController.previousBackStackEntry
-        ?.savedStateHandle
-        ?.get<String>("user_role") ?: ""
-    
-    val viewModel: EventoViewModel = viewModel()
     val eventos = viewModel.eventos
     val isLoading = viewModel.isLoading
     val isError = viewModel.isError
+    val errorMessage = viewModel.errorMessage
+    val userRole = SessionManager.getUserRole() ?: "participante"
     
-    // Estado para la búsqueda
-    var searchQuery by remember { mutableStateOf("") }
+    Log.d("EventosScreen", "Rol del usuario: $userRole")
+
+    // Colores consistentes con la app
+    val primaryColor = Color(0xFFE53935)
+    val backgroundColor = Color.White
+    val textPrimaryColor = Color.Black
+    val textSecondaryColor = Color.DarkGray
+    val successColor = Color(0xFF4CAF50)
+
+    // Estado para el texto de búsqueda
+    var searchText by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
-    
-    // Estado para controlar la visibilidad de la barra de búsqueda
-    val lazyListState = rememberLazyListState()
-    val isSearchBarVisible = remember { 
-        derivedStateOf { 
-            // Mostrar la barra de búsqueda cuando estamos en la parte superior de la lista
-            lazyListState.firstVisibleItemIndex == 0 && 
-            (lazyListState.firstVisibleItemScrollOffset == 0 || lazyListState.firstVisibleItemScrollOffset < 50)
-        } 
-    }
-    
-    // Filtrar eventos según la búsqueda
-    val filteredEventos = remember(searchQuery, eventos) {
-        if (searchQuery.isBlank()) {
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    // Filtrar eventos basados en el texto de búsqueda
+    val filteredEventos = remember(eventos, searchText) {
+        if (searchText.isEmpty()) {
             eventos
         } else {
             eventos.filter { evento ->
-                evento.titulo.contains(searchQuery, ignoreCase = true) ||
-                evento.ubicacion.contains(searchQuery, ignoreCase = true) ||
-                evento.fechaEvento.contains(searchQuery, ignoreCase = true) ||
-                evento.categoria.contains(searchQuery, ignoreCase = true)
+                evento.titulo.contains(searchText, ignoreCase = true) ||
+                evento.descripcion.contains(searchText, ignoreCase = true) ||
+                evento.categoria.contains(searchText, ignoreCase = true)
             }
         }
     }
-    
-    // Colores consistentes con LoginScreen
-    val primaryColor = Color(0xFFE53935)  // Rojo del logo
-    val backgroundColor = Color.White
-    val cardColor = Color.White
-    val textPrimaryColor = Color.Black
-    val textSecondaryColor = Color.DarkGray  // Más oscuro para mejor contraste
-    val successColor = Color(0xFF4CAF50)  // Verde para elementos gratuitos
-    
-    // Pantalla principal
+
+    // Estado para el botón de scroll hacia arriba
+    val showScrollToTop by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex > 0
+        }
+    }
+
     Scaffold(
         // Barra superior
         topBar = {
@@ -187,7 +184,7 @@ fun EventosScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = viewModel.errorMessage ?: "Error desconocido",
+                        text = errorMessage ?: "Error desconocido",
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.Red,
                         textAlign = TextAlign.Center
@@ -201,7 +198,7 @@ fun EventosScreen(
                 ) {
                     // Barra de búsqueda
                     AnimatedVisibility(
-                        visible = isSearchBarVisible.value,
+                        visible = showScrollToTop,
                         enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
                         exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
                     ) {
@@ -212,17 +209,17 @@ fun EventosScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             OutlinedTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
+                                value = searchText,
+                                onValueChange = { searchText = it },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(8.dp),
                                 placeholder = { Text("Buscar eventos") },
                                 singleLine = true,
                                 trailingIcon = {
-                                    if (searchQuery.isNotEmpty()) {
+                                    if (searchText.isNotEmpty()) {
                                         IconButton(
-                                            onClick = { searchQuery = "" }
+                                            onClick = { searchText = "" }
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Close,
@@ -244,7 +241,7 @@ fun EventosScreen(
                     
                     // Lista de eventos
                     LazyColumn(
-                        state = lazyListState,
+                        state = listState,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp, vertical = 8.dp),

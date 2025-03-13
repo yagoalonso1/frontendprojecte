@@ -8,19 +8,27 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.app.api.ApiService
 import com.example.app.api.RetrofitClient
 import com.example.app.model.Evento
 import com.example.app.model.evento.EventoResponse
+import com.example.app.util.SessionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 class EventoViewModel : ViewModel() {
     // Estado para la lista de eventos
     var eventos by mutableStateOf<List<Evento>>(emptyList())
+        private set
+    
+    // Estado para la lista de eventos del organizador
+    var misEventos by mutableStateOf<List<Evento>>(emptyList())
         private set
     
     // Estado para indicar carga
@@ -33,13 +41,16 @@ class EventoViewModel : ViewModel() {
     var isError by mutableStateOf(false)
         private set
     
+    private val _isRegisterSuccessful = MutableStateFlow(false)
+    val isRegisterSuccessful: StateFlow<Boolean> = _isRegisterSuccessful
+    
     // Cargar eventos al iniciar
     init {
-        loadEventos()
+        fetchEventos()
     }
     
     // Función para cargar eventos
-    fun loadEventos() {
+    fun fetchEventos() {
         viewModelScope.launch {
             try {
                 isLoading = true
@@ -59,6 +70,41 @@ class EventoViewModel : ViewModel() {
                         Log.d("EVENTOS", "Eventos cargados: ${eventos.size}")
                     } else {
                         setError("No se pudieron cargar los eventos: Respuesta vacía")
+                    }
+                } else {
+                    handleErrorResponse(response)
+                }
+            } catch (e: Exception) {
+                handleException(e)
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+    
+    fun fetchMisEventos() {
+        viewModelScope.launch {
+            try {
+                isLoading = true
+                errorMessage = null
+                isError = false
+                
+                Log.d("MIS_EVENTOS", "Cargando mis eventos...")
+                
+                // Obtener el token de autenticación (deberías tener una forma de obtenerlo)
+                val token = "Bearer ${SessionManager.getToken()}" // Asegúrate de tener un SessionManager
+                
+                val response = withContext(Dispatchers.IO) {
+                    RetrofitClient.apiService.getMisEventos(token)
+                }
+                
+                if (response.isSuccessful) {
+                    val eventosResponse = response.body()
+                    if (eventosResponse != null) {
+                        misEventos = eventosResponse.eventos
+                        Log.d("MIS_EVENTOS", "Mis eventos cargados: ${misEventos.size}")
+                    } else {
+                        setError("No se pudieron cargar tus eventos: Respuesta vacía")
                     }
                 } else {
                     handleErrorResponse(response)
@@ -146,5 +192,10 @@ class EventoViewModel : ViewModel() {
             // Si hay un error al parsear, devolvemos una hora muy tardía para que aparezca al final
             LocalTime.of(23, 59, 59)
         }
+    }
+
+    fun clearError() {
+        isError = false
+        errorMessage = null
     }
 }
