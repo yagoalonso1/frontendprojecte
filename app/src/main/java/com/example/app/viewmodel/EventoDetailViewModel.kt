@@ -16,13 +16,14 @@ import kotlinx.coroutines.withContext
 class EventoDetailViewModel(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
-    private val eventoId: String = checkNotNull(savedStateHandle["eventoId"]) {
-        "eventoId parameter not found"
-    }
+    // ID evento
+    private val eventoId: String = checkNotNull(savedStateHandle["eventoId"])
     
+    // Evento
     var evento by mutableStateOf<Evento?>(null)
         private set
     
+    // UI
     var isLoading by mutableStateOf(true)
         private set
     

@@ -16,22 +16,24 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 
 class LoginViewModel : ViewModel() {
+    // Campos del formulario
     var email by mutableStateOf("")
     var password by mutableStateOf("")
     var passwordVisible by mutableStateOf(false)
     
+    // Estados de la UI
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
     
-    // Estado para rastrear si el inicio de sesión fue exitoso
+    // Estado del login
     private val _isLoginSuccessful = MutableStateFlow(false)
     val isLoginSuccessful = _isLoginSuccessful.asStateFlow()
     
-    // Token y usuario
+    // Datos de sesión
     var token by mutableStateOf<String?>(null)
     var user by mutableStateOf<com.example.app.model.User?>(null)
 
-    // Añade este StateFlow para el cierre de sesión
+    // Estado del logout
     private val _isLogoutSuccessful = MutableStateFlow(false)
     val isLogoutSuccessful = _isLogoutSuccessful.asStateFlow()
 

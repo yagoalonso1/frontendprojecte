@@ -49,12 +49,10 @@ fun FavoritosScreen(
     val isError = viewModel.isError
     val errorMessage = viewModel.errorMessage
     
-    // Filtrar solo los eventos favoritos
     val eventosFavoritos = remember(eventos) {
         eventos.filter { evento -> evento.isFavorito }
     }
     
-    // Colores consistentes
     val primaryColor = Color(0xFFE53935)
     val backgroundColor = Color.White
     val textPrimaryColor = Color.Black

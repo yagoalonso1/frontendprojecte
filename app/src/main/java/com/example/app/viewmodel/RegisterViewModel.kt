@@ -17,9 +17,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.LiveData
+import com.google.gson.Gson
+import com.example.app.model.ErrorResponse
 
 class RegisterViewModel : ViewModel() {
-    // Datos básicos del usuario
+    // Datos básicos
     var name by mutableStateOf("")
     var apellido1 by mutableStateOf("")
     var apellido2 by mutableStateOf("")
@@ -28,16 +30,15 @@ class RegisterViewModel : ViewModel() {
     var confirmPassword by mutableStateOf("")
     var role by mutableStateOf("participante")
 
-    // Datos específicos del organizador
+    // Datos de organizador
     var nombreOrganizacion by mutableStateOf("")
     var telefonoContacto by mutableStateOf("")
 
-    // Datos específicos del participante
+    // Datos de participante
     var dni by mutableStateOf("")
     var telefono by mutableStateOf("")
-    var direccion by mutableStateOf("")
 
-    // Estados de error para campos básicos
+    // Estados de error básicos
     var isNameError by mutableStateOf(false)
     var isApellido1Error by mutableStateOf(false)
     var isApellido2Error by mutableStateOf(false)
@@ -45,14 +46,13 @@ class RegisterViewModel : ViewModel() {
     var isPasswordError by mutableStateOf(false)
     var isConfirmPasswordError by mutableStateOf(false)
 
-    // Estados de error para campos de organizador
+    // Estados de error organizador
     var isNombreOrganizacionError by mutableStateOf(false)
     var isTelefonoContactoError by mutableStateOf(false)
 
-    // Estados de error para campos de participante
+    // Estados de error participante
     var isDniError by mutableStateOf(false)
     var isTelefonoError by mutableStateOf(false)
-    var isDireccionError by mutableStateOf(false)
 
     // Mensajes de error
     var nameErrorMessage by mutableStateOf("")
@@ -65,9 +65,8 @@ class RegisterViewModel : ViewModel() {
     var telefonoContactoErrorMessage by mutableStateOf("")
     var dniErrorMessage by mutableStateOf("")
     var telefonoErrorMessage by mutableStateOf("")
-    var direccionErrorMessage by mutableStateOf("")
 
-    // Estado de carga y registro
+    // Estados de la UI
     var isLoading by mutableStateOf(false)
     private val _isRegisterSuccessful = MutableStateFlow(false)
     val isRegisterSuccessful: StateFlow<Boolean> = _isRegisterSuccessful
@@ -79,11 +78,11 @@ class RegisterViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
-    // Debug message
+    // Mensajes de debug
     private val _debugMessage = MutableStateFlow<String>("")
     val debugMessage: StateFlow<String> = _debugMessage
 
-    // Validaciones de formato
+    // Patrones de validación
     private val nameRegex = "^[A-Za-zÁ-ÿ\\s]{2,}$"
     private val dniRegex = "^[0-9]{8}[A-Z]$"
     private val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"
@@ -153,11 +152,6 @@ class RegisterViewModel : ViewModel() {
         return nombre.trim().isNotEmpty() && nombre.trim().length >= 3
     }
 
-    fun isValidDireccion(direccion: String): Boolean {
-        // Verificar que la dirección no esté vacía y tenga al menos 5 caracteres
-        return direccion.trim().length >= 5
-    }
-
     // Validación de campos
     fun validateField(field: String, value: String) {
         when (field) {
@@ -171,7 +165,6 @@ class RegisterViewModel : ViewModel() {
             "confirmPassword" -> isConfirmPasswordError = !doPasswordsMatch()
             "nombreOrganizacion" -> isNombreOrganizacionError = !isValidNombreOrganizacion(value)
             "telefonoContacto" -> isTelefonoContactoError = !isValidPhone(value)
-            "direccion" -> isDireccionError = !isValidDireccion(value)
         }
     }
 
@@ -301,15 +294,6 @@ class RegisterViewModel : ViewModel() {
             telefonoErrorMessage = ""
         }
 
-        if (direccion.isBlank()) {
-            isDireccionError = true
-            direccionErrorMessage = "La dirección es requerida"
-            isValid = false
-        } else {
-            isDireccionError = false
-            direccionErrorMessage = ""
-        }
-
         return isValid
     }
 
@@ -336,7 +320,6 @@ class RegisterViewModel : ViewModel() {
         telefonoContacto = ""
         dni = ""
         telefono = ""
-        direccion = ""
         
         // Limpiar estados de error
         isNameError = false
@@ -349,7 +332,6 @@ class RegisterViewModel : ViewModel() {
         isTelefonoContactoError = false
         isDniError = false
         isTelefonoError = false
-        isDireccionError = false
         
         // Limpiar mensajes de error
         nameErrorMessage = ""
@@ -362,7 +344,6 @@ class RegisterViewModel : ViewModel() {
         telefonoContactoErrorMessage = ""
         dniErrorMessage = ""
         telefonoErrorMessage = ""
-        direccionErrorMessage = ""
     }
 
     private fun mostrarMensaje(mensaje: String) {
@@ -408,8 +389,7 @@ class RegisterViewModel : ViewModel() {
                     nombreOrganizacion = if (role.lowercase() == "organizador") nombreOrganizacion else null,
                     telefonoContacto = if (role.lowercase() == "organizador") telefonoContacto else null,
                     dni = if (role.lowercase() == "participante") dni else null,
-                    telefono = if (role.lowercase() == "participante") telefono else null,
-                    direccion = if (role.lowercase() == "participante") direccion else null
+                    telefono = if (role.lowercase() == "participante") telefono else null
                 )
 
                 mostrarMensaje("Enviando datos: $registerRequest")
@@ -447,5 +427,49 @@ class RegisterViewModel : ViewModel() {
     // Función para resetear el estado de registro exitoso
     fun resetSuccessState() {
         _isRegisterSuccessful.value = false
+    }
+
+    fun registerParticipante() {
+        viewModelScope.launch {
+            try {
+                if (!validateParticipanteFields()) return@launch
+                
+                isLoading = true
+                clearError()
+
+                val registerRequest = RegisterRequest(
+                    nombre = name,
+                    apellido1 = apellido1,
+                    apellido2 = apellido2,
+                    email = email,
+                    password = password,
+                    role = "participante",
+                    dni = dni,
+                    telefono = telefono,
+                    nombreOrganizacion = null,
+                    telefonoContacto = null
+                )
+
+                val response = RetrofitClient.apiService.registerUser(registerRequest)
+
+                if (response.isSuccessful) {
+                    _isRegisterSuccessful.value = true
+                    clearFields()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val errorMessage = try {
+                        val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                        errorResponse.message ?: "Error en el registro"
+                    } catch (e: Exception) {
+                        "Error en el registro"
+                    }
+                    setError(errorMessage)
+                }
+            } catch (e: Exception) {
+                setError("Error de conexión: ${e.localizedMessage}")
+            } finally {
+                isLoading = false
+            }
+        }
     }
 } 

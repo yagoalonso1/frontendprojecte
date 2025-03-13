@@ -40,24 +40,22 @@ import androidx.compose.runtime.getValue
 fun ParticipanteScreen(
     viewModel: RegisterViewModel
 ) {
-    // Eliminar esta variable ya que no queremos mostrar la contraseña
-    // var passwordVisible by remember { mutableStateOf(false) }
-    
-    // Añadir variable para mostrar los requisitos de contraseña
+    // Mostrar requisitos de contraseña
     var showPasswordRequirements by remember { mutableStateOf(false) }
     
-    // Verificamos los campos solo si el usuario ha interactuado con ellos
+    // Validación de campos
     val dniValid = viewModel.dni.isEmpty() || !viewModel.isDniError
     val telefonoValid = viewModel.telefono.isEmpty() || !viewModel.isTelefonoError
     
-    // Verificamos si todos los campos requeridos están completos y válidos
+    // Verificar si se puede activar el botón
     val allFieldsFilled = viewModel.dni.isNotEmpty() && viewModel.telefono.isNotEmpty()
     val allFieldsValid = !viewModel.isDniError && !viewModel.isTelefonoError
     val buttonEnabled = allFieldsFilled && allFieldsValid
 
+    // Pantalla principal
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color.White // Fondo blanco para una interfaz minimalista
+        color = Color.White
     ) {
         LazyColumn(
             modifier = Modifier
@@ -65,7 +63,7 @@ fun ParticipanteScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo
+            // Logo de la app
             item {
                 Image(
                     painter = painterResource(id = R.drawable.logo),
@@ -77,7 +75,7 @@ fun ParticipanteScreen(
                 )
             }
 
-            // Título
+            // Título de la pantalla
             item {
                 androidx.compose.material3.Text(
                     text = "Datos de Participante",
@@ -89,14 +87,14 @@ fun ParticipanteScreen(
                 )
             }
 
-            // Campos de formulario
+            // Formulario
             item {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp)
                 ) {
-                    // Resumen de datos principales
+                    // Resumen de datos personales
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -136,7 +134,7 @@ fun ParticipanteScreen(
                         }
                     }
                     
-                    // Campos específicos de Participante
+                    // Campo para DNI
                     OutlinedTextField(
                         value = viewModel.dni,
                         onValueChange = { 
@@ -169,6 +167,7 @@ fun ParticipanteScreen(
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
+                    // Campo para teléfono
                     OutlinedTextField(
                         value = viewModel.telefono,
                         onValueChange = { 
@@ -202,7 +201,7 @@ fun ParticipanteScreen(
                 }
             }
 
-            // Botón de registro
+            // Botón para completar registro
             item {
                 Button(
                     onClick = {
@@ -234,7 +233,7 @@ fun ParticipanteScreen(
                     )
                 }
                 
-                // Mensaje de ayuda si el botón está deshabilitado
+                // Mensaje de ayuda
                 if (!buttonEnabled) {
                     Text(
                         text = "Completa todos los campos correctamente para continuar",
@@ -248,7 +247,7 @@ fun ParticipanteScreen(
         }
     }
     
-    // Diálogo de error
+    // Mensaje de error
     if (viewModel.isError) {
         val errorMessageState by viewModel.errorMessage.collectAsState()
         AlertDialog(
@@ -282,7 +281,7 @@ fun ParticipanteScreen(
         )
     }
     
-    // Diálogo de éxito
+    // Mensaje de éxito
     val isRegisterSuccessful by viewModel.isRegisterSuccessful.collectAsState()
     if (isRegisterSuccessful) {
         AlertDialog(

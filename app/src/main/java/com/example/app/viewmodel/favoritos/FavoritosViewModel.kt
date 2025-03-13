@@ -14,9 +14,11 @@ import com.google.gson.Gson
 import kotlinx.coroutines.launch
 
 class FavoritosViewModel : ViewModel() {
+    // Lista de favoritos
     var favoritos by mutableStateOf<List<Evento>>(emptyList())
         private set
     
+    // UI
     var isLoading by mutableStateOf(false)
         private set
     
@@ -26,6 +28,7 @@ class FavoritosViewModel : ViewModel() {
     var isError by mutableStateOf(false)
         private set
 
+    // Token
     private val token: String
         get() = "Bearer ${TokenManager.getStoredToken()}"
 

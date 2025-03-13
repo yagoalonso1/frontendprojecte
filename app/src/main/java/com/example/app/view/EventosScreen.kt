@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -60,7 +61,7 @@ fun EventosScreen(
     onEventoClick: (Evento) -> Unit,
     navController: NavController = rememberNavController()
 ) {
-    // Obtener el rol del usuario desde el savedStateHandle
+    // Obtener rol del usuario
     val userRole = navController.previousBackStackEntry
         ?.savedStateHandle
         ?.get<String>("user_role") ?: ""
@@ -106,7 +107,9 @@ fun EventosScreen(
     val textSecondaryColor = Color.DarkGray  // Más oscuro para mejor contraste
     val successColor = Color(0xFF4CAF50)  // Verde para elementos gratuitos
     
+    // Pantalla principal
     Scaffold(
+        // Barra superior
         topBar = {
             TopAppBar(
                 title = { 
@@ -148,6 +151,7 @@ fun EventosScreen(
                 )
             )
         },
+        // Barra de navegación inferior
         bottomBar = {
             BottomNavigationBar(
                 navController = navController,
@@ -160,6 +164,7 @@ fun EventosScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Pantalla de carga
             if (isLoading) {
                 Box(
                     modifier = Modifier
@@ -172,7 +177,9 @@ fun EventosScreen(
                         modifier = Modifier.size(64.dp)
                     )
                 }
-            } else if (isError) {
+            } 
+            // Pantalla de error
+            else if (isError) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -186,11 +193,13 @@ fun EventosScreen(
                         textAlign = TextAlign.Center
                     )
                 }
-            } else {
+            } 
+            // Lista de eventos
+            else {
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // Barra de búsqueda animada
+                    // Barra de búsqueda
                     AnimatedVisibility(
                         visible = isSearchBarVisible.value,
                         enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
@@ -202,49 +211,34 @@ fun EventosScreen(
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Campo de búsqueda
                             OutlinedTextField(
                                 value = searchQuery,
                                 onValueChange = { searchQuery = it },
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .shadow(4.dp, RoundedCornerShape(8.dp)),
-                                placeholder = { Text("Buscar eventos...") },
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+                                placeholder = { Text("Buscar eventos") },
                                 singleLine = true,
-                                colors = TextFieldDefaults.outlinedTextFieldColors(
-                                    containerColor = Color.White,
-                                    focusedBorderColor = primaryColor,
-                                    unfocusedBorderColor = Color.LightGray
-                                ),
-                                keyboardOptions = KeyboardOptions.Default.copy(
-                                    imeAction = ImeAction.Search
-                                ),
-                                keyboardActions = KeyboardActions(
-                                    onSearch = { focusManager.clearFocus() }
-                                ),
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            
-                            Spacer(modifier = Modifier.width(8.dp))
-                            
-                            // Botón de búsqueda
-                            Button(
-                                onClick = { focusManager.clearFocus() },
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .shadow(4.dp, CircleShape),
-                                contentPadding = PaddingValues(0.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = primaryColor
-                                ),
-                                shape = CircleShape
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = "Buscar",
-                                    tint = Color.White
+                                trailingIcon = {
+                                    if (searchQuery.isNotEmpty()) {
+                                        IconButton(
+                                            onClick = { searchQuery = "" }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Limpiar búsqueda",
+                                                tint = Color(0xFFE53935) // Color rojo del logo
+                                            )
+                                        }
+                                    }
+                                },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFFE53935),
+                                    unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
+                                    focusedLabelColor = Color(0xFFE53935),
+                                    unfocusedLabelColor = Color.Gray
                                 )
-                            }
+                            )
                         }
                     }
                     

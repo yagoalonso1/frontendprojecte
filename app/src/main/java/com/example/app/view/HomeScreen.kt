@@ -20,8 +20,10 @@ fun HomeScreen(
     viewModel: LoginViewModel,
     navController: NavController
 ) {
+    // Estado para controlar el cierre de sesión
     val isLogoutSuccessful by viewModel.isLogoutSuccessful.collectAsState()
     
+    // Navegar al login cuando se cierra sesión
     LaunchedEffect(isLogoutSuccessful) {
         if (isLogoutSuccessful) {
             navController.navigate("login") {
@@ -31,10 +33,12 @@ fun HomeScreen(
         }
     }
     
+    // Pantalla principal
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color.White
     ) {
+        // Contenido centrado
         Column(
             modifier = Modifier
                 .fillMaxSize()
