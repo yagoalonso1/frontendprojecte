@@ -137,24 +137,30 @@ fun ParticipanteScreen(
                     // Campo para DNI
                     OutlinedTextField(
                         value = viewModel.dni,
-                        onValueChange = { 
-                            viewModel.dni = it
-                            if (it.isNotEmpty()) {
-                                viewModel.validateField("dni", it)
+                        onValueChange = { input -> 
+                            // Convertir la entrada a mayúsculas y filtrar caracteres no válidos
+                            val formattedInput = input.uppercase().take(9).filter { it.isDigit() || it.isLetter() }
+                            viewModel.dni = formattedInput
+                            
+                            if (formattedInput.isNotEmpty()) {
+                                viewModel.validateField("dni", formattedInput)
                             } else {
                                 viewModel.isDniError = false
                             }
                         },
-                        label = { Text("DNI") },
+                        label = { Text("DNI (8 dígitos + letra)") },
                         isError = !dniValid,
                         supportingText = {
                             if (!dniValid) {
-                                Text("DNI inválido (formato: 12345678A)")
+                                Text("DNI inválido. Formato: 12345678A")
+                            } else if (viewModel.dni.isNotEmpty()) {
+                                Text("El formato correcto es: 12345678A", color = Color.Gray)
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Text,
                             imeAction = ImeAction.Next
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -170,19 +176,27 @@ fun ParticipanteScreen(
                     // Campo para teléfono
                     OutlinedTextField(
                         value = viewModel.telefono,
-                        onValueChange = { 
-                            viewModel.telefono = it
-                            if (it.isNotEmpty()) {
-                                viewModel.validateField("telefono", it)
+                        onValueChange = { input -> 
+                            // Filtrar solo dígitos y limitar a 9 caracteres
+                            val digitsOnly = input.filter { it.isDigit() }.take(9)
+                            viewModel.telefono = digitsOnly
+                            
+                            if (digitsOnly.isNotEmpty()) {
+                                viewModel.validateField("telefono", digitsOnly)
                             } else {
                                 viewModel.isTelefonoError = false
                             }
                         },
-                        label = { Text("Teléfono") },
+                        label = { Text("Teléfono (9 dígitos)") },
                         isError = !telefonoValid,
                         supportingText = {
                             if (!telefonoValid) {
-                                Text("Teléfono inválido (debe tener 9 dígitos)")
+                                Text("Debe contener 9 dígitos")
+                            } else {
+                                val digitsLeft = 9 - viewModel.telefono.length
+                                if (digitsLeft > 0) {
+                                    Text("Faltan $digitsLeft dígitos", color = Color.Gray)
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -207,9 +221,20 @@ fun ParticipanteScreen(
                     onClick = {
                         // Asegurarse de que la validación sea correcta
                         if (allFieldsFilled && allFieldsValid) {
-                            viewModel.role = "Participante" // Asegurarse de que el rol esté establecido
-                            viewModel.onRegisterClick()
+                            viewModel.mostrarMensaje("VALIDACIÓN EXITOSA EN PARTICIPANTE SCREEN")
+                            viewModel.mostrarMensaje("DNI: ${viewModel.dni}")
+                            viewModel.mostrarMensaje("Teléfono: ${viewModel.telefono}")
+                            
+                            // Llamar a registerParticipante que ya maneja el rol
+                            viewModel.registerParticipante()
                         } else {
+                            viewModel.mostrarMensaje("VALIDACIÓN FALLIDA EN PARTICIPANTE SCREEN")
+                            if (!allFieldsFilled) {
+                                viewModel.mostrarMensaje("Faltan campos: DNI=${viewModel.dni.isEmpty()}, Teléfono=${viewModel.telefono.isEmpty()}")
+                            }
+                            if (!allFieldsValid) {
+                                viewModel.mostrarMensaje("Campos inválidos: DNI=${viewModel.isDniError}, Teléfono=${viewModel.isTelefonoError}")
+                            }
                             viewModel.setError("Por favor, completa todos los campos correctamente")
                         }
                     },

@@ -161,8 +161,26 @@ fun OrganizadorScreen(
                 // Botón para completar registro
                 Button(
                     onClick = {
+                        // Validar que los campos estén completos y con formato correcto
                         if (viewModel.nombreOrganizacion.isNotEmpty() && viewModel.telefonoContacto.length == 9) {
+                            viewModel.mostrarMensaje("Enviando registro de organizador con: " +
+                                "nombreOrg='${viewModel.nombreOrganizacion}', " +
+                                "telefonoContacto='${viewModel.telefonoContacto}'")
+                                
                             viewModel.onRegisterClick()
+                        } else {
+                            if (viewModel.nombreOrganizacion.isEmpty()) {
+                                viewModel.nombreOrganizacionErrorMessage = "El nombre de la organización es requerido"
+                                viewModel.isNombreOrganizacionError = true
+                            }
+                            
+                            if (viewModel.telefonoContacto.isEmpty()) {
+                                viewModel.telefonoContactoErrorMessage = "El teléfono de contacto es requerido"
+                                viewModel.isTelefonoContactoError = true
+                            } else if (viewModel.telefonoContacto.length != 9) {
+                                viewModel.telefonoContactoErrorMessage = "El teléfono debe tener 9 dígitos"
+                                viewModel.isTelefonoContactoError = true
+                            }
                         }
                     },
                     modifier = Modifier

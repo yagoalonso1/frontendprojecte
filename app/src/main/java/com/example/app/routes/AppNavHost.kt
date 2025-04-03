@@ -166,7 +166,9 @@ fun AppNavHost(
         }
         
         composable(Routes.Perfil.route) {
-            // Implementar pantalla de Perfil
+            ProfileScreen(
+                navController = navController
+            )
         }
     }
 } 

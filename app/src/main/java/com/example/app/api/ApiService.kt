@@ -24,6 +24,8 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import com.google.gson.annotations.SerializedName
 import com.example.app.model.evento.CrearEventoResponse
+import com.example.app.model.ProfileResponse
+import retrofit2.http.PUT
 
 interface ApiService {
     @POST("api/register")
@@ -87,6 +89,22 @@ interface ApiService {
     suspend fun getCategorias(
         @Header("Authorization") token: String
     ): Response<CategoriasResponse>
+
+    @GET("api/profile")
+    suspend fun getProfile(
+        @Header("Authorization") token: String
+    ): Response<ProfileResponse>
+    
+    @PUT("api/profile")
+    suspend fun updateProfile(
+        @Header("Authorization") token: String,
+        @Body profileData: Map<String, String>
+    ): Response<ProfileResponse>
+    
+    @GET("api/user")
+    suspend fun getUser(
+        @Header("Authorization") token: String
+    ): Response<com.example.app.model.User>
 }
 
 data class FavoritosResponse(

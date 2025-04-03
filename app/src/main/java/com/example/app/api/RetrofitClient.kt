@@ -18,6 +18,18 @@ object RetrofitClient {
     
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor)
+        // Añadir interceptor para aceptar sólo JSON
+        .addInterceptor { chain ->
+            val original = chain.request()
+            
+            // Crear una nueva petición con el header Accept:application/json
+            val requestBuilder = original.newBuilder()
+                .header("Accept", "application/json")
+                .method(original.method, original.body)
+                
+            val request = requestBuilder.build()
+            chain.proceed(request)
+        }
         .addInterceptor { chain ->
             val request = chain.request()
             Log.d("Retrofit", "Enviando petición a: ${request.url}")
