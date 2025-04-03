@@ -43,6 +43,20 @@ fun ProfileScreen(
     val errorMessage = viewModel.errorMessage
     
     val successState = viewModel.isUpdateSuccessful.collectAsState(initial = false)
+    val shouldNavigateToLogin = viewModel.shouldNavigateToLogin.collectAsState(initial = false)
+    
+    // Navegar al login cuando la sesión ha expirado
+    LaunchedEffect(shouldNavigateToLogin.value) {
+        if (shouldNavigateToLogin.value) {
+            // Limpiar sesión antes de navegar
+            com.example.app.util.SessionManager.clearSession()
+            // Navegar a login
+            navController.navigate("login") {
+                popUpTo(0) { inclusive = true }
+            }
+            viewModel.resetNavigationState()
+        }
+    }
     
     // Mostrar snackbar en caso de éxito
     var showSnackbar by remember { mutableStateOf(false) }
@@ -150,14 +164,29 @@ fun ProfileScreen(
                         color = Color(0xFFE53935),
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
-                    Button(
-                        onClick = { viewModel.loadProfile() },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = primaryColor
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Reintentar", color = Color.White)
+                    
+                    // Si es error de sesión expirada, mostrar botón para ir al login
+                    if (errorMessage.contains("sesión ha expirado", ignoreCase = true)) {
+                        Button(
+                            onClick = { viewModel.navigateToLogin() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = primaryColor
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Iniciar sesión", color = Color.White)
+                        }
+                    } else {
+                        // Para otros errores, mostrar botón de reintentar
+                        Button(
+                            onClick = { viewModel.loadProfile() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = primaryColor
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Reintentar", color = Color.White)
+                        }
                     }
                 }
             } else if (profileData != null) {

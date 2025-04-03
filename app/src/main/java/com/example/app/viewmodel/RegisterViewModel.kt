@@ -446,7 +446,47 @@ class RegisterViewModel : ViewModel() {
                     val response = RetrofitClient.apiService.registerUser(registerRequest)
                     
                     if (response.isSuccessful) {
-                        mostrarMensaje("Registro exitoso: ${response.body()}")
+                        val registerResponse = response.body()
+                        mostrarMensaje("Registro exitoso: ${registerResponse}")
+                        
+                        // Guardar token y datos de usuario en SessionManager
+                        if (registerResponse != null) {
+                            // Determinar qué token usar (puede ser token o accessToken)
+                            val tokenToSave = when {
+                                registerResponse.token != null -> {
+                                    mostrarMensaje("Usando 'token' de la respuesta")
+                                    registerResponse.token
+                                }
+                                registerResponse.accessToken != null -> {
+                                    mostrarMensaje("Usando 'access_token' de la respuesta")
+                                    registerResponse.accessToken
+                                }
+                                else -> {
+                                    mostrarMensaje("No se encontró token en la respuesta, intentando iniciar sesión")
+                                    // Si no hay token, intentamos hacer login automáticamente
+                                    loginAfterRegistration()
+                                    null
+                                }
+                            }
+                            
+                            // Si tenemos un token, guardarlo
+                            if (tokenToSave != null) {
+                                mostrarMensaje("Guardando token: ${tokenToSave.take(10)}...")
+                                com.example.app.util.SessionManager.saveToken(tokenToSave)
+                                
+                                // Guardar rol de usuario
+                                mostrarMensaje("Guardando rol: $role")
+                                com.example.app.util.SessionManager.saveUserRole(role.lowercase())
+                            }
+                            
+                            // Guardar user_id si está disponible
+                            if (registerResponse.user != null) {
+                                mostrarMensaje("Usuario registrado con ID: ${registerResponse.user.id}")
+                            }
+                        } else {
+                            mostrarMensaje("Respuesta vacía del servidor")
+                        }
+                        
                         _isRegisterSuccessful.value = true
                         clearFields()
                     } else {
@@ -491,6 +531,8 @@ class RegisterViewModel : ViewModel() {
                 } catch (e: Exception) {
                     mostrarMensaje("Excepción al hacer la petición: ${e.message}")
                     setError("Error de conexión: ${e.message}")
+                } finally {
+                    isLoading = false
                 }
             } catch (e: Exception) {
                 mostrarMensaje("Error general: ${e.message}")
@@ -560,6 +602,47 @@ class RegisterViewModel : ViewModel() {
                 val response = RetrofitClient.apiService.registerUser(registerRequest)
 
                 if (response.isSuccessful) {
+                    val registerResponse = response.body()
+                    mostrarMensaje("Registro exitoso: ${registerResponse}")
+                    
+                    // Guardar token y datos de usuario en SessionManager
+                    if (registerResponse != null) {
+                        // Determinar qué token usar (puede ser token o accessToken)
+                        val tokenToSave = when {
+                            registerResponse.token != null -> {
+                                mostrarMensaje("Usando 'token' de la respuesta")
+                                registerResponse.token
+                            }
+                            registerResponse.accessToken != null -> {
+                                mostrarMensaje("Usando 'access_token' de la respuesta")
+                                registerResponse.accessToken
+                            }
+                            else -> {
+                                mostrarMensaje("No se encontró token en la respuesta, intentando iniciar sesión")
+                                // Si no hay token, intentamos hacer login automáticamente
+                                loginAfterRegistration()
+                                null
+                            }
+                        }
+                        
+                        // Si tenemos un token, guardarlo
+                        if (tokenToSave != null) {
+                            mostrarMensaje("Guardando token: ${tokenToSave.take(10)}...")
+                            com.example.app.util.SessionManager.saveToken(tokenToSave)
+                            
+                            // Guardar rol de usuario
+                            mostrarMensaje("Guardando rol: $role")
+                            com.example.app.util.SessionManager.saveUserRole(role.lowercase())
+                        }
+                        
+                        // Guardar user_id si está disponible
+                        if (registerResponse.user != null) {
+                            mostrarMensaje("Usuario registrado con ID: ${registerResponse.user.id}")
+                        }
+                    } else {
+                        mostrarMensaje("Respuesta vacía del servidor")
+                    }
+                    
                     _isRegisterSuccessful.value = true
                     clearFields()
                 } else {
@@ -604,6 +687,54 @@ class RegisterViewModel : ViewModel() {
             } catch (e: Exception) {
                 mostrarMensaje("Error de conexión en registerParticipante: ${e.message}")
                 setError("Error de conexión: ${e.localizedMessage ?: e.message ?: "Error desconocido"}")
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    private fun loginAfterRegistration() {
+        viewModelScope.launch {
+            try {
+                mostrarMensaje("Intentando login automático después del registro")
+                isLoading = true
+                
+                // Crear objeto de login con las credenciales del registro
+                val loginRequest = com.example.app.model.login.LoginRequest(
+                    email = email,
+                    password = password
+                )
+                
+                // Realizar petición de login
+                val response = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    com.example.app.api.RetrofitClient.apiService.loginUser(loginRequest)
+                }
+                
+                if (response.isSuccessful) {
+                    val loginResponse = response.body()
+                    mostrarMensaje("Login automático exitoso: $loginResponse")
+                    
+                    if (loginResponse != null) {
+                        // Obtener token
+                        val token = loginResponse.accessToken ?: loginResponse.token
+                        
+                        if (token != null) {
+                            mostrarMensaje("Guardando token del login: ${token.take(10)}...")
+                            com.example.app.util.SessionManager.saveToken(token)
+                            
+                            // Guardar rol
+                            val userRole = role.lowercase()
+                            mostrarMensaje("Guardando rol del login: $userRole")
+                            com.example.app.util.SessionManager.saveUserRole(userRole)
+                        } else {
+                            mostrarMensaje("No se encontró token en la respuesta de login")
+                        }
+                    }
+                } else {
+                    mostrarMensaje("Error en login automático: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                mostrarMensaje("Error al realizar login automático: ${e.message}")
             } finally {
                 isLoading = false
             }
