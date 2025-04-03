@@ -431,7 +431,7 @@ fun RegisterScreen(
                     ) {
                         Button(
                             onClick = {
-                                viewModel.role = "Organizador"
+                                viewModel.role = "organizador"
                                 navController.navigate("register/organizador")
                             },
                             modifier = Modifier
@@ -456,7 +456,7 @@ fun RegisterScreen(
                         
                         Button(
                             onClick = {
-                                viewModel.role = "Participante"
+                                viewModel.role = "participante"
                                 navController.navigate("register/participante")
                             },
                             modifier = Modifier

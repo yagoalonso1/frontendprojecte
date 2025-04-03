@@ -71,7 +71,7 @@ fun BottomNavigationBar(
                         userType = UserType.ORGANIZER
                     ),
                     NavItem(
-                        route = "crear_evento",
+                        route = Routes.CrearEvento.route,
                         title = "Crear",
                         icon = Icons.Default.Add,
                         userType = UserType.ORGANIZER

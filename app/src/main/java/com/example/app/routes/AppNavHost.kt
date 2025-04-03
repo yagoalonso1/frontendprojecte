@@ -11,10 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.app.view.EventoDetailScreen
-import com.example.app.view.EventosScreen
-import com.example.app.view.ForgotPasswordScreen
-import com.example.app.view.LoginScreen
+import com.example.app.view.*
 import com.example.app.view.favoritos.FavoritosScreen
 import com.example.app.view.register.OrganizadorScreen
 import com.example.app.view.register.ParticipanteScreen
@@ -23,7 +20,6 @@ import com.example.app.viewmodel.LoginViewModel
 import com.example.app.viewmodel.RegisterViewModel
 import kotlinx.coroutines.delay
 import android.util.Log
-import com.example.app.view.MisEventosScreen
 
 @Composable
 fun AppNavHost(
@@ -155,7 +151,7 @@ fun AppNavHost(
         }
         
         composable(Routes.CrearEvento.route) {
-            // Implementar pantalla de Crear Evento
+            CrearEventoScreen(navController = navController)
         }
         
         composable(Routes.MisTickets.route) {
@@ -170,7 +166,9 @@ fun AppNavHost(
         }
         
         composable(Routes.Perfil.route) {
-            // Implementar pantalla de Perfil
+            ProfileScreen(
+                navController = navController
+            )
         }
     }
 } 

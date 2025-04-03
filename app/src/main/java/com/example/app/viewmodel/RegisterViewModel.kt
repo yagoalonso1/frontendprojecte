@@ -91,7 +91,7 @@ class RegisterViewModel : ViewModel() {
 
     // Funciones de formato
     fun formatName(input: String): String {
-        return input.trim().split(" ").joinToString(" ") { 
+        return input.trim().split(" ").joinToString(" ") {
             it.replaceFirstChar { char -> char.uppercase() }
         }
     }
@@ -107,11 +107,11 @@ class RegisterViewModel : ViewModel() {
 
     fun isValidDNI(dni: String): Boolean {
         if (!dni.matches(Regex(dniRegex))) return false
-        
+
         val letters = "TRWAGMYFPDXBNJZSQVHLCKE"
         val number = dni.substring(0, 8).toInt()
         val letter = dni.last()
-        
+
         return letters[number % 23] == letter
     }
 
@@ -122,23 +122,23 @@ class RegisterViewModel : ViewModel() {
     fun isValidPassword(password: String): Boolean {
         // Verificar longitud mínima
         if (password.length < 8) return false
-        
+
         // Verificar que contiene al menos un dígito
         if (!password.any { it.isDigit() }) return false
-        
+
         // Verificar que contiene al menos una letra minúscula
         if (!password.any { it.isLowerCase() }) return false
-        
+
         // Verificar que contiene al menos una letra mayúscula
         if (!password.any { it.isUpperCase() }) return false
-        
+
         // Verificar que contiene al menos un carácter especial
         val specialChars = "!@#$%^&*()_-+={}[]|:;'<>,.?/~`\\"
         if (!password.any { it in specialChars || it == '.' }) return false
-        
+
         // Verificar que no contiene espacios
         if (password.contains(" ")) return false
-        
+
         return true
     }
 
@@ -176,6 +176,7 @@ class RegisterViewModel : ViewModel() {
             isNameError = true
             nameErrorMessage = "El nombre es requerido"
             isValid = false
+            mostrarMensaje("ERROR: Nombre vacío")
         } else {
             isNameError = false
             nameErrorMessage = ""
@@ -185,6 +186,7 @@ class RegisterViewModel : ViewModel() {
             isApellido1Error = true
             apellido1ErrorMessage = "El primer apellido es requerido"
             isValid = false
+            mostrarMensaje("ERROR: Apellido1 vacío")
         } else {
             isApellido1Error = false
             apellido1ErrorMessage = ""
@@ -195,10 +197,12 @@ class RegisterViewModel : ViewModel() {
             isEmailError = true
             emailErrorMessage = "El email es requerido"
             isValid = false
+            mostrarMensaje("ERROR: Email vacío")
         } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             isEmailError = true
             emailErrorMessage = "Email inválido"
             isValid = false
+            mostrarMensaje("ERROR: Email inválido: $email")
         } else {
             isEmailError = false
             emailErrorMessage = ""
@@ -209,10 +213,12 @@ class RegisterViewModel : ViewModel() {
             isPasswordError = true
             passwordErrorMessage = "La contraseña es requerida"
             isValid = false
+            mostrarMensaje("ERROR: Contraseña vacía")
         } else if (password.length < 6) {
             isPasswordError = true
             passwordErrorMessage = "La contraseña debe tener al menos 6 caracteres"
             isValid = false
+            mostrarMensaje("ERROR: Contraseña demasiado corta: ${password.length} caracteres")
         } else {
             isPasswordError = false
             passwordErrorMessage = ""
@@ -223,6 +229,7 @@ class RegisterViewModel : ViewModel() {
             isConfirmPasswordError = true
             confirmPasswordErrorMessage = "Las contraseñas no coinciden"
             isValid = false
+            mostrarMensaje("ERROR: Las contraseñas no coinciden")
         } else {
             isConfirmPasswordError = false
             confirmPasswordErrorMessage = ""
@@ -230,16 +237,29 @@ class RegisterViewModel : ViewModel() {
 
         // Validar campos específicos según el rol
         when (role.lowercase()) {
-            "organizador" -> isValid = isValid && validateOrganizadorFields()
-            "participante" -> isValid = isValid && validateParticipanteFields()
+            "organizador" -> {
+                val validOrg = validateOrganizadorFields()
+                if (!validOrg) {
+                    mostrarMensaje("ERROR: Validación de campos de organizador falló")
+                }
+                isValid = isValid && validOrg
+            }
+            "participante" -> {
+                val validPart = validateParticipanteFields()
+                if (!validPart) {
+                    mostrarMensaje("ERROR: Validación de campos de participante falló")
+                }
+                isValid = isValid && validPart
+            }
         }
 
+        mostrarMensaje("Resultado final de validación: ${if (isValid) "VÁLIDO" else "INVÁLIDO"}")
         return isValid
     }
 
     fun validateOrganizadorFields(): Boolean {
         var isValid = true
-        
+
         if (nombreOrganizacion.isBlank()) {
             isNombreOrganizacionError = true
             nombreOrganizacionErrorMessage = "El nombre de la organización es requerido"
@@ -272,23 +292,38 @@ class RegisterViewModel : ViewModel() {
             isDniError = true
             dniErrorMessage = "El DNI es requerido"
             isValid = false
+            mostrarMensaje("ERROR: DNI vacío")
         } else if (!dni.matches(Regex("^[0-9]{8}[A-Z]$"))) {
             isDniError = true
             dniErrorMessage = "DNI inválido (8 números y 1 letra)"
             isValid = false
+            mostrarMensaje("ERROR: Formato de DNI inválido: $dni")
         } else {
-            isDniError = false
-            dniErrorMessage = ""
+            // Validar la letra del DNI
+            val letters = "TRWAGMYFPDXBNJZSQVHLCKE"
+            val number = dni.substring(0, 8).toInt()
+            val letter = dni.last()
+            if (letters[number % 23] != letter) {
+                isDniError = true
+                dniErrorMessage = "La letra del DNI no es correcta"
+                isValid = false
+                mostrarMensaje("ERROR: Letra de DNI incorrecta. Calculada: ${letters[number % 23]}, Proporcionada: $letter")
+            } else {
+                isDniError = false
+                dniErrorMessage = ""
+            }
         }
 
         if (telefono.isBlank()) {
             isTelefonoError = true
             telefonoErrorMessage = "El teléfono es requerido"
             isValid = false
+            mostrarMensaje("ERROR: Teléfono vacío")
         } else if (!telefono.matches(Regex("^[0-9]{9}$"))) {
             isTelefonoError = true
             telefonoErrorMessage = "El teléfono debe tener 9 dígitos"
             isValid = false
+            mostrarMensaje("ERROR: Formato de teléfono inválido: $telefono (longitud: ${telefono.length})")
         } else {
             isTelefonoError = false
             telefonoErrorMessage = ""
@@ -320,7 +355,7 @@ class RegisterViewModel : ViewModel() {
         telefonoContacto = ""
         dni = ""
         telefono = ""
-        
+
         // Limpiar estados de error
         isNameError = false
         isApellido1Error = false
@@ -332,7 +367,7 @@ class RegisterViewModel : ViewModel() {
         isTelefonoContactoError = false
         isDniError = false
         isTelefonoError = false
-        
+
         // Limpiar mensajes de error
         nameErrorMessage = ""
         apellido1ErrorMessage = ""
@@ -346,7 +381,7 @@ class RegisterViewModel : ViewModel() {
         telefonoErrorMessage = ""
     }
 
-    private fun mostrarMensaje(mensaje: String) {
+    fun mostrarMensaje(mensaje: String) {
         _debugMessage.value = mensaje
         Log.d("REGISTRO_DEBUG", mensaje)
     }
@@ -364,49 +399,101 @@ class RegisterViewModel : ViewModel() {
                     return@launch
                 }
 
-                when (role.lowercase()) {
-                    "organizador" -> {
-                        if (!validateOrganizadorFields()) {
-                            setError("Por favor, completa los datos del organizador correctamente")
-                            return@launch
-                        }
-                    }
+                // Asegurarse de que el rol siempre esté en minúsculas
+                role = role.lowercase()
+                
+                // Crear objeto de solicitud según el rol
+                val registerRequest = when (role) {
                     "participante" -> {
-                        if (!validateParticipanteFields()) {
-                            setError("Por favor, completa los datos del participante correctamente")
-                            return@launch
-                        }
+                        mostrarMensaje("Creando solicitud para participante")
+                        RegisterRequest.createParticipante(
+                            nombre = name,
+                            apellido1 = apellido1,
+                            apellido2 = apellido2 ?: "",
+                            email = email,
+                            password = password,
+                            dni = dni,
+                            telefono = telefono
+                        )
+                    }
+                    "organizador" -> {
+                        mostrarMensaje("Creando solicitud para organizador")
+                        RegisterRequest.createOrganizador(
+                            nombre = name,
+                            apellido1 = apellido1,
+                            apellido2 = apellido2 ?: "",
+                            email = email,
+                            password = password,
+                            nombreOrganizacion = nombreOrganizacion,
+                            telefonoContacto = telefonoContacto
+                        )
+                    }
+                    else -> {
+                        mostrarMensaje("Rol no reconocido: ${role}")
+                        setError("Rol no válido")
+                        isLoading = false
+                        return@launch
                     }
                 }
 
-                val registerRequest = RegisterRequest(
-                    nombre = name,
-                    apellido1 = apellido1,
-                    apellido2 = apellido2,
-                    email = email,
-                    password = password,
-                    role = role.lowercase(),
-                    nombreOrganizacion = if (role.lowercase() == "organizador") nombreOrganizacion else null,
-                    telefonoContacto = if (role.lowercase() == "organizador") telefonoContacto else null,
-                    dni = if (role.lowercase() == "participante") dni else null,
-                    telefono = if (role.lowercase() == "participante") telefono else null
-                )
-
-                mostrarMensaje("Enviando datos: $registerRequest")
+                // Mostrar los valores exactos que se están enviando
+                mostrarMensaje("Enviando solicitud de registro con role: ${registerRequest.role}")
+                mostrarMensaje("nombreOrganizacion: '${registerRequest.nombreOrganizacion}' (longitud: ${registerRequest.nombreOrganizacion.length})")
+                mostrarMensaje("telefonoContacto: '${registerRequest.telefonoContacto}' (longitud: ${registerRequest.telefonoContacto.length})")
+                mostrarMensaje("JSON completo: ${Gson().toJson(registerRequest)}")
                 
-                val response = RetrofitClient.apiService.registerUser(registerRequest)
-                
-                if (response.isSuccessful) {
-                    mostrarMensaje("Registro exitoso: ${response.body()}")
-                    _isRegisterSuccessful.value = true
-                    clearFields()
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    mostrarMensaje("Error en el registro: $errorBody")
-                    setError("Error en el registro: ${response.message()}")
+                try {
+                    val response = RetrofitClient.apiService.registerUser(registerRequest)
+                    
+                    if (response.isSuccessful) {
+                        mostrarMensaje("Registro exitoso: ${response.body()}")
+                        _isRegisterSuccessful.value = true
+                        clearFields()
+                    } else {
+                        val errorCode = response.code()
+                        val errorBody = response.errorBody()?.string()
+                        mostrarMensaje("Error en el registro: Código $errorCode - Body: $errorBody")
+                        
+                        when (errorCode) {
+                            422 -> {
+                                // Unprocessable Content - Validación fallida
+                                try {
+                                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                                    mostrarMensaje("Error response parseada: $errorResponse")
+                                    mostrarMensaje("Mensajes de validación: ${errorResponse.messages}")
+                                    
+                                    val mensajeError = when {
+                                        !errorResponse.messages.isNullOrEmpty() -> {
+                                            val errores = mutableListOf<String>()
+                                            errorResponse.messages.forEach { (campo, msgs) ->
+                                                errores.add("${campo}: ${msgs.joinToString()}")
+                                            }
+                                            errores.joinToString("\n")
+                                        }
+                                        errorResponse.message != null -> errorResponse.message
+                                        errorResponse.error != null -> errorResponse.error
+                                        else -> "Error de validación. Revisa tus datos."
+                                    }
+                                    
+                                    setError(mensajeError)
+                                    mostrarMensaje("Error de validación desglosado: $mensajeError")
+                                } catch (e: Exception) {
+                                    setError("Error de validación: ${e.message}")
+                                    mostrarMensaje("Error al procesar respuesta de error: ${e.message}")
+                                    mostrarMensaje("Error body original: $errorBody")
+                                }
+                            }
+                            409 -> setError("El correo electrónico ya está registrado")
+                            500 -> setError("Error en el servidor. Inténtalo más tarde")
+                            else -> setError("Error en el registro: ${response.message()}")
+                        }
+                    }
+                } catch (e: Exception) {
+                    mostrarMensaje("Excepción al hacer la petición: ${e.message}")
+                    setError("Error de conexión: ${e.message}")
                 }
             } catch (e: Exception) {
-                mostrarMensaje("Error: ${e.message}")
+                mostrarMensaje("Error general: ${e.message}")
                 setError("Error de conexión: ${e.message}")
             } finally {
                 isLoading = false
@@ -432,23 +519,43 @@ class RegisterViewModel : ViewModel() {
     fun registerParticipante() {
         viewModelScope.launch {
             try {
-                if (!validateParticipanteFields()) return@launch
+                // Verificar que los campos básicos estén presentes
+                if (name.isBlank() || apellido1.isBlank() || email.isBlank() || password.isBlank()) {
+                    mostrarMensaje("ERROR: Faltan campos básicos para el registro")
+                    mostrarMensaje("Nombre: $name, Apellido1: $apellido1, Email: $email, Password: ${if (password.isBlank()) "vacío" else "tiene ${password.length} caracteres"}")
+                    setError("Faltan datos básicos. Asegúrate de completar toda la información.")
+                    return@launch
+                }
+                
+                if (!validateParticipanteFields()) {
+                    mostrarMensaje("ERROR: La validación de campos de participante falló")
+                    return@launch
+                }
                 
                 isLoading = true
                 clearError()
 
-                val registerRequest = RegisterRequest(
+                // Asegurar que el rol está en minúsculas
+                role = "participante"
+                
+                val registerRequest = RegisterRequest.createParticipante(
                     nombre = name,
                     apellido1 = apellido1,
-                    apellido2 = apellido2,
+                    apellido2 = apellido2 ?: "",
                     email = email,
                     password = password,
-                    role = "participante",
                     dni = dni,
-                    telefono = telefono,
-                    nombreOrganizacion = null,
-                    telefonoContacto = null
+                    telefono = telefono
                 )
+
+                // Convertir la solicitud a JSON para verificar exactamente qué se está enviando
+                val requestJson = Gson().toJson(registerRequest)
+                mostrarMensaje("JSON ENVIADO AL SERVIDOR: $requestJson")
+                
+                // Mostrar los valores exactos que se están enviando
+                mostrarMensaje("Enviando solicitud de registro con role: ${registerRequest.role}")
+                mostrarMensaje("nombreOrganizacion: '${registerRequest.nombreOrganizacion}' (longitud: ${registerRequest.nombreOrganizacion.length}, tipo: ${registerRequest.nombreOrganizacion::class.java.simpleName})")
+                mostrarMensaje("telefonoContacto: '${registerRequest.telefonoContacto}' (longitud: ${registerRequest.telefonoContacto.length}, tipo: ${registerRequest.telefonoContacto::class.java.simpleName})")
 
                 val response = RetrofitClient.apiService.registerUser(registerRequest)
 
@@ -456,17 +563,47 @@ class RegisterViewModel : ViewModel() {
                     _isRegisterSuccessful.value = true
                     clearFields()
                 } else {
+                    val errorCode = response.code()
                     val errorBody = response.errorBody()?.string()
-                    val errorMessage = try {
-                        val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                        errorResponse.message ?: "Error en el registro"
-                    } catch (e: Exception) {
-                        "Error en el registro"
+                    mostrarMensaje("ERROR EN EL REGISTRO: Código $errorCode")
+                    mostrarMensaje("CUERPO DE RESPUESTA COMPLETO: $errorBody")
+                    
+                    when (errorCode) {
+                        422 -> {
+                            // Unprocessable Content - Validación fallida
+                            try {
+                                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                                mostrarMensaje("Error response parseada: $errorResponse")
+                                
+                                val mensajeError = when {
+                                    !errorResponse.messages.isNullOrEmpty() -> {
+                                        val errores = mutableListOf<String>()
+                                        errorResponse.messages.forEach { (campo, msgs) ->
+                                            errores.add("${campo}: ${msgs.joinToString()}")
+                                        }
+                                        errores.joinToString("\n")
+                                    }
+                                    errorResponse.message != null -> errorResponse.message
+                                    errorResponse.error != null -> errorResponse.error
+                                    else -> "Error de validación. Revisa tus datos."
+                                }
+                                
+                                setError(mensajeError)
+                            } catch (e: Exception) {
+                                setError("Error de validación: ${e.message ?: "Error desconocido"}")
+                                mostrarMensaje("Error al procesar respuesta de error: ${e.message}")
+                                mostrarMensaje("Error body original: $errorBody")
+                            }
+                        }
+                        409 -> setError("El correo electrónico ya está registrado")
+                        400 -> setError("Datos de registro incorrectos. Revisa la información proporcionada.")
+                        500 -> setError("Error en el servidor. Inténtalo más tarde")
+                        else -> setError("Error en el registro (código $errorCode): ${response.message()}")
                     }
-                    setError(errorMessage)
                 }
             } catch (e: Exception) {
-                setError("Error de conexión: ${e.localizedMessage}")
+                mostrarMensaje("Error de conexión en registerParticipante: ${e.message}")
+                setError("Error de conexión: ${e.localizedMessage ?: e.message ?: "Error desconocido"}")
             } finally {
                 isLoading = false
             }

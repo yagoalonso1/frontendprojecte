@@ -1,6 +1,7 @@
 package com.example.app.api
 
 import com.example.app.model.Evento
+import com.example.app.model.evento.EventoRequest
 import com.example.app.model.evento.detail.EventoDetailResponse
 import com.example.app.model.login.LoginRequest
 import com.example.app.model.login.LoginResponse
@@ -13,6 +14,7 @@ import com.example.app.model.evento.EventoResponse
 import com.example.app.model.favoritos.FavoritoRequest
 import com.example.app.model.favoritos.FavoritosResponse
 import com.example.app.model.favoritos.FavoritoCheckResponse
+import com.example.app.model.CategoriasResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -21,6 +23,9 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
 import com.google.gson.annotations.SerializedName
+import com.example.app.model.evento.CrearEventoResponse
+import com.example.app.model.ProfileResponse
+import retrofit2.http.PUT
 
 interface ApiService {
     @POST("api/register")
@@ -73,6 +78,33 @@ interface ApiService {
     suspend fun getMisEventos(
         @Header("Authorization") token: String
     ): Response<EventoResponse>
+
+    @POST("api/eventos")
+    suspend fun crearEvento(
+        @Header("Authorization") token: String,
+        @Body eventoRequest: EventoRequest
+    ): Response<CrearEventoResponse>
+
+    @GET("api/categorias")
+    suspend fun getCategorias(
+        @Header("Authorization") token: String
+    ): Response<CategoriasResponse>
+
+    @GET("api/profile")
+    suspend fun getProfile(
+        @Header("Authorization") token: String
+    ): Response<ProfileResponse>
+    
+    @PUT("api/profile")
+    suspend fun updateProfile(
+        @Header("Authorization") token: String,
+        @Body profileData: Map<String, String>
+    ): Response<ProfileResponse>
+    
+    @GET("api/user")
+    suspend fun getUser(
+        @Header("Authorization") token: String
+    ): Response<com.example.app.model.User>
 }
 
 data class FavoritosResponse(
