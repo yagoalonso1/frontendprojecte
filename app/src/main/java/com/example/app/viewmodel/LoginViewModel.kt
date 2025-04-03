@@ -64,11 +64,25 @@ class LoginViewModel : ViewModel() {
                         
                         if (loginResponse != null) {
                             Log.d("LoginViewModel", "Verificando token...")
-                            val auth = loginResponse.auth
-                            val accessToken = auth.accessToken
-                            Log.d("LoginViewModel", "Token recibido: ${accessToken ?: "null"}")
                             
-                            if (accessToken.isNotBlank()) {
+                            try {
+                                // Verificar si el usuario existe en la respuesta
+                                if (loginResponse.user == null) {
+                                    setError("La respuesta no contiene información de usuario")
+                                    Log.e("LoginViewModel", "Usuario es null en la respuesta")
+                                    return@withContext
+                                }
+                                
+                                // Intentar obtener el token de donde esté disponible
+                                val accessToken = loginResponse.token ?: loginResponse.accessToken
+                                
+                                // Validar que obtuvimos un token
+                                if (accessToken.isNullOrBlank()) {
+                                    setError("No se recibió un token válido del servidor")
+                                    Log.e("LoginViewModel", "No se pudo obtener un token válido")
+                                    return@withContext
+                                }
+                                
                                 // Guardar el token y la información del usuario
                                 token = accessToken
                                 user = loginResponse.user
@@ -76,22 +90,45 @@ class LoginViewModel : ViewModel() {
                                 Log.d("LoginViewModel", "Login exitoso")
                                 Log.d("LoginViewModel", "Token: $token")
                                 Log.d("LoginViewModel", "Usuario: ${user?.email}")
-                                Log.d("LoginViewModel", "Rol recibido: ${loginResponse.role}")
-                                Log.d("LoginViewModel", "Usuario completo: $user")
                                 
-                                // Guardar en SessionManager
-                                SessionManager.saveToken(accessToken)
-                                SessionManager.saveUserRole(loginResponse.role)
+                                // Determinar el rol de usuario (con manejo seguro de nulos)
+                                val userRole = when {
+                                    loginResponse.role?.isNotBlank() == true -> loginResponse.role
+                                    loginResponse.userRole?.isNotBlank() == true -> loginResponse.userRole
+                                    loginResponse.userRoleAlt?.isNotBlank() == true -> loginResponse.userRoleAlt
+                                    else -> "participante" // valor por defecto
+                                }
+                                Log.d("LoginViewModel", "Rol determinado: $userRole")
                                 
-                                // Verificar que se guardó correctamente
-                                val savedRole = SessionManager.getUserRole()
-                                Log.d("LoginViewModel", "Rol guardado en SessionManager: $savedRole")
-                                
-                                clearFields()
-                                _isLoginSuccessful.value = true
-                            } else {
-                                setError("No se recibió un token válido del servidor")
-                                Log.e("LoginViewModel", "Token recibido es nulo o vacío")
+                                // Guardar en SessionManager (con manejo seguro de excepciones)
+                                try {
+                                    if (!SessionManager.isInitialized()) {
+                                        Log.w("LoginViewModel", "SessionManager no está inicializado, no se guardarán los datos de sesión")
+                                        // Continuamos con el login aunque no se guarden los datos
+                                    } else {
+                                        SessionManager.saveToken(accessToken)
+                                        SessionManager.saveUserRole(userRole)
+                                        
+                                        // Verificar que se guardó correctamente
+                                        val savedToken = SessionManager.getToken()
+                                        val savedRole = SessionManager.getUserRole()
+                                        Log.d("LoginViewModel", "Token guardado: $savedToken")
+                                        Log.d("LoginViewModel", "Rol guardado: $savedRole")
+                                    }
+                                    
+                                    // Siempre continuamos con el login
+                                    clearFields()
+                                    _isLoginSuccessful.value = true
+                                } catch (e: Exception) {
+                                    Log.e("LoginViewModel", "Error al guardar en SessionManager: ${e.message}")
+                                    // No bloqueamos el login aunque haya errores en el guardado
+                                    clearFields()
+                                    _isLoginSuccessful.value = true
+                                }
+                            } catch (e: Exception) {
+                                Log.e("LoginViewModel", "Error al procesar la respuesta: ${e.message}", e)
+                                setError("Error al procesar la respuesta: ${e.message ?: "Error desconocido"}")
+                                return@withContext
                             }
                         } else {
                             setError("Error desconocido durante el inicio de sesión")
@@ -100,9 +137,13 @@ class LoginViewModel : ViewModel() {
                         // Intentar obtener el mensaje de error del cuerpo de la respuesta
                         try {
                             val errorBody = response.errorBody()?.string()
-                            val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
-                            val message = errorResponse["message"] as? String ?: "Error en la comunicación con el servidor"
-                            setError(message)
+                            if (errorBody != null) {
+                                val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
+                                val message = errorResponse["message"] as? String ?: "Error en la comunicación con el servidor"
+                                setError(message)
+                            } else {
+                                setError("Error en la comunicación con el servidor: ${response.code()}")
+                            }
                         } catch (e: Exception) {
                             setError("Error en la comunicación con el servidor: ${response.code()}")
                         }
@@ -112,7 +153,8 @@ class LoginViewModel : ViewModel() {
                 // Manejar errores
                 withContext(Dispatchers.Main) {
                     isLoading = false
-                    setError("Error de conexión: ${e.message}")
+                    setError("Error de conexión: ${e.message ?: "Error desconocido"}")
+                    Log.e("LoginViewModel", "Excepción durante el login", e)
                 }
             }
         }
@@ -183,39 +225,72 @@ class LoginViewModel : ViewModel() {
     fun performLogout() {
         viewModelScope.launch {
             try {
-                // Obtener el token almacenado (asumiendo que lo tienes guardado)
-                val token = "Bearer ${getUserToken()}"
+                isLoading = true
                 
-                // Llamar al endpoint de logout
-                val response = RetrofitClient.apiService.logoutUser(token)
+                // Obtener el token almacenado
+                val token = SessionManager.getToken()
                 
-                if (response.isSuccessful) {
-                    // Limpiar datos locales
+                if (token == null) {
+                    Log.e("LoginViewModel", "No hay token para logout")
+                    // Si no hay token, simplemente limpiamos los datos locales
                     clearUserData()
                     _isLogoutSuccessful.value = true
-                } else {
-                    Log.e("LoginViewModel", "Error en logout: ${response.errorBody()?.string()}")
+                    return@launch
                 }
+                
+                // Llamar al endpoint de logout con el token
+                try {
+                    val response = RetrofitClient.apiService.logoutUser("Bearer $token")
+                    
+                    if (response.isSuccessful) {
+                        Log.d("LoginViewModel", "Logout exitoso en el servidor")
+                    } else {
+                        Log.e("LoginViewModel", "Error en logout: ${response.errorBody()?.string()}")
+                    }
+                } catch (e: Exception) {
+                    Log.e("LoginViewModel", "Excepción en logout: ${e.message}")
+                }
+                
+                // Siempre limpiamos los datos locales, incluso si falla el logout en el servidor
+                clearUserData()
+                _isLogoutSuccessful.value = true
             } catch (e: Exception) {
                 Log.e("LoginViewModel", "Error durante el logout", e)
+                // Aún así intentamos limpiar los datos locales
+                clearUserData()
+                _isLogoutSuccessful.value = true
+            } finally {
+                isLoading = false
             }
         }
     }
 
-    private fun getUserToken(): String {
-        // Implementa la lógica para obtener el token almacenado
-        return "tu_token_almacenado"
-    }
-
     private fun clearUserData() {
-        // Implementa la lógica para limpiar los datos del usuario
+        // Limpiar datos locales
+        SessionManager.clearSession()
+        token = null
+        user = null
+        _isLoginSuccessful.value = false
     }
 
     private fun validateFields(): Boolean {
-        if (email.isEmpty() || password.isEmpty()) {
-            setError("Por favor, completa todos los campos")
+        if (email.isEmpty()) {
+            setError("Por favor, introduce tu correo electrónico")
             return false
         }
+        
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            setError("Por favor, introduce un correo electrónico válido")
+            return false
+        }
+        
+        if (password.isEmpty()) {
+            setError("Por favor, introduce tu contraseña")
+            return false
+        }
+        
+        // Limpiar error si todo está bien
+        clearError()
         return true
     }
 }

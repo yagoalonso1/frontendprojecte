@@ -32,6 +32,7 @@ import com.example.app.view.ForgotPasswordScreen
 import com.example.app.view.MisEventosScreen
 import com.example.app.util.SessionManager
 import android.util.Log
+import com.example.app.view.CrearEventoScreen
 
 // Variable global para rastrear si el usuario está autenticado
 private var isUserAuthenticated = false
@@ -98,7 +99,9 @@ fun AppNavigation(
             )
         }
         
-        // Resto de rutas...
+        composable(Routes.CrearEvento.route) {
+            CrearEventoScreen(navController = navController)
+        }
     }
 }
 

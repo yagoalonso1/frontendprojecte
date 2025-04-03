@@ -1,6 +1,8 @@
 package com.example.app.api
 
 import android.util.Log
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -43,10 +45,16 @@ object RetrofitClient {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
     
+    // Configuración personalizada de Gson para manejar mejor los valores nulos
+    private val gson: Gson = GsonBuilder()
+        .setLenient() // Permite JSON malformado
+        .serializeNulls() // Serializa los campos nulos
+        .create()
+    
     private val retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)
         .client(okHttpClient)
-        .addConverterFactory(GsonConverterFactory.create())
+        .addConverterFactory(GsonConverterFactory.create(gson))
         .build()
     
     val apiService: ApiService = retrofit.create(ApiService::class.java)
