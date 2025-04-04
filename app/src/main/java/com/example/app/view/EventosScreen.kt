@@ -105,6 +105,13 @@ fun EventosScreen(
         }
     }
 
+    // Modificar la lógica de visibilidad de la barra de búsqueda
+    val showSearchBar by remember {
+        derivedStateOf {
+            showScrollToTop || searchText.isNotEmpty()
+        }
+    }
+
     Scaffold(
         // Barra superior
         topBar = {
@@ -198,7 +205,7 @@ fun EventosScreen(
                 ) {
                     // Barra de búsqueda
                     AnimatedVisibility(
-                        visible = showScrollToTop,
+                        visible = showSearchBar,
                         enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
                         exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
                     ) {
@@ -341,39 +348,59 @@ fun EventoCard(
                 
                 // Fecha y hora
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarMonth,
-                        contentDescription = "Fecha",
-                        tint = primaryColor,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    // Fecha
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = "Fecha",
+                            tint = primaryColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.width(4.dp))
+                        
+                        Text(
+                            text = formatDate(evento.fechaEvento, true),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = textSecondaryColor
+                        )
+                    }
                     
-                    Spacer(modifier = Modifier.width(4.dp))
-                    
-                    Text(
-                        text = formatDate(evento.fechaEvento, true),  // Ahora incluye el año
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = textSecondaryColor
-                    )
-                    
-                    Spacer(modifier = Modifier.width(16.dp))
-                    
-                    Icon(
-                        imageVector = Icons.Default.Schedule,
-                        contentDescription = "Hora",
-                        tint = primaryColor,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.width(4.dp))
-                    
-                    Text(
-                        text = if (evento.hora.length >= 5) evento.hora.substring(0, 5) else evento.hora,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = textSecondaryColor
-                    )
+                    // Hora
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = "Hora",
+                            tint = primaryColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.width(4.dp))
+                        
+                        // Asegurar que la hora siempre tenga formato HH:MM
+                        val formattedHora = if (evento.hora.contains(":")) {
+                            val parts = evento.hora.split(":")
+                            val hours = parts[0].padStart(2, '0')
+                            val minutes = if (parts.size > 1) parts[1].padStart(2, '0') else "00"
+                            "$hours:$minutes"
+                        } else {
+                            evento.hora.padStart(2, '0') + ":00"
+                        }
+                        
+                        Text(
+                            text = formattedHora,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = textSecondaryColor
+                        )
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(4.dp))

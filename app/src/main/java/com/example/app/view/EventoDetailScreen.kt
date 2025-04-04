@@ -243,8 +243,18 @@ fun EventoDetailScreen(
                                             
                                             Spacer(modifier = Modifier.width(12.dp))
                                             
+                                            // Asegurar que la hora siempre tenga formato HH:MM
+                                            val formattedHora = if (evento.hora.contains(":")) {
+                                                val parts = evento.hora.split(":")
+                                                val hours = parts[0].padStart(2, '0')
+                                                val minutes = if (parts.size > 1) parts[1].padStart(2, '0') else "00"
+                                                "$hours:$minutes"
+                                            } else {
+                                                evento.hora.padStart(2, '0') + ":00"
+                                            }
+                                            
                                             Text(
-                                                text = if (evento.hora.length >= 5) evento.hora.substring(0, 5) else evento.hora,
+                                                text = formattedHora,
                                                 style = MaterialTheme.typography.bodyLarge,
                                                 color = textPrimaryColor
                                             )
