@@ -20,6 +20,7 @@ import com.example.app.viewmodel.LoginViewModel
 import com.example.app.viewmodel.RegisterViewModel
 import kotlinx.coroutines.delay
 import android.util.Log
+import com.example.app.util.SessionManager
 
 @Composable
 fun AppNavHost(
@@ -36,6 +37,10 @@ fun AppNavHost(
     // Efecto para navegar después del registro exitoso
     LaunchedEffect(isRegisterSuccessful) {
         if (isRegisterSuccessful) {
+            // El rol ya se guarda en el RegisterViewModel, aquí solo confirmamos
+            val userRole = SessionManager.getUserRole() ?: "participante"
+            Log.d("AppNavHost", "Registro exitoso, rol en SessionManager: $userRole")
+            
             delay(1500) // Dar tiempo para mostrar el mensaje de éxito
             navController.navigate(Routes.Eventos.route) {
                 popUpTo(0) { inclusive = true }

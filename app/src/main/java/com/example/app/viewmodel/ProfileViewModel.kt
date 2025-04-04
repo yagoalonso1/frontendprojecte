@@ -46,6 +46,10 @@ class ProfileViewModel : ViewModel() {
     private val _isUpdateSuccessful = MutableStateFlow(false)
     val isUpdateSuccessful = _isUpdateSuccessful.asStateFlow()
     
+    // Añadir un nuevo estado para controlar la redirección a login
+    private val _shouldNavigateToLogin = MutableStateFlow(false)
+    val shouldNavigateToLogin = _shouldNavigateToLogin.asStateFlow()
+    
     // Inicializar cargando el perfil
     init {
         loadProfile()
@@ -160,7 +164,11 @@ class ProfileViewModel : ViewModel() {
                         Log.e("ProfileViewModel", "Error ${response.code()}: $errorBody")
                         
                         when (response.code()) {
-                            401 -> setError("Tu sesión ha expirado. Por favor, inicia sesión nuevamente")
+                            401 -> {
+                                setError("Tu sesión ha expirado. Por favor, inicia sesión nuevamente")
+                                // Marcar que se debería navegar a login
+                                _shouldNavigateToLogin.value = true
+                            }
                             403 -> setError("No tienes permiso para acceder a esta información")
                             404 -> setError("Perfil no encontrado")
                             500 -> setError("Error interno del servidor")
@@ -176,9 +184,62 @@ class ProfileViewModel : ViewModel() {
     }
     
     private fun loadProfileDetails(token: String) {
-        // Este método se puede implementar para obtener información adicional
-        // específica del tipo de usuario (participante u organizador)
-        // Por ahora no hacemos nada aquí, pero podría implementarse en el futuro
+        viewModelScope.launch {
+            try {
+                Log.d("ProfileViewModel", "Cargando detalles adicionales del perfil con /api/profile")
+                
+                // Realizar la petición a /api/profile para obtener datos completos
+                val response = withContext(Dispatchers.IO) {
+                    try {
+                        RetrofitClient.apiService.getProfile("Bearer $token")
+                    } catch (e: Exception) {
+                        Log.e("ProfileViewModel", "Error al obtener detalles del perfil: ${e.message}", e)
+                        return@withContext null
+                    }
+                }
+                
+                if (response != null && response.isSuccessful) {
+                    val profileResponse = response.body()
+                    
+                    if (profileResponse != null && profileResponse.data != null) {
+                        Log.d("ProfileViewModel", "Detalles obtenidos correctamente: ${profileResponse.data}")
+                        
+                        // Actualizar solo los campos específicos del rol, manteniendo los datos básicos
+                        val currentData = profileData
+                        if (currentData != null) {
+                            profileData = currentData.copy(
+                                // Mantener datos básicos
+                                id = currentData.id,
+                                nombre = currentData.nombre,
+                                apellido1 = currentData.apellido1,
+                                apellido2 = currentData.apellido2,
+                                email = currentData.email,
+                                role = currentData.role,
+                                
+                                // Actualizar datos específicos
+                                dni = profileResponse.data.dni,
+                                telefono = profileResponse.data.telefono,
+                                nombreOrganizacion = profileResponse.data.nombreOrganizacion,
+                                telefonoContacto = profileResponse.data.telefonoContacto
+                            )
+                            
+                            // Actualizar los campos editables con los nuevos datos
+                            initEditableFields()
+                        } else {
+                            // Si no hay datos básicos (caso improbable), usar los datos completos
+                            profileData = profileResponse.data
+                            initEditableFields()
+                        }
+                    } else {
+                        Log.w("ProfileViewModel", "No se pudieron obtener detalles específicos")
+                    }
+                } else {
+                    Log.w("ProfileViewModel", "Error al obtener detalles: ${response?.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Error general al cargar detalles: ${e.message}", e)
+            }
+        }
     }
     
     private fun initEditableFields() {
@@ -324,5 +385,13 @@ class ProfileViewModel : ViewModel() {
     
     private fun clearError() {
         errorMessage = null
+    }
+    
+    fun resetNavigationState() {
+        _shouldNavigateToLogin.value = false
+    }
+    
+    fun navigateToLogin() {
+        _shouldNavigateToLogin.value = true
     }
 } 
