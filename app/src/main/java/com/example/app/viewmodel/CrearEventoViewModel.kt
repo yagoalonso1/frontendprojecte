@@ -98,22 +98,20 @@ class CrearEventoViewModel : ViewModel() {
             isLoadingCategorias = true
             errorCategorias = null
             try {
-                val token = SessionManager.getToken()
-                if (token == null) {
-                    errorCategorias = "No se encontró el token de autenticación"
-                    return@launch
-                }
-
-                val response = RetrofitClient.apiService.getCategorias("Bearer $token")
-                if (response.isSuccessful) {
-                    categorias = response.body()?.categorias ?: emptyList()
-                    Log.d("CrearEventoViewModel", "Categorías cargadas: $categorias")
-                } else {
-                    errorCategorias = "Error al cargar las categorías: ${response.message()}"
-                    Log.e("CrearEventoViewModel", "Error al cargar categorías: ${response.errorBody()?.string()}")
-                }
+                // Usar categorías estáticas en lugar de cargarlas de la API
+                categorias = listOf(
+                    "Festival",
+                    "Concierto",
+                    "Teatro",
+                    "Deportes",
+                    "Conferencia",
+                    "Exposición",
+                    "Taller",
+                    "Otro"
+                )
+                Log.d("CrearEventoViewModel", "Categorías cargadas: $categorias")
             } catch (e: Exception) {
-                errorCategorias = "Error de conexión: ${e.message}"
+                errorCategorias = "Error al cargar las categorías: ${e.message}"
                 Log.e("CrearEventoViewModel", "Excepción al cargar categorías", e)
             } finally {
                 isLoadingCategorias = false
@@ -223,14 +221,19 @@ class CrearEventoViewModel : ViewModel() {
                 }
 
                 // Convertir los tipos de entrada al formato para la API
-                val tiposEntradaRequest = tiposEntrada.map { tipoState ->
-                    TipoEntradaRequest(
-                        nombre = tipoState.nombre,
-                        precio = tipoState.precio.toDoubleOrNull() ?: 0.0,
-                        cantidadDisponible = if (tipoState.esIlimitado) null else tipoState.cantidadDisponible.toIntOrNull(),
-                        descripcion = if (tipoState.descripcion.isBlank()) null else tipoState.descripcion,
-                        esIlimitado = tipoState.esIlimitado
-                    )
+                // Si el evento es online, usar una lista vacía
+                val tiposEntradaRequest = if (esOnline) {
+                    emptyList<TipoEntradaRequest>()
+                } else {
+                    tiposEntrada.map { tipoState ->
+                        TipoEntradaRequest(
+                            nombre = tipoState.nombre,
+                            precio = tipoState.precio.toDoubleOrNull() ?: 0.0,
+                            cantidadDisponible = if (tipoState.esIlimitado) null else tipoState.cantidadDisponible.toIntOrNull(),
+                            descripcion = if (tipoState.descripcion.isBlank()) null else tipoState.descripcion,
+                            esIlimitado = tipoState.esIlimitado
+                        )
+                    }
                 }
 
                 // Si hay una imagen seleccionada, usar el método multipart
