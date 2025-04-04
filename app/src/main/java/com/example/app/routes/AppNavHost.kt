@@ -18,6 +18,7 @@ import com.example.app.view.register.ParticipanteScreen
 import com.example.app.view.register.RegisterScreen
 import com.example.app.viewmodel.LoginViewModel
 import com.example.app.viewmodel.RegisterViewModel
+import com.example.app.viewmodel.TicketsViewModel
 import kotlinx.coroutines.delay
 import android.util.Log
 import com.example.app.util.SessionManager
@@ -160,7 +161,10 @@ fun AppNavHost(
         }
         
         composable(Routes.MisTickets.route) {
-            // Implementar pantalla de Mis Tickets
+            MisTicketsScreen(
+                navController = navController,
+                viewModel = viewModel()
+            )
         }
         
         composable(Routes.Favoritos.route) {
