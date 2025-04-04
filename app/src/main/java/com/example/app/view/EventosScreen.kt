@@ -56,6 +56,8 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import android.util.Log
 import com.example.app.util.SessionManager
+import com.example.app.util.Constants
+import com.example.app.util.getImageUrl
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -280,6 +282,9 @@ fun EventoCard(
     textSecondaryColor: Color,
     successColor: Color
 ) {
+    // Usar la función de extensión para obtener la URL de la imagen
+    val imageUrl = evento.getImageUrl()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -300,7 +305,7 @@ fun EventoCard(
             // Imagen del evento
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data("https://eventosapp.jmrp.es/storage/${evento.imagen}")
+                    .data(imageUrl)
                     .crossfade(true)
                     .build(),
                 contentDescription = "Imagen del evento",

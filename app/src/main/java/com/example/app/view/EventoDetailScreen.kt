@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,6 +33,8 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.app.util.formatDate
 import com.example.app.viewmodel.EventoDetailViewModel
+import com.example.app.util.Constants
+import com.example.app.util.getImageUrl
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -132,6 +135,8 @@ fun EventoDetailScreen(
                             .verticalScroll(rememberScrollState())
                     ) {
                         // Imagen del evento
+                        val imageUrl = evento.getImageUrl()
+                        
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -139,7 +144,7 @@ fun EventoDetailScreen(
                         ) {
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
-                                    .data("https://eventosapp.jmrp.es/storage/${evento.imagen}")
+                                    .data(imageUrl)
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = "Imagen del evento",

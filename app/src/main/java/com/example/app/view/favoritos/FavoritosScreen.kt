@@ -34,7 +34,9 @@ import coil.request.ImageRequest
 import com.example.app.model.Evento
 import com.example.app.routes.BottomNavigationBar
 import com.example.app.routes.Routes
+import com.example.app.util.Constants
 import com.example.app.util.formatDate
+import com.example.app.util.getImageUrl
 import com.example.app.viewmodel.EventoViewModel
 import com.example.app.view.EventoCard
 
@@ -196,9 +198,11 @@ private fun EventoCard(
         Row(
             modifier = Modifier.fillMaxWidth()
         ) {
+            val imageUrl = evento.getImageUrl()
+            
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data("https://eventosapp.jmrp.es/storage/${evento.imagen}")
+                    .data(imageUrl)
                     .crossfade(true)
                     .build(),
                 contentDescription = "Imagen del evento",

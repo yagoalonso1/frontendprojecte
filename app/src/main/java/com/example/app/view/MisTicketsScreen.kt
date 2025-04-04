@@ -36,6 +36,7 @@ import com.example.app.routes.BottomNavigationBar
 import com.example.app.viewmodel.TicketsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.app.util.getImageUrl
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -226,10 +227,13 @@ fun TicketCompraItem(
                         .background(Color(0xFFEEEEEE))
                 ) {
                     if (compra.evento.imagen != null) {
+                        // Usar la función de extensión para obtener la URL de la imagen
+                        val imageUrl = compra.evento.getImageUrl()
+                        
                         Image(
                             painter = rememberAsyncImagePainter(
                                 ImageRequest.Builder(context)
-                                    .data(compra.evento.imagen)
+                                    .data(imageUrl)
                                     .crossfade(true)
                                     .build()
                             ),

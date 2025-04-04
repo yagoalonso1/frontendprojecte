@@ -7,6 +7,7 @@ data class Evento(
     @SerializedName("nombreEvento") val titulo: String,
     @SerializedName("descripcion") val descripcion: String,
     @SerializedName("imagen") val imagen: String,
+    @SerializedName("imagen_url") val imagenUrl: String? = null,
     @SerializedName("fechaEvento") val fechaEvento: String,
     @SerializedName("hora") val hora: String,
     @SerializedName("ubicacion") val ubicacion: String,
