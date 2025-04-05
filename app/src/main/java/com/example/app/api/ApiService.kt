@@ -15,6 +15,9 @@ import com.example.app.model.favoritos.FavoritoRequest
 import com.example.app.model.favoritos.FavoritosResponse
 import com.example.app.model.favoritos.FavoritoCheckResponse
 import com.example.app.model.CategoriasResponse
+import com.example.app.model.TiposEntradaResponse
+import com.example.app.model.CompraRequest
+import com.example.app.model.CompraResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -52,6 +55,9 @@ interface ApiService {
     
     @GET("api/eventos/{id}")
     suspend fun getEventoById(@Path("id") id: String): Response<EventoDetailResponse>
+    
+    @GET("api/eventos/{id}/tipos-entrada")
+    suspend fun getTiposEntrada(@Path("id") id: String): Response<TiposEntradaResponse>
     
     @GET("api/favoritos")
     suspend fun getFavoritos(
@@ -130,6 +136,12 @@ interface ApiService {
     suspend fun getMisTickets(
         @Header("Authorization") token: String
     ): Response<TicketsResponse>
+    
+    @POST("api/compras")
+    suspend fun comprarEntradas(
+        @Header("Authorization") token: String,
+        @Body compraRequest: CompraRequest
+    ): Response<CompraResponse>
 }
 
 data class FavoritosResponse(
