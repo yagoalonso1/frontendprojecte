@@ -34,7 +34,9 @@ import coil.request.ImageRequest
 import com.example.app.model.Evento
 import com.example.app.routes.BottomNavigationBar
 import com.example.app.routes.Routes
+import com.example.app.util.Constants
 import com.example.app.util.formatDate
+import com.example.app.util.getImageUrl
 import com.example.app.viewmodel.EventoViewModel
 import com.example.app.view.EventoCard
 
@@ -196,9 +198,11 @@ private fun EventoCard(
         Row(
             modifier = Modifier.fillMaxWidth()
         ) {
+            val imageUrl = evento.getImageUrl()
+            
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data("https://eventosapp.jmrp.es/storage/${evento.imagen}")
+                    .data(imageUrl)
                     .crossfade(true)
                     .build(),
                 contentDescription = "Imagen del evento",
@@ -242,39 +246,59 @@ private fun EventoCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarMonth,
-                        contentDescription = "Fecha",
-                        tint = primaryColor,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    // Fecha
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = "Fecha",
+                            tint = primaryColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.width(4.dp))
+                        
+                        Text(
+                            text = formatDate(evento.fechaEvento, true),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = textSecondaryColor
+                        )
+                    }
                     
-                    Spacer(modifier = Modifier.width(4.dp))
-                    
-                    Text(
-                        text = formatDate(evento.fechaEvento, true),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = textSecondaryColor
-                    )
-                    
-                    Spacer(modifier = Modifier.width(16.dp))
-                    
-                    Icon(
-                        imageVector = Icons.Default.Schedule,
-                        contentDescription = "Hora",
-                        tint = primaryColor,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.width(4.dp))
-                    
-                    Text(
-                        text = if (evento.hora.length >= 5) evento.hora.substring(0, 5) else evento.hora,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = textSecondaryColor
-                    )
+                    // Hora
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = "Hora",
+                            tint = primaryColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.width(4.dp))
+                        
+                        // Asegurar que la hora siempre tenga formato HH:MM
+                        val formattedHora = if (evento.hora.contains(":")) {
+                            val parts = evento.hora.split(":")
+                            val hours = parts[0].padStart(2, '0')
+                            val minutes = if (parts.size > 1) parts[1].padStart(2, '0') else "00"
+                            "$hours:$minutes"
+                        } else {
+                            evento.hora.padStart(2, '0') + ":00"
+                        }
+                        
+                        Text(
+                            text = formattedHora,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = textSecondaryColor
+                        )
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(4.dp))

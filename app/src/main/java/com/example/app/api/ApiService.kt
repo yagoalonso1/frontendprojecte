@@ -15,6 +15,9 @@ import com.example.app.model.favoritos.FavoritoRequest
 import com.example.app.model.favoritos.FavoritosResponse
 import com.example.app.model.favoritos.FavoritoCheckResponse
 import com.example.app.model.CategoriasResponse
+import com.example.app.model.TiposEntradaResponse
+import com.example.app.model.CompraRequest
+import com.example.app.model.CompraResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -27,6 +30,10 @@ import com.example.app.model.evento.CrearEventoResponse
 import com.example.app.model.ProfileResponse
 import retrofit2.http.PUT
 import com.example.app.model.tickets.TicketsResponse
+import retrofit2.http.Multipart
+import retrofit2.http.Part
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 
 interface ApiService {
     @POST("api/register")
@@ -48,6 +55,9 @@ interface ApiService {
     
     @GET("api/eventos/{id}")
     suspend fun getEventoById(@Path("id") id: String): Response<EventoDetailResponse>
+    
+    @GET("api/eventos/{id}/tipos-entrada")
+    suspend fun getTiposEntrada(@Path("id") id: String): Response<TiposEntradaResponse>
     
     @GET("api/favoritos")
     suspend fun getFavoritos(
@@ -86,6 +96,21 @@ interface ApiService {
         @Body eventoRequest: EventoRequest
     ): Response<CrearEventoResponse>
 
+    @Multipart
+    @POST("api/eventos")
+    suspend fun crearEventoConImagen(
+        @Header("Authorization") token: String,
+        @Part("titulo") titulo: RequestBody,
+        @Part("descripcion") descripcion: RequestBody,
+        @Part("fecha") fecha: RequestBody,
+        @Part("hora") hora: RequestBody,
+        @Part("ubicacion") ubicacion: RequestBody,
+        @Part("categoria") categoria: RequestBody,
+        @Part("es_online") esOnline: RequestBody,
+        @Part("tipos_entrada") tiposEntrada: RequestBody,
+        @Part imagen: MultipartBody.Part?
+    ): Response<CrearEventoResponse>
+
     @GET("api/categorias")
     suspend fun getCategorias(
         @Header("Authorization") token: String
@@ -111,6 +136,12 @@ interface ApiService {
     suspend fun getMisTickets(
         @Header("Authorization") token: String
     ): Response<TicketsResponse>
+    
+    @POST("api/compras")
+    suspend fun comprarEntradas(
+        @Header("Authorization") token: String,
+        @Body compraRequest: CompraRequest
+    ): Response<CompraResponse>
 }
 
 data class FavoritosResponse(

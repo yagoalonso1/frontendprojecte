@@ -9,24 +9,37 @@ import androidx.lifecycle.viewModelScope
 import com.example.app.api.RetrofitClient
 import com.example.app.util.SessionManager
 import com.example.app.model.evento.EventoRequest
+import com.example.app.model.evento.TipoEntradaRequest
 import com.example.app.model.evento.CategoriaEvento
+import com.example.app.model.evento.CrearEventoResponse
 import kotlinx.coroutines.launch
 import android.util.Log
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import android.content.Context
+import com.example.app.util.FileUtil
+import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import retrofit2.Response
 
 class CrearEventoViewModel : ViewModel() {
+    // Datos básicos del evento
     var nombreEvento by mutableStateOf("")
     var descripcion by mutableStateOf("")
     var fechaEvento by mutableStateOf("")
     var hora by mutableStateOf("")
     var ubicacion by mutableStateOf("")
-    var lugar by mutableStateOf("")
     var categoria by mutableStateOf("")
     var imagen by mutableStateOf<Uri?>(null)
+    var esOnline by mutableStateOf(false)
     
+    // Tipos de entrada
+    var tiposEntrada by mutableStateOf<List<TipoEntradaState>>(listOf(createDefaultTipoEntrada()))
+    
+    // Estados de UI
     var isLoading by mutableStateOf(false)
     var error by mutableStateOf<String?>(null)
     var success by mutableStateOf(false)
@@ -43,27 +56,62 @@ class CrearEventoViewModel : ViewModel() {
         cargarCategorias()
     }
 
+    // Clase para manejar el estado de los tipos de entrada en la UI
+    data class TipoEntradaState(
+        var nombre: String = "",
+        var precio: String = "0.0",
+        var cantidadDisponible: String = "",
+        var descripcion: String = "",
+        var esIlimitado: Boolean = false
+    )
+
+    private fun createDefaultTipoEntrada(): TipoEntradaState {
+        return TipoEntradaState(
+            nombre = "General",
+            precio = "0.0",
+            cantidadDisponible = "100",
+            descripcion = "Entrada general para el evento",
+            esIlimitado = false
+        )
+    }
+
+    fun addTipoEntrada() {
+        tiposEntrada = tiposEntrada + createDefaultTipoEntrada()
+    }
+
+    fun removeTipoEntrada(index: Int) {
+        if (tiposEntrada.size > 1) {
+            tiposEntrada = tiposEntrada.filterIndexed { i, _ -> i != index }
+        } else {
+            error = "Debe haber al menos un tipo de entrada"
+        }
+    }
+
+    fun updateTipoEntrada(index: Int, updatedTipo: TipoEntradaState) {
+        tiposEntrada = tiposEntrada.mapIndexed { i, tipo ->
+            if (i == index) updatedTipo else tipo
+        }
+    }
+
     private fun cargarCategorias() {
         viewModelScope.launch {
             isLoadingCategorias = true
             errorCategorias = null
             try {
-                val token = SessionManager.getToken()
-                if (token == null) {
-                    errorCategorias = "No se encontró el token de autenticación"
-                    return@launch
-                }
-
-                val response = RetrofitClient.apiService.getCategorias("Bearer $token")
-                if (response.isSuccessful) {
-                    categorias = response.body()?.categorias ?: emptyList()
-                    Log.d("CrearEventoViewModel", "Categorías cargadas: $categorias")
-                } else {
-                    errorCategorias = "Error al cargar las categorías: ${response.message()}"
-                    Log.e("CrearEventoViewModel", "Error al cargar categorías: ${response.errorBody()?.string()}")
-                }
+                // Usar categorías estáticas en lugar de cargarlas de la API
+                categorias = listOf(
+                    "Festival",
+                    "Concierto",
+                    "Teatro",
+                    "Deportes",
+                    "Conferencia",
+                    "Exposición",
+                    "Taller",
+                    "Otro"
+                )
+                Log.d("CrearEventoViewModel", "Categorías cargadas: $categorias")
             } catch (e: Exception) {
-                errorCategorias = "Error de conexión: ${e.message}"
+                errorCategorias = "Error al cargar las categorías: ${e.message}"
                 Log.e("CrearEventoViewModel", "Excepción al cargar categorías", e)
             } finally {
                 isLoadingCategorias = false
@@ -76,11 +124,51 @@ class CrearEventoViewModel : ViewModel() {
     }
 
     fun validarFormulario(): Boolean {
+        // Validar datos básicos
         if (nombreEvento.isBlank() || descripcion.isBlank() || 
             fechaEvento.isBlank() || hora.isBlank() || 
-            ubicacion.isBlank() || lugar.isBlank() || 
-            categoria.isBlank()) {
+            ubicacion.isBlank() || categoria.isBlank()) {
+            error = "Por favor, completa todos los campos obligatorios del evento"
             return false
+        }
+
+        // Validar tipos de entrada solo si el evento no es online
+        if (!esOnline) {
+            if (tiposEntrada.isEmpty()) {
+                error = "Debe agregar al menos un tipo de entrada"
+                return false
+            }
+
+            for ((index, tipo) in tiposEntrada.withIndex()) {
+                if (tipo.nombre.isBlank()) {
+                    error = "El nombre del tipo de entrada #${index + 1} no puede estar vacío"
+                    return false
+                }
+
+                try {
+                    val precio = tipo.precio.toDouble()
+                    if (precio < 0) {
+                        error = "El precio del tipo de entrada #${index + 1} no puede ser negativo"
+                        return false
+                    }
+                } catch (e: NumberFormatException) {
+                    error = "El precio del tipo de entrada #${index + 1} debe ser un número válido"
+                    return false
+                }
+
+                if (!tipo.esIlimitado) {
+                    try {
+                        val cantidad = tipo.cantidadDisponible.toInt()
+                        if (cantidad <= 0) {
+                            error = "La cantidad de entradas disponibles #${index + 1} debe ser mayor a 0"
+                            return false
+                        }
+                    } catch (e: NumberFormatException) {
+                        error = "La cantidad de entradas disponibles #${index + 1} debe ser un número entero válido"
+                        return false
+                    }
+                }
+            }
         }
 
         try {
@@ -108,7 +196,7 @@ class CrearEventoViewModel : ViewModel() {
         }
     }
 
-    fun crearEvento() {
+    fun crearEvento(context: Context) {
         if (!validarFormulario()) {
             if (error == null) {
                 error = "Por favor, completa todos los campos obligatorios"
@@ -132,21 +220,96 @@ class CrearEventoViewModel : ViewModel() {
                     return@launch
                 }
 
-                // La fecha y hora ya están en el formato correcto gracias a la validación
-                val eventoRequest = EventoRequest(
-                    nombreEvento = nombreEvento,
-                    descripcion = descripcion,
-                    fechaEvento = fechaEvento,
-                    hora = hora,
-                    ubicacion = ubicacion,
-                    lugar = lugar,
-                    categoria = categoria,
-                    imagen = imagen?.toString()
-                )
+                // Convertir los tipos de entrada al formato para la API
+                // Si el evento es online, usar una lista vacía
+                val tiposEntradaRequest = if (esOnline) {
+                    emptyList<TipoEntradaRequest>()
+                } else {
+                    tiposEntrada.map { tipoState ->
+                        TipoEntradaRequest(
+                            nombre = tipoState.nombre,
+                            precio = tipoState.precio.toDoubleOrNull() ?: 0.0,
+                            cantidadDisponible = if (tipoState.esIlimitado) null else tipoState.cantidadDisponible.toIntOrNull(),
+                            descripcion = if (tipoState.descripcion.isBlank()) null else tipoState.descripcion,
+                            esIlimitado = tipoState.esIlimitado
+                        )
+                    }
+                }
 
-                Log.d("CrearEventoViewModel", "Enviando request: $eventoRequest")
-                val response = RetrofitClient.apiService.crearEvento("Bearer $token", eventoRequest)
-                
+                // Si hay una imagen seleccionada, usar el método multipart
+                if (imagen != null) {
+                    try {
+                        // Convertir los datos a RequestBody
+                        val tituloBody = FileUtil.createPartFromString(nombreEvento)
+                        val descripcionBody = FileUtil.createPartFromString(descripcion)
+                        val fechaBody = FileUtil.createPartFromString(fechaEvento)
+                        val horaBody = FileUtil.createPartFromString(hora)
+                        val ubicacionBody = FileUtil.createPartFromString(ubicacion)
+                        val categoriaBody = FileUtil.createPartFromString(categoria)
+                        val esOnlineBody = FileUtil.createPartFromString(esOnline.toString())
+                        
+                        // Convertir la lista de tipos de entrada a JSON y luego a RequestBody
+                        val tiposEntradaJson = Gson().toJson(tiposEntradaRequest)
+                        val tiposEntradaBody = FileUtil.createPartFromString(tiposEntradaJson)
+                        
+                        // Convertir la imagen Uri a MultipartBody.Part
+                        val imagenPart = FileUtil.uriToMultipartImage(context, imagen!!, "imagen")
+                        
+                        Log.d("CrearEventoViewModel", "Enviando evento con imagen. Tipos de entrada: $tiposEntradaJson")
+                        
+                        val response = withContext(Dispatchers.IO) {
+                            RetrofitClient.apiService.crearEventoConImagen(
+                                "Bearer $token",
+                                tituloBody,
+                                descripcionBody,
+                                fechaBody,
+                                horaBody,
+                                ubicacionBody,
+                                categoriaBody,
+                                esOnlineBody,
+                                tiposEntradaBody,
+                                imagenPart
+                            )
+                        }
+                        
+                        processResponse(response)
+                    } catch (e: Exception) {
+                        Log.e("CrearEventoViewModel", "Error al procesar imagen: ${e.message}", e)
+                        error = "Error al procesar la imagen: ${e.message}"
+                        isLoading = false
+                    }
+                } else {
+                    // Si no hay imagen, usar el método regular
+                    val eventoRequest = EventoRequest(
+                        nombreEvento = nombreEvento,
+                        descripcion = descripcion,
+                        fechaEvento = fechaEvento,
+                        hora = hora,
+                        ubicacion = ubicacion,
+                        categoria = categoria,
+                        esOnline = esOnline,
+                        tiposEntrada = tiposEntradaRequest
+                    )
+                    
+                    Log.d("CrearEventoViewModel", "Enviando request sin imagen: ${Gson().toJson(eventoRequest)}")
+                    
+                    val response = withContext(Dispatchers.IO) {
+                        RetrofitClient.apiService.crearEvento("Bearer $token", eventoRequest)
+                    }
+                    
+                    processResponse(response)
+                }
+            } catch (e: Exception) {
+                error = "Error de conexión: ${e.message}"
+                Log.e("CrearEventoViewModel", "Excepción al crear evento", e)
+                isLoading = false
+            }
+        }
+    }
+    
+    private fun processResponse(response: Response<CrearEventoResponse>) {
+        viewModelScope.launch {
+            try {
                 if (response.isSuccessful) {
                     val responseBody = response.body()
                     if (responseBody?.status == "success") {
@@ -168,8 +331,8 @@ class CrearEventoViewModel : ViewModel() {
                     }
                 }
             } catch (e: Exception) {
-                error = "Error de conexión: ${e.message}"
-                Log.e("CrearEventoViewModel", "Excepción al crear evento", e)
+                error = "Error al procesar la respuesta: ${e.message}"
+                Log.e("CrearEventoViewModel", "Error al procesar la respuesta", e)
             } finally {
                 isLoading = false
             }
@@ -182,8 +345,9 @@ class CrearEventoViewModel : ViewModel() {
         fechaEvento = ""
         hora = ""
         ubicacion = ""
-        lugar = ""
         categoria = ""
         imagen = null
+        esOnline = false
+        tiposEntrada = listOf(createDefaultTipoEntrada())
     }
 }

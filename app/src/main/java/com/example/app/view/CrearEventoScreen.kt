@@ -37,8 +37,12 @@ import com.example.app.util.SessionManager
 import com.example.app.viewmodel.CrearEventoViewModel
 import java.util.*
 import androidx.core.content.ContextCompat
-import java.time.LocalDate
-import java.time.LocalTime
+import java.text.SimpleDateFormat
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.ui.text.input.KeyboardType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -174,20 +178,29 @@ fun CrearEventoScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { 
-                        val today = LocalDate.now()
+                        val calendar = Calendar.getInstance()
                         DatePickerDialog(
                             context,
                             { _, year, month, day ->
-                                val selectedDate = LocalDate.of(year, month + 1, day)
-                                if (selectedDate.isBefore(today)) {
+                                val selectedCalendar = Calendar.getInstance()
+                                selectedCalendar.set(year, month, day, 0, 0, 0)
+                                selectedCalendar.set(Calendar.MILLISECOND, 0)
+                                
+                                val today = Calendar.getInstance()
+                                today.set(Calendar.HOUR_OF_DAY, 0)
+                                today.set(Calendar.MINUTE, 0)
+                                today.set(Calendar.SECOND, 0)
+                                today.set(Calendar.MILLISECOND, 0)
+                                
+                                if (selectedCalendar.before(today)) {
                                     Toast.makeText(context, "No puedes seleccionar una fecha pasada", Toast.LENGTH_SHORT).show()
                                 } else {
                                     viewModel.fechaEvento = String.format("%04d-%02d-%02d", year, month + 1, day)
                                 }
                             },
-                            today.year,
-                            today.monthValue - 1,
-                            today.dayOfMonth
+                            calendar.get(Calendar.YEAR),
+                            calendar.get(Calendar.MONTH),
+                            calendar.get(Calendar.DAY_OF_MONTH)
                         ).show()
                     },
                 enabled = false,
@@ -211,20 +224,31 @@ fun CrearEventoScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { 
-                        val now = LocalTime.now()
+                        val calendar = Calendar.getInstance()
                         TimePickerDialog(
                             context,
                             { _, hour, minute ->
-                                val selectedTime = LocalTime.of(hour, minute)
-                                if (viewModel.fechaEvento == LocalDate.now().toString() && 
-                                    selectedTime.isBefore(now)) {
+                                val selectedCalendar = Calendar.getInstance()
+                                selectedCalendar.set(Calendar.HOUR_OF_DAY, hour)
+                                selectedCalendar.set(Calendar.MINUTE, minute)
+                                
+                                val now = Calendar.getInstance()
+                                
+                                // Si la fecha seleccionada es hoy, verificar que la hora no sea pasada
+                                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                                val today = dateFormat.format(now.time)
+                                
+                                if (viewModel.fechaEvento == today && 
+                                    (selectedCalendar.get(Calendar.HOUR_OF_DAY) < now.get(Calendar.HOUR_OF_DAY) || 
+                                    (selectedCalendar.get(Calendar.HOUR_OF_DAY) == now.get(Calendar.HOUR_OF_DAY) && 
+                                     selectedCalendar.get(Calendar.MINUTE) < now.get(Calendar.MINUTE)))) {
                                     Toast.makeText(context, "No puedes seleccionar una hora pasada para hoy", Toast.LENGTH_SHORT).show()
                                 } else {
                                     viewModel.hora = String.format("%02d:%02d", hour, minute)
                                 }
                             },
-                            now.hour,
-                            now.minute,
+                            calendar.get(Calendar.HOUR_OF_DAY),
+                            calendar.get(Calendar.MINUTE),
                             true
                         ).show()
                     },
@@ -245,18 +269,6 @@ fun CrearEventoScreen(
                 value = viewModel.ubicacion,
                 onValueChange = { viewModel.ubicacion = it },
                 label = { Text("Ubicación") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFFE53935),
-                    focusedLabelColor = Color(0xFFE53935)
-                )
-            )
-
-            OutlinedTextField(
-                value = viewModel.lugar,
-                onValueChange = { viewModel.lugar = it },
-                label = { Text("Ciudad") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -372,8 +384,218 @@ fun CrearEventoScreen(
                 )
             }
 
+            // Selector online / presencial
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Evento online",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                Switch(
+                    checked = viewModel.esOnline,
+                    onCheckedChange = { viewModel.esOnline = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color(0xFFE53935),
+                        checkedTrackColor = Color(0xFFE53935).copy(alpha = 0.5f)
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Sección de tipos de entrada (solo visible si el evento no es online)
+            if (!viewModel.esOnline) {
+                Text(
+                    text = "TIPOS DE ENTRADA",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFE53935)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "Añade al menos un tipo de entrada para tu evento",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Lista de tipos de entrada
+                viewModel.tiposEntrada.forEachIndexed { index, tipoEntrada ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        elevation = CardDefaults.cardElevation(4.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            // Cabecera con título y botón eliminar
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Tipo de entrada ${index + 1}",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                                
+                                if (viewModel.tiposEntrada.size > 1) {
+                                    IconButton(onClick = { viewModel.removeTipoEntrada(index) }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Eliminar tipo de entrada",
+                                            tint = Color(0xFFE53935)
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            // Nombre del tipo de entrada
+                            OutlinedTextField(
+                                value = tipoEntrada.nombre,
+                                onValueChange = { 
+                                    val updatedTipo = tipoEntrada.copy(nombre = it)
+                                    viewModel.updateTipoEntrada(index, updatedTipo)
+                                },
+                                label = { Text("Nombre") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFFE53935),
+                                    focusedLabelColor = Color(0xFFE53935)
+                                )
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            // Precio
+                            OutlinedTextField(
+                                value = tipoEntrada.precio,
+                                onValueChange = { 
+                                    val updatedTipo = tipoEntrada.copy(precio = it)
+                                    viewModel.updateTipoEntrada(index, updatedTipo)
+                                },
+                                label = { Text("Precio (€)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFFE53935),
+                                    focusedLabelColor = Color(0xFFE53935)
+                                )
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            // Descripción
+                            OutlinedTextField(
+                                value = tipoEntrada.descripcion,
+                                onValueChange = { 
+                                    val updatedTipo = tipoEntrada.copy(descripcion = it)
+                                    viewModel.updateTipoEntrada(index, updatedTipo)
+                                },
+                                label = { Text("Descripción (opcional)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFFE53935),
+                                    focusedLabelColor = Color(0xFFE53935)
+                                )
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            // Switch para entradas ilimitadas
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Entradas ilimitadas",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                
+                                Switch(
+                                    checked = tipoEntrada.esIlimitado,
+                                    onCheckedChange = { 
+                                        val updatedTipo = tipoEntrada.copy(esIlimitado = it)
+                                        viewModel.updateTipoEntrada(index, updatedTipo)
+                                    },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color(0xFFE53935),
+                                        checkedTrackColor = Color(0xFFE53935).copy(alpha = 0.5f)
+                                    )
+                                )
+                            }
+                            
+                            // Campo de cantidad disponible (solo visible si no es ilimitado)
+                            if (!tipoEntrada.esIlimitado) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                OutlinedTextField(
+                                    value = tipoEntrada.cantidadDisponible,
+                                    onValueChange = { 
+                                        val updatedTipo = tipoEntrada.copy(cantidadDisponible = it)
+                                        viewModel.updateTipoEntrada(index, updatedTipo)
+                                    },
+                                    label = { Text("Cantidad disponible") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Color(0xFFE53935),
+                                        focusedLabelColor = Color(0xFFE53935)
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // Botón para añadir otro tipo de entrada
+                Button(
+                    onClick = { viewModel.addTipoEntrada() },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color(0xFFE53935)
+                    ),
+                    border = BorderStroke(1.dp, Color(0xFFE53935)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Añadir tipo de entrada",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Añadir tipo de entrada")
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
             Button(
-                onClick = { viewModel.crearEvento() },
+                onClick = { viewModel.crearEvento(context) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
