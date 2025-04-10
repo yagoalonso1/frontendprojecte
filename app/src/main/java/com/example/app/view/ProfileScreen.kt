@@ -1,5 +1,6 @@
 package com.example.app.view
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -8,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -45,16 +47,43 @@ fun ProfileScreen(
     val successState = viewModel.isUpdateSuccessful.collectAsState(initial = false)
     val shouldNavigateToLogin = viewModel.shouldNavigateToLogin.collectAsState(initial = false)
     
-    // Navegar al login cuando la sesión ha expirado
+    // Navegar al login cuando la sesión ha expirado o cuando se cierra sesión
     LaunchedEffect(shouldNavigateToLogin.value) {
         if (shouldNavigateToLogin.value) {
-            // Limpiar sesión antes de navegar
+            Log.d("ProfileScreen", "shouldNavigateToLogin es true, iniciando navegación a login")
+            
+            // Asegurarse de que la sesión esté limpia
             com.example.app.util.SessionManager.clearSession()
+            Log.d("ProfileScreen", "Sesión limpiada antes de navegar")
+            
+            // Navegar a login limpiando el back stack completamente
+            Log.d("ProfileScreen", "Navegando a la pantalla de login")
+            navController.navigate(com.example.app.routes.Routes.Login.route) {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+            Log.d("ProfileScreen", "Navegación a login completa")
+            
+            // Resetear el estado de navegación
+            viewModel.resetNavigationState()
+            Log.d("ProfileScreen", "shouldNavigateToLogin reiniciado a false")
+        }
+    }
+    
+    // Verificar si hay token al inicio, si no hay redireccionar a login
+    LaunchedEffect(Unit) {
+        val token = com.example.app.util.SessionManager.getToken()
+        if (token == null || token.isEmpty()) {
+            Log.d("ProfileScreen", "No hay token al cargar la pantalla, redirigiendo a login")
+            // Limpiar datos del perfil en el ViewModel
+            viewModel.profileData = null
             // Navegar a login
-            navController.navigate("login") {
+            navController.navigate(com.example.app.routes.Routes.Login.route) {
                 popUpTo(0) { inclusive = true }
             }
-            viewModel.resetNavigationState()
+        } else {
+            // Si hay token, cargar el perfil
+            viewModel.loadProfile()
         }
     }
     
@@ -193,7 +222,11 @@ fun ProfileScreen(
                 if (isEditing) {
                     ProfileEditMode(viewModel = viewModel)
                 } else {
-                    ProfileViewMode(profileData = profileData)
+                    ProfileViewMode(
+                        profileData = profileData,
+                        navController = navController,
+                        viewModel = viewModel
+                    )
                 }
             } else {
                 Text(
@@ -209,7 +242,11 @@ fun ProfileScreen(
 }
 
 @Composable
-fun ProfileViewMode(profileData: com.example.app.model.ProfileData) {
+fun ProfileViewMode(
+    profileData: com.example.app.model.ProfileData,
+    navController: NavController,
+    viewModel: ProfileViewModel
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -278,6 +315,38 @@ fun ProfileViewMode(profileData: com.example.app.model.ProfileData) {
                 ProfileField("Teléfono de contacto", profileData.telefonoContacto ?: "")
             }
         }
+        
+        // Espaciador para separar el botón de cerrar sesión
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Botón de cerrar sesión - solución directa
+        Button(
+            onClick = { 
+                // Usar el método logout del ViewModel que ya maneja la navegación
+                viewModel.logout()
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFE53935), // Rojo primario
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Icon(
+                Icons.Default.Logout,
+                contentDescription = "Cerrar sesión",
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "CERRAR SESIÓN",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
+        // Espacio al final para evitar que el contenido quede pegado a la barra inferior
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 

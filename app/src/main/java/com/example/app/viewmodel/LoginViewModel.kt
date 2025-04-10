@@ -173,6 +173,13 @@ class LoginViewModel : ViewModel() {
         errorMessage = null
     }
 
+    fun resetState() {
+        _isLoginSuccessful.value = false
+        _isLogoutSuccessful.value = false
+        clearError()
+        // No limpiar email/password para facilitar reautenticación
+    }
+
     fun onForgotPasswordClick() {
         // No hacer nada aquí, la navegación se maneja en la vista
     }

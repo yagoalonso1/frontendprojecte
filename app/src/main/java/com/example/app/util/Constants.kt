@@ -8,7 +8,7 @@ object Constants {
     const val BASE_URL = "http://10.0.2.2:8000/"
     
     // URL base para las imágenes
-    const val STORAGE_URL = "https://eventosapp.jmrp.es/storage/"
+    const val STORAGE_URL = "http://10.0.2.2:8000/storage/"
     
     // Preferencias
     const val PREF_NAME = "app_preferences"

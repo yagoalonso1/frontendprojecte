@@ -68,13 +68,27 @@ fun CrearEventoScreen(
     // Estado para el dropdown de categorías
     var expandedCategoria by remember { mutableStateOf(false) }
     
+    // Estado para el diálogo de selección de imagen
+    var showImagePickerDialog by remember { mutableStateOf(false) }
+    
+    // Seleccionar imagen de la galería
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { viewModel.onImageSelected(it) }
     }
+    
+    // Capturar imagen con la cámara
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            viewModel.imageUri?.let { viewModel.onImageSelected(it) }
+        }
+    }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
+    // Permiso para la galería
+    val galleryPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
@@ -83,8 +97,21 @@ fun CrearEventoScreen(
             Toast.makeText(context, "Se necesita permiso para acceder a la galería", Toast.LENGTH_LONG).show()
         }
     }
+    
+    // Permiso para la cámara
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            viewModel.createImageUri(context)?.let { uri ->
+                cameraLauncher.launch(uri)
+            }
+        } else {
+            Toast.makeText(context, "Se necesita permiso para usar la cámara", Toast.LENGTH_LONG).show()
+        }
+    }
 
-    fun checkAndRequestPermission() {
+    fun checkAndRequestGalleryPermission() {
         when {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
                 when {
@@ -92,7 +119,7 @@ fun CrearEventoScreen(
                         imagePicker.launch("image/*")
                     }
                     else -> {
-                        permissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
+                        galleryPermissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
                     }
                 }
             }
@@ -102,11 +129,55 @@ fun CrearEventoScreen(
                         imagePicker.launch("image/*")
                     }
                     else -> {
-                        permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+                        galleryPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
                     }
                 }
             }
         }
+    }
+    
+    fun checkAndRequestCameraPermission() {
+        when {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
+                viewModel.createImageUri(context)?.let { uri ->
+                    cameraLauncher.launch(uri)
+                }
+            }
+            else -> {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
+        }
+    }
+    
+    // Diálogo para elegir entre cámara y galería
+    if (showImagePickerDialog) {
+        AlertDialog(
+            onDismissRequest = { showImagePickerDialog = false },
+            title = { Text("Seleccionar imagen") },
+            text = { Text("¿Cómo quieres añadir una imagen?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showImagePickerDialog = false
+                        checkAndRequestCameraPermission()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))
+                ) {
+                    Text("Tomar foto")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = {
+                        showImagePickerDialog = false
+                        checkAndRequestGalleryPermission()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))
+                ) {
+                    Text("Galería")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -346,7 +417,7 @@ fun CrearEventoScreen(
                         shape = RoundedCornerShape(8.dp)
                     )
                     .background(MaterialTheme.colorScheme.surface)
-                    .clickable { checkAndRequestPermission() },
+                    .clickable { showImagePickerDialog = true },
                 contentAlignment = Alignment.Center
             ) {
                 if (viewModel.imagen != null) {
@@ -377,11 +448,105 @@ fun CrearEventoScreen(
             }
 
             if (viewModel.error != null) {
-                Text(
-                    text = viewModel.error!!,
-                    color = Color(0xFFD32F2F),
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFFFEBEE)
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, Color(0xFFE57373))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Error al crear el evento:",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFD32F2F)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Analizar si el error contiene contenido JSON para mostrarlo mejor formateado
+                        val errorText = viewModel.error!!
+                        if (errorText.contains("{") && errorText.contains("}")) {
+                            // Mostrar mensajes de error formateados sin usar try-catch
+                            val validationErrors = if (errorText.contains("Error de validación:")) {
+                                errorText.substringAfter("Error de validación:")
+                            } else {
+                                errorText
+                            }
+                            
+                            Text(
+                                text = "Se han detectado los siguientes problemas:",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFD32F2F)
+                            )
+                            
+                            Spacer(modifier = Modifier.height(4.dp))
+                            
+                            // Extraer cada campo con error
+                            if (validationErrors.contains("fecha")) {
+                                Text(
+                                    text = "• Fecha: La fecha debe ser posterior a hoy",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFFD32F2F)
+                                )
+                            }
+                            
+                            if (validationErrors.contains("es_online")) {
+                                Text(
+                                    text = "• Es online: El campo debe ser true o false",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFFD32F2F)
+                                )
+                            }
+                            
+                            if (validationErrors.contains("tipos_entrada")) {
+                                Text(
+                                    text = "• Tipos de entrada: Formato incorrecto, debe ser un array",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFFD32F2F)
+                                )
+                            }
+                            
+                            if (validationErrors.contains("nombre")) {
+                                Text(
+                                    text = "• Nombre: El nombre del tipo de entrada es obligatorio",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFFD32F2F)
+                                )
+                            }
+                            
+                            if (validationErrors.contains("precio")) {
+                                Text(
+                                    text = "• Precio: El precio del tipo de entrada es obligatorio",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFFD32F2F)
+                                )
+                            }
+                            
+                            if (validationErrors.contains("es_ilimitado")) {
+                                Text(
+                                    text = "• Es ilimitado: Debe especificar si las entradas son ilimitadas",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFFD32F2F)
+                                )
+                            }
+                        } else {
+                            // Mostrar el error texto plano
+                            Text(
+                                text = errorText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFFD32F2F)
+                            )
+                        }
+                    }
+                }
             }
 
             // Selector online / presencial

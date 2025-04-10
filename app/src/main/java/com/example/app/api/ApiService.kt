@@ -42,7 +42,7 @@ interface ApiService {
     @POST("api/login")
     suspend fun loginUser(@Body loginRequest: LoginRequest): Response<LoginResponse>
     
-    @POST("logout")
+    @POST("api/logout")
     suspend fun logoutUser(
         @Header("Authorization") token: String
     ): Response<LogoutResponse>

@@ -46,6 +46,17 @@ fun LoginScreen(
     val isError = errorMessage != null
     val isLoginSuccessful = viewModel.isLoginSuccessful.collectAsState().value
     
+    // Asegurar que la sesión esté limpia al abrir LoginScreen
+    LaunchedEffect(Unit) {
+        Log.d("LoginScreen", "Comprobando y limpiando el estado de sesión")
+        
+        // Limpiar la sesión para asegurarnos
+        SessionManager.clearSession()
+        
+        // Reiniciar viewModels relevantes si fuera necesario
+        viewModel.resetState()
+    }
+    
     // Navegar cuando el login es exitoso
     LaunchedEffect(isLoginSuccessful) {
         if (isLoginSuccessful) {
