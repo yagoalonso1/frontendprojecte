@@ -16,9 +16,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class ProfileViewModel : ViewModel() {
+    private val TAG = "ProfileViewModel"
+    
     // Estado del perfil
     var profileData by mutableStateOf<ProfileData?>(null)
         internal set
+    
+    // Estado de datos de usuario simplificado para reemplazar _userData
+    private val _userData = MutableStateFlow(UserData())
+    val userData = _userData.asStateFlow()
+    
+    // Estado para controlar si los datos están cargados
+    private val _userDataLoaded = MutableStateFlow(false)
+    val userDataLoaded = _userDataLoaded.asStateFlow()
     
     // Estado de edición
     var isEditing by mutableStateOf(false)
@@ -387,8 +397,16 @@ class ProfileViewModel : ViewModel() {
         errorMessage = null
     }
     
-    fun resetNavigationState() {
-        _shouldNavigateToLogin.value = false
+    /**
+     * Resetea el flag de navegación al login
+     */
+    fun resetShouldNavigateToLogin() {
+        viewModelScope.launch {
+            withContext(Dispatchers.Main) {
+                _shouldNavigateToLogin.value = false
+                Log.d("ProfileViewModel", "Flag de navegación al login reseteado: ${_shouldNavigateToLogin.value}")
+            }
+        }
     }
     
     fun navigateToLogin() {
@@ -396,53 +414,42 @@ class ProfileViewModel : ViewModel() {
     }
     
     fun logout() {
+        Log.d(TAG, "Iniciando proceso de logout")
         viewModelScope.launch {
             try {
-                Log.d("ProfileViewModel", "Iniciando proceso de logout")
+                // Limpiar datos de perfil y sesión
+                _userData.value = UserData()
+                _userDataLoaded.value = false
                 
-                // Obtener el token antes de limpiar la sesión
-                val token = SessionManager.getToken()
+                // Obtener token actual para el logout
+                val token = "Bearer ${SessionManager.getToken() ?: ""}"
+                Log.d(TAG, "Token para logout: ${token.takeLast(10)}...")
                 
-                // Limpiar datos del perfil primero
-                profileData = null
-                nombre = ""
-                apellido1 = ""
-                apellido2 = ""
-                email = ""
-                dni = ""
-                telefono = ""
-                nombreOrganizacion = ""
-                telefonoContacto = ""
-                
-                // Llamar al endpoint de logout si hay token
-                if (!token.isNullOrEmpty()) {
-                    try {
-                        Log.d("ProfileViewModel", "Llamando a API logout con token: $token")
-                        withContext(Dispatchers.IO) {
-                            RetrofitClient.apiService.logoutUser("Bearer $token")
-                        }
-                        Log.d("ProfileViewModel", "Logout en API exitoso")
-                    } catch (e: Exception) {
-                        Log.e("ProfileViewModel", "Error en logout API: ${e.message}")
-                        // Continuamos incluso si falla la API
+                // Llamar al API de logout
+                try {
+                    val response = withContext(Dispatchers.IO) {
+                        RetrofitClient.apiService.logoutUser(token)
                     }
+                    if (response.isSuccessful) {
+                        Log.d(TAG, "Logout exitoso en el API")
+                    } else {
+                        Log.e(TAG, "Error en logout API: ${response.code()}")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Excepción durante logout: ${e.message}")
                 }
-                
-                // Limpiar sesión local siempre
-                SessionManager.clearSession()
-                Log.d("ProfileViewModel", "Sesión local limpiada")
-                
-                // Activar navegación a login
-                withContext(Dispatchers.Main) {
-                    _shouldNavigateToLogin.value = true
-                    Log.d("ProfileViewModel", "Flag de navegación a login activado")
-                }
-                
             } catch (e: Exception) {
-                Log.e("ProfileViewModel", "Error general en logout: ${e.message}")
-                // Asegurar cleanup incluso en caso de error
+                Log.e(TAG, "Excepción durante logout: ${e.message}")
+            } finally {
+                // Siempre limpiar sesión y navegar a login independientemente de errores
                 SessionManager.clearSession()
-                _shouldNavigateToLogin.value = true
+                Log.d(TAG, "Sesión limpiada localmente")
+                
+                withContext(Dispatchers.Main) {
+                    // Activar la navegación al login en el hilo principal
+                    _shouldNavigateToLogin.value = true
+                    Log.d(TAG, "Activada navegación al login, valor: ${_shouldNavigateToLogin.value}")
+                }
             }
         }
     }
@@ -538,4 +545,13 @@ class ProfileViewModel : ViewModel() {
             }
         }
     }
-} 
+}
+
+// Clase de modelo simplificada para los datos de usuario
+data class UserData(
+    val id: Int = 0,
+    val nombre: String = "",
+    val apellidos: String = "",
+    val email: String = "",
+    val role: String = ""
+) 

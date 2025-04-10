@@ -86,29 +86,19 @@ fun AppNavHost(
         }
     }
 
-    // Efecto para navegar después del logout
+    // Efecto para manejar la navegación después del logout
     LaunchedEffect(shouldNavigateToLogin) {
         if (shouldNavigateToLogin) {
-            Log.d("AppNavHost", "Logout detectado, navegando a Login")
-            
-            // Asegurar que la sesión esté limpia
+            Log.d("AppNavHost", "Detectada señal de logout, redirigiendo a login")
             SessionManager.clearSession()
-            Log.d("AppNavHost", "Sesión limpiada en AppNavHost")
-            
-            // Usar un enfoque directo de navegación
             navController.navigate(Routes.Login.route) {
-                // Limpiar todo el back stack para evitar volver atrás
-                popUpTo(navController.graph.id) { 
-                    inclusive = true 
+                popUpTo(0) {
+                    inclusive = true
                 }
-                // Evitar múltiples copias de la misma pantalla
                 launchSingleTop = true
             }
-            
-            Log.d("AppNavHost", "Navegación a login completada")
-            
             // Resetear el estado para evitar navegaciones repetidas
-            profileViewModel.resetNavigationState()
+            profileViewModel.resetShouldNavigateToLogin()
         }
     }
     

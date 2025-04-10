@@ -24,6 +24,7 @@ import androidx.navigation.NavController
 import com.example.app.viewmodel.EventoViewModel
 import com.example.app.model.Evento
 import com.example.app.routes.BottomNavigationBar
+import com.example.app.util.SessionManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +37,18 @@ fun MisEventosScreen(
     val eventos = viewModel.misEventos
     val isLoading = viewModel.isLoading
     val isError = viewModel.isError
+    val errorMessage = viewModel.errorMessage
+    
+    // Verificar si el usuario es organizador
+    val userRole = SessionManager.getUserRole() ?: "participante"
+    val isOrganizador = userRole == "organizador"
+    
+    // Cargar mis eventos cuando se abre la pantalla, solo si es organizador
+    LaunchedEffect(key1 = Unit) {
+        if (isOrganizador) {
+            viewModel.fetchMisEventos()
+        }
+    }
 
     // Colores consistentes con la app
     val primaryColor = Color(0xFFE53935)
@@ -78,7 +91,7 @@ fun MisEventosScreen(
         bottomBar = {
             BottomNavigationBar(
                 navController = navController,
-                userRole = "Organizador"
+                userRole = userRole
             )
         }
     ) { paddingValues ->
@@ -105,12 +118,27 @@ fun MisEventosScreen(
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = viewModel.errorMessage ?: "Error desconocido",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Red,
-                            textAlign = TextAlign.Center
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = viewModel.errorMessage ?: "Error desconocido",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.Red,
+                                textAlign = TextAlign.Center
+                            )
+                            
+                            if (viewModel.errorMessage?.contains("Solo los organizadores") == true) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Esta sección está disponible solo para organizadores.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Gray,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
                     }
                 }
                 // Lista de eventos vacía

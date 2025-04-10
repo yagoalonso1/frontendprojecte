@@ -85,32 +85,89 @@ class EventoViewModel : ViewModel() {
     fun fetchMisEventos() {
         viewModelScope.launch {
             try {
+                // Obtener token y rol de usuario desde SessionManager
+                val token = SessionManager.getToken()
+                val userRole = SessionManager.getUserRole()
+                
+                Log.d("MIS_EVENTOS", "Iniciando fetchMisEventos - Token: ${token?.take(10)}... Role: $userRole")
+                
+                // Verificar si el usuario es organizador y tiene token válido
+                if (token.isNullOrEmpty()) {
+                    Log.e("MIS_EVENTOS", "Error: Token no disponible")
+                    setError("No hay sesión activa. Por favor, inicia sesión nuevamente.")
+                    return@launch
+                }
+                
+                if (userRole != "organizador") {
+                    Log.e("MIS_EVENTOS", "Error: Usuario no es organizador ($userRole)")
+                    setError("Esta función solo está disponible para organizadores")
+                    return@launch
+                }
+                
+                // Iniciar carga
                 isLoading = true
                 errorMessage = null
                 isError = false
                 
-                Log.d("MIS_EVENTOS", "Cargando mis eventos...")
-                
-                // Obtener el token de autenticación (deberías tener una forma de obtenerlo)
-                val token = "Bearer ${SessionManager.getToken()}" // Asegúrate de tener un SessionManager
-                
-                val response = withContext(Dispatchers.IO) {
-                    RetrofitClient.apiService.getMisEventos(token)
-                }
-                
-                if (response.isSuccessful) {
-                    val eventosResponse = response.body()
-                    if (eventosResponse != null) {
-                        misEventos = eventosResponse.eventos
-                        Log.d("MIS_EVENTOS", "Mis eventos cargados: ${misEventos.size}")
-                    } else {
-                        setError("No se pudieron cargar tus eventos: Respuesta vacía")
+                // Ejecutar llamada a la API
+                try {
+                    Log.d("MIS_EVENTOS", "Realizando petición a /api/mis-eventos con token")
+                    val response = withContext(Dispatchers.IO) {
+                        RetrofitClient.apiService.getMisEventos("Bearer $token")
                     }
-                } else {
-                    handleErrorResponse(response)
+                    
+                    Log.d("MIS_EVENTOS", "Respuesta recibida - Status: ${response.code()}, Success: ${response.isSuccessful}")
+                    
+                    if (response.isSuccessful) {
+                        val eventosResponse = response.body()
+                        if (eventosResponse != null) {
+                            // Actualizar la lista de eventos del organizador
+                            misEventos = eventosResponse.eventos
+                            Log.d("MIS_EVENTOS", "Eventos cargados: ${misEventos.size} - Mensaje: ${eventosResponse.message}")
+                            
+                            if (misEventos.isEmpty()) {
+                                Log.d("MIS_EVENTOS", "No hay eventos creados por este organizador")
+                            }
+                        } else {
+                            Log.e("MIS_EVENTOS", "Respuesta del servidor vacía")
+                            setError("No se pudieron cargar tus eventos")
+                        }
+                    } else {
+                        // Manejar errores específicos por código de respuesta
+                        when (response.code()) {
+                            401 -> {
+                                Log.e("MIS_EVENTOS", "Error 401: No autorizado")
+                                setError("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.")
+                                SessionManager.clearSession() // Limpiar sesión por expiración
+                            }
+                            403 -> {
+                                Log.e("MIS_EVENTOS", "Error 403: Acceso prohibido")
+                                setError("No tienes permisos para acceder a esta función")
+                            }
+                            else -> {
+                                // Extraer mensaje de error del cuerpo de la respuesta
+                                val errorBody = response.errorBody()?.string()
+                                Log.e("MIS_EVENTOS", "Error ${response.code()}: $errorBody")
+                                
+                                try {
+                                    val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
+                                    val errorMessage = errorResponse?.get("message") as? String 
+                                        ?: errorResponse?.get("error") as? String
+                                        ?: "Error desconocido (${response.code()})"
+                                    setError(errorMessage)
+                                } catch (e: Exception) {
+                                    setError("Error al cargar tus eventos (${response.code()})")
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("MIS_EVENTOS", "Excepción en la petición HTTP", e)
+                    setError("Error de conexión: ${e.message}")
                 }
             } catch (e: Exception) {
-                handleException(e)
+                Log.e("MIS_EVENTOS", "Excepción general", e)
+                setError("Error inesperado: ${e.message}")
             } finally {
                 isLoading = false
             }

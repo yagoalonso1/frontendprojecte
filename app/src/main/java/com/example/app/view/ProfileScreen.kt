@@ -9,7 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,6 +47,11 @@ fun ProfileScreen(
     val successState = viewModel.isUpdateSuccessful.collectAsState(initial = false)
     val shouldNavigateToLogin = viewModel.shouldNavigateToLogin.collectAsState(initial = false)
     
+    // Obtener el rol del usuario desde SessionManager para mostrar el menú correcto desde el inicio
+    val initialUserRole = remember {
+        com.example.app.util.SessionManager.getUserRole() ?: "participante"
+    }
+    
     // Navegar al login cuando la sesión ha expirado o cuando se cierra sesión
     LaunchedEffect(shouldNavigateToLogin.value) {
         if (shouldNavigateToLogin.value) {
@@ -65,7 +70,7 @@ fun ProfileScreen(
             Log.d("ProfileScreen", "Navegación a login completa")
             
             // Resetear el estado de navegación
-            viewModel.resetNavigationState()
+            viewModel.resetShouldNavigateToLogin()
             Log.d("ProfileScreen", "shouldNavigateToLogin reiniciado a false")
         }
     }
@@ -152,8 +157,9 @@ fun ProfileScreen(
             )
         },
         bottomBar = {
-            // Determinar el rol del usuario para mostrar en la barra de navegación
-            val userRole = viewModel.profileData?.role ?: "participante"
+            // Usar el rol guardado en SessionManager hasta que se cargue el perfil
+            val userRole = viewModel.profileData?.role ?: initialUserRole
+            Log.d("ProfileScreen", "Mostrando barra de navegación con rol: $userRole")
             BottomNavigationBar(
                 navController = navController,
                 userRole = userRole
@@ -333,7 +339,7 @@ fun ProfileViewMode(
             shape = RoundedCornerShape(8.dp)
         ) {
             Icon(
-                Icons.Default.Logout,
+                Icons.AutoMirrored.Filled.Logout,
                 contentDescription = "Cerrar sesión",
                 modifier = Modifier.size(20.dp)
             )
