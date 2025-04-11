@@ -105,7 +105,7 @@ class CrearEventoViewModel : ViewModel() {
             return null
         }
     }
-    
+
     private fun cargarCategorias() {
         viewModelScope.launch {
             isLoadingCategorias = true
@@ -207,14 +207,17 @@ class CrearEventoViewModel : ViewModel() {
     // Cambiar a private para evitar conflictos de firma JVM con el setter automático
     private fun updateError(errorMsg: String?) {
         error = errorMsg
-        Log.e(TAG, "ERROR: $errorMsg")
+        if (errorMsg != null) {
+            Log.e(TAG, "ERROR: $errorMsg")
+            isLoading = false
+        }
     }
 
     // Función para validar los campos del formulario
     private fun validarCampos(): Boolean {
         val errores = mutableListOf<String>()
 
-        // Validación de longitud y contenido del título
+        // Validación de título
         when {
             titulo.isBlank() -> {
                 errores.add("• El título del evento es obligatorio")
@@ -240,51 +243,14 @@ class CrearEventoViewModel : ViewModel() {
             }
         }
 
-        // Validación de fecha y hora
+        // Validación de fecha
         if (fechaEvento.isBlank()) {
             errores.add("• La fecha del evento es obligatoria")
-        } else {
-            try {
-                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                sdf.isLenient = false // Hace que la validación de fecha sea más estricta
-                val fechaSeleccionada = sdf.parse(fechaEvento)
-                val hoy = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }.time
-                
-                if (fechaSeleccionada != null) {
-                    if (fechaSeleccionada.before(hoy)) {
-                        errores.add("• La fecha del evento debe ser igual o posterior a hoy")
-                    }
-                    
-                    // Validar que la fecha no esté muy lejos en el futuro (por ejemplo, 2 años)
-                    val dosAnosDespues = Calendar.getInstance().apply {
-                        add(Calendar.YEAR, 2)
-                    }.time
-                    if (fechaSeleccionada.after(dosAnosDespues)) {
-                        errores.add("• La fecha del evento no puede ser más de 2 años en el futuro")
-                    }
-                }
-            } catch (e: Exception) {
-                errores.add("• El formato de fecha es inválido. Debe ser YYYY-MM-DD")
-            }
         }
 
         // Validación de hora
         if (hora.isBlank()) {
             errores.add("• La hora del evento es obligatoria")
-        } else {
-            try {
-                val horaPattern = "^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
-                if (!hora.matches(Regex(horaPattern))) {
-                    errores.add("• El formato de hora es inválido. Debe ser HH:MM (24h)")
-                }
-            } catch (e: Exception) {
-                errores.add("• El formato de hora es inválido")
-            }
         }
 
         // Validación de ubicación
@@ -310,16 +276,19 @@ class CrearEventoViewModel : ViewModel() {
             }
         }
 
-        // Validación de tipos de entrada
+        // Eventos online no requieren tipos de entrada
         if (!esOnline) {
+            // Validación de tipos de entrada solo si no es online
             if (tiposEntrada.isEmpty()) {
                 errores.add("• Debes añadir al menos un tipo de entrada")
             } else {
-                for ((index, tipo) in tiposEntrada.withIndex()) {
+                tiposEntrada.forEachIndexed { index, tipo ->
                     val numTipo = index + 1
+                    
+                    // Validar nombre
                     when {
                         tipo.nombre.isBlank() -> {
-                            errores.add("• El nombre del tipo de entrada #$numTipo no puede estar vacío")
+                            errores.add("• El nombre del tipo de entrada #$numTipo es obligatorio")
                         }
                         tipo.nombre.length < 3 -> {
                             errores.add("• El nombre del tipo de entrada #$numTipo debe tener al menos 3 caracteres")
@@ -329,41 +298,14 @@ class CrearEventoViewModel : ViewModel() {
                         }
                     }
                     
-                    try {
-                        val precio = tipo.precio
-                        when {
-                            precio < 0 -> {
-                                errores.add("• El precio del tipo de entrada #$numTipo debe ser un número no negativo")
-                            }
-                            precio > 10000 -> {
-                                errores.add("• El precio del tipo de entrada #$numTipo no puede exceder los 10.000")
-                            }
-                        }
-                    } catch (e: Exception) {
-                        errores.add("• El precio del tipo de entrada #$numTipo debe ser un número válido")
+                    // Validar precio
+                    if (tipo.precio < 0) {
+                        errores.add("• El precio del tipo de entrada #$numTipo no puede ser negativo")
                     }
                     
-                    if (!tipo.esIlimitado && tipo.cantidadDisponible != null) {
-                        try {
-                            val cantidad = tipo.cantidadDisponible
-                            when {
-                                cantidad == null || cantidad <= 0 -> {
-                                    errores.add("• La cantidad de entradas disponibles #$numTipo debe ser mayor a 0")
-                                }
-                                cantidad > 100000 -> {
-                                    errores.add("• La cantidad de entradas disponibles #$numTipo no puede exceder las 100.000")
-                                }
-                            }
-                        } catch (e: Exception) {
-                            errores.add("• La cantidad de entradas disponibles #$numTipo debe ser un número entero válido")
-                        }
-                    }
-
-                    // Validar descripción del tipo de entrada
-                    if (tipo.descripcion?.isNotBlank() == true) {
-                        if (tipo.descripcion.length > 200) {
-                            errores.add("• La descripción del tipo de entrada #$numTipo no puede exceder los 200 caracteres")
-                        }
+                    // Validar cantidad si no es ilimitado
+                    if (!tipo.esIlimitado && (tipo.cantidadDisponible == null || tipo.cantidadDisponible <= 0)) {
+                        errores.add("• La cantidad de entradas disponibles #$numTipo debe ser mayor a 0")
                     }
                 }
             }
@@ -375,125 +317,313 @@ class CrearEventoViewModel : ViewModel() {
                 errores.forEach { error ->
                     appendLine(error)
                 }
-                if (errores.size > 1) {
-                    appendLine("\nPor favor, revisa todos los campos y asegúrate de que cumplan con los requisitos.")
-                }
             }
             updateError(mensajeError.trim())
+            Log.e(TAG, "Errores de validación: $errores")
             return false
         }
-        
+
         return true
     }
-    
+
     // Función para crear el evento con imagen
     fun crearEventoConImagen(context: Context) {
         viewModelScope.launch {
             try {
+                Log.d(TAG, "Iniciando creación de evento")
                 // Validar que los campos obligatorios estén completos
                 if (!validarCampos()) {
+                    Log.e(TAG, "Validación de campos fallida")
                     return@launch
                 }
+                Log.d(TAG, "Validación de campos exitosa")
                 
                 // Obtener token
                 val token = SessionManager.getToken()
+                Log.d(TAG, "Token obtenido: ${token?.take(10)}...")
                 if (token.isNullOrEmpty()) {
+                    Log.e(TAG, "Error: Token no disponible")
                     updateError("No hay sesión activa. Por favor, inicia sesión.")
                     return@launch
                 }
-                
+
                 // Iniciar carga
                 isLoading = true
                 error = null
                 
+                // Añadir log para verificar todos los datos
+                Log.d(TAG, """
+                    Datos que se enviarán al servidor:
+                    - titulo: $titulo
+                    - descripcion: $descripcion
+                    - fecha: $fechaEvento
+                    - hora: $hora
+                    - ubicacion: $ubicacion
+                    - categoria: $categoria
+                    - es_online: $esOnline
+                    - tipos_entrada: $tiposEntrada
+                """.trimIndent())
+                
                 // Crear las partes del formulario
+                Log.d(TAG, "Preparando datos del formulario")
                 val tituloBody = titulo.toRequestBody("text/plain".toMediaTypeOrNull())
                 val descripcionBody = descripcion.toRequestBody("text/plain".toMediaTypeOrNull())
                 val fechaBody = fechaEvento.toRequestBody("text/plain".toMediaTypeOrNull())
                 val horaBody = hora.toRequestBody("text/plain".toMediaTypeOrNull())
                 val ubicacionBody = ubicacion.toRequestBody("text/plain".toMediaTypeOrNull())
                 val categoriaBody = categoria.toRequestBody("text/plain".toMediaTypeOrNull())
-                val esOnlineBody = esOnline.toRequestBody("text/plain".toMediaTypeOrNull())
-                
-                // Convertir la lista de tipos de entrada a JSON
-                val tiposEntradaJson = if (esOnline) {
-                    "[]" // Array vacío para eventos online
-                } else {
-                    // Usar directamente los objetos TipoEntradaRequest con Gson
-                    Gson().toJson(tiposEntrada)
-                }
-                
-                Log.d(TAG, "Tipos de entrada JSON: $tiposEntradaJson")
-                // Asegurarnos de usar el tipo MIME application/json para el JSON
-                val tiposEntradaBody = tiposEntradaJson.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
+                val esOnlineBody = (if (esOnline) "1" else "0").toRequestBody("text/plain".toMediaTypeOrNull())
                 
                 // Preparar el archivo de imagen si existe
                 var imagenPart: MultipartBody.Part? = null
                 if (imagenUri != null) {
-                    // Intentar obtener la imagen mediante FileUtil
-                    imagenPart = FileUtil.uriToMultipartImage(context, imagenUri!!, "imagen")
-                    
-                    if (imagenPart == null) {
-                        updateError("Error al procesar la imagen. Por favor, selecciona otra imagen o intenta más tarde.")
-                        isLoading = false
-                        return@launch
+                    try {
+                        Log.d(TAG, "Iniciando procesamiento de imagen")
+                        Log.d(TAG, "URI de imagen: ${imagenUri.toString()}")
+                        
+                        // Obtener información del archivo
+                        context.contentResolver.query(imagenUri!!, null, null, null, null)?.use { cursor ->
+                            if (cursor.moveToFirst()) {
+                                val sizeIndex = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                                if (sizeIndex != -1) {
+                                    val size = cursor.getLong(sizeIndex)
+                                    if (size > 2 * 1024 * 1024) { // 2MB
+                                        throw Exception("La imagen no puede pesar más de 2MB")
+                                    }
+                                    Log.d(TAG, "Tamaño de imagen: ${size / 1024} KB")
+                                }
+                                
+                                val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                                val fileName = if (nameIndex != -1) {
+                                    cursor.getString(nameIndex)
+                                } else {
+                                    "imagen_${System.currentTimeMillis()}.jpg"
+                                }
+                                Log.d(TAG, "Nombre de archivo: $fileName")
+                            }
+                        }
+
+                        // Obtener el tipo MIME
+                        val mimeType = context.contentResolver.getType(imagenUri!!) ?: "image/jpeg"
+                        if (mimeType !in listOf("image/jpeg", "image/png", "image/gif")) {
+                            throw Exception("El tipo de archivo no es una imagen válida")
+                        }
+                        Log.d(TAG, "Tipo MIME: $mimeType")
+
+                        // Crear un archivo temporal real en el sistema de archivos
+                        val tempFile = File(context.cacheDir, "temp_img_${System.currentTimeMillis()}.jpg")
+                        
+                        val inputStream = context.contentResolver.openInputStream(imagenUri!!)
+                        val outputStream = FileOutputStream(tempFile)
+                        
+                        inputStream?.use { input ->
+                            outputStream.use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        
+                        Log.d(TAG, "Archivo temporal creado: ${tempFile.absolutePath}, tamaño: ${tempFile.length() / 1024} KB")
+                        
+                        // Crear el RequestBody a partir del archivo real
+                        val requestFile = tempFile.asRequestBody(mimeType.toMediaTypeOrNull())
+                        imagenPart = MultipartBody.Part.createFormData("imagen", tempFile.name, requestFile)
+                        
+                        Log.d(TAG, "Imagen procesada correctamente")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error al procesar la imagen", e)
+                        throw Exception("Error al procesar la imagen: ${e.message}")
                     }
-                    
-                    Log.d(TAG, "Imagen preparada correctamente para subida")
                 }
-                
-                // Log adicional
-                Log.d(TAG, "JSON de tipos de entrada enviados: $tiposEntradaJson")
-                Log.d(TAG, "Es online: $esOnline")
-                
-                Log.d(TAG, "Enviando datos para crear evento:")
-                Log.d(TAG, "- Título: $titulo")
-                Log.d(TAG, "- Fecha: $fechaEvento, Hora: $hora")
-                Log.d(TAG, "- Ubicación: $ubicacion")
-                Log.d(TAG, "- Categoría: $categoria")
-                Log.d(TAG, "- Es online: $esOnline")
-                Log.d(TAG, "- Tipos de entrada: ${tiposEntrada.size}")
-                Log.d(TAG, "- Imagen incluida: ${imagenPart != null}")
-                
+
                 // Realizar la petición al API
+                Log.d(TAG, "Iniciando petición al servidor...")
                 val response = withContext(Dispatchers.IO) {
-                    RetrofitClient.apiService.crearEventoConImagen(
-                        token = "Bearer $token",
-                        titulo = tituloBody,
-                        descripcion = descripcionBody,
-                        fecha = fechaBody,
-                        hora = horaBody,
-                        ubicacion = ubicacionBody,
-                        categoria = categoriaBody,
-                        esOnline = esOnlineBody,
-                        tiposEntrada = tiposEntradaBody,
-                        imagen = imagenPart
-                    )
+                    try {
+                        if (imagenPart != null) {
+                            // Preparar tipos de entrada según si es evento online o no
+                            val tiposEntradaFinal = if (esOnline) {
+                                emptyList()
+                            } else {
+                                // Asegurarnos de que todos los tipos de entrada tengan valores válidos
+                                tiposEntrada.map { tipo ->
+                                    // Validamos y corregimos cada tipo de entrada
+                                    tipo.copy(
+                                        nombre = if (tipo.nombre.isBlank()) "General" else tipo.nombre,
+                                        precio = if (tipo.precio <= 0) 0.01 else tipo.precio,
+                                        cantidadDisponible = if (tipo.esIlimitado) null else 
+                                                          (tipo.cantidadDisponible ?: 100).takeIf { it > 0 } ?: 100,
+                                        descripcion = tipo.descripcion.takeIf { !it.isNullOrBlank() } ?: "Entrada estándar",
+                                        esIlimitado = tipo.esIlimitado
+                                    )
+                                }
+                            }
+                            
+                            if (tiposEntradaFinal.isEmpty() && !esOnline) {
+                                throw Exception("Debe especificar al menos un tipo de entrada para eventos presenciales")
+                            }
+                            
+                            Log.d(TAG, "Enviando multipart con tipos de entrada")
+                            
+                            // Para eventos online, no enviamos tipos de entrada
+                            if (esOnline) {
+                                // Para eventos online no es necesario enviar tipos de entrada
+                                val emptyList = emptyList<MultipartBody.Part>()
+                                
+                                RetrofitClient.apiService.crearEventoConImagen(
+                                    token = "Bearer $token",
+                                    titulo = tituloBody,
+                                    descripcion = descripcionBody,
+                                    fecha = fechaBody,
+                                    hora = horaBody,
+                                    ubicacion = ubicacionBody,
+                                    categoria = categoriaBody,
+                                    esOnline = esOnlineBody,
+                                    tiposEntradas = emptyList,
+                                    imagen = imagenPart
+                                )
+                            } else {
+                                // Para eventos presenciales, enviamos todos los tipos de entrada
+                                val partesTiposEntradas = mutableListOf<MultipartBody.Part>()
+                                
+                                // Procesamos cada tipo de entrada
+                                tiposEntradaFinal.forEachIndexed { index, tipo ->
+                                    // Aseguramos que todos los campos tengan valores válidos
+                                    val nombre = if (tipo.nombre.isBlank()) "General" else tipo.nombre
+                                    val precio = if (tipo.precio <= 0) 0.01 else tipo.precio
+                                    val cantidadDisponible = if (tipo.esIlimitado) null else 
+                                            (tipo.cantidadDisponible ?: 100).takeIf { it > 0 } ?: 100
+                                    val descripcion = tipo.descripcion ?: "Entrada estándar"
+                                    
+                                    // Creamos cada parte para este tipo de entrada
+                                    partesTiposEntradas.add(
+                                        MultipartBody.Part.createFormData(
+                                            "tipos_entrada[$index][nombre]", 
+                                            nombre
+                                        )
+                                    )
+                                    partesTiposEntradas.add(
+                                        MultipartBody.Part.createFormData(
+                                            "tipos_entrada[$index][precio]", 
+                                            precio.toString()
+                                        )
+                                    )
+                                    partesTiposEntradas.add(
+                                        MultipartBody.Part.createFormData(
+                                            "tipos_entrada[$index][cantidad_disponible]", 
+                                            (cantidadDisponible ?: "").toString()
+                                        )
+                                    )
+                                    partesTiposEntradas.add(
+                                        MultipartBody.Part.createFormData(
+                                            "tipos_entrada[$index][descripcion]", 
+                                            descripcion
+                                        )
+                                    )
+                                    partesTiposEntradas.add(
+                                        MultipartBody.Part.createFormData(
+                                            "tipos_entrada[$index][es_ilimitado]", 
+                                            if (tipo.esIlimitado) "1" else "0"
+                                        )
+                                    )
+                                }
+                                
+                                Log.d(TAG, "Enviando ${tiposEntradaFinal.size} tipos de entrada")
+                                
+                                // Llamada a la API con todos los tipos de entrada
+                                RetrofitClient.apiService.crearEventoConImagen(
+                                    token = "Bearer $token",
+                                    titulo = tituloBody,
+                                    descripcion = descripcionBody,
+                                    fecha = fechaBody,
+                                    hora = horaBody,
+                                    ubicacion = ubicacionBody,
+                                    categoria = categoriaBody,
+                                    esOnline = esOnlineBody,
+                                    tiposEntradas = partesTiposEntradas,
+                                    imagen = imagenPart
+                                )
+                            }
+                        } else {
+                            // Preparar tipos de entrada según si es evento online o no
+                            val tiposEntradaFinal = if (esOnline) {
+                                emptyList()
+                            } else {
+                                // Asegurarnos de que todos los tipos de entrada tengan valores válidos
+                                tiposEntrada.map { tipo ->
+                                    // Validamos y corregimos cada tipo de entrada
+                                    tipo.copy(
+                                        nombre = if (tipo.nombre.isBlank()) "General" else tipo.nombre,
+                                        precio = if (tipo.precio <= 0) 0.01 else tipo.precio,
+                                        cantidadDisponible = if (tipo.esIlimitado) null else 
+                                                          (tipo.cantidadDisponible ?: 100).takeIf { it > 0 } ?: 100,
+                                        descripcion = tipo.descripcion.takeIf { !it.isNullOrBlank() } ?: "Entrada estándar",
+                                        esIlimitado = tipo.esIlimitado
+                                    )
+                                }
+                            }
+                            
+                            if (tiposEntradaFinal.isEmpty() && !esOnline) {
+                                throw Exception("Debe especificar al menos un tipo de entrada para eventos presenciales")
+                            }
+                            
+                        val eventoRequest = EventoRequest(
+                                titulo = titulo,
+                            descripcion = descripcion,
+                                fecha = fechaEvento,
+                            hora = hora,
+                            ubicacion = ubicacion,
+                            categoria = categoria,
+                            esOnline = esOnline,
+                                tiposEntrada = tiposEntradaFinal
+                        )
+                        
+                            Log.d(TAG, "Enviando objeto: ${Gson().toJson(eventoRequest)}")
+                            
+                            // Llamada a la API sin imagen
+                            RetrofitClient.apiService.crearEvento(
+                                token = "Bearer $token",
+                                request = eventoRequest
+                            )
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error al hacer la petición al servidor", e)
+                        throw e
+                    }
                 }
                 
-                Log.d(TAG, "Respuesta del servidor: ${response.code()}")
+                Log.d(TAG, "Código de respuesta: ${response.code()}")
+                Log.d(TAG, "Headers de respuesta: ${response.headers()}")
                 
                 if (response.isSuccessful) {
                     val eventoResponse = response.body()
                     Log.d(TAG, "Evento creado exitosamente: ${eventoResponse?.message}")
+                    Log.d(TAG, "Datos del evento creado: ${Gson().toJson(eventoResponse?.evento)}")
                     _isCreationSuccessful.value = true
                     limpiarFormulario()
                 } else {
-                    val errorBody = response.errorBody()?.string() ?: "Error desconocido"
-                    Log.e(TAG, "Error al crear evento: ${response.code()} - $errorBody")
-                    Log.e(TAG, "Headers de respuesta: ${response.headers()}")
+                    val errorBody = response.errorBody()?.string()
+                    Log.e(TAG, """
+                        Error detallado al crear evento:
+                        - Código: ${response.code()}
+                        - Cuerpo del error: $errorBody
+                        - Headers: ${response.headers()}
+                    """.trimIndent())
                     
                     try {
-                        Log.e(TAG, "Respuesta de error completa: $errorBody")
-                        val errorResponse = Gson().fromJson(errorBody, Map::class.java)
-                        val errorMessage = errorResponse["message"] as? String 
-                            ?: errorResponse["error"] as? String
-                            ?: "Error al crear el evento (${response.code()})"
-                            
+                        val errorResponse = Gson().fromJson(errorBody, Map::class.java) as Map<String, Any>
+                        Log.e(TAG, "Error response parseado: $errorResponse")
+                        
+                        val errorMessage = when {
+                            errorResponse.containsKey("message") -> errorResponse["message"] as String
+                            errorResponse.containsKey("error") -> errorResponse["error"] as String
+                            else -> "Error al crear el evento (${response.code()})"
+                        }
+                        
                         // Intentar extraer detalles de validación
-                        if (errorResponse.containsKey("errors")) {
-                            val errors = errorResponse["errors"] as? Map<*, *>
+                        if (errorResponse.containsKey("messages")) {
+                            val errors = errorResponse["messages"] as? Map<*, *>
                             if (errors != null) {
+                                Log.e(TAG, "Errores de validación encontrados: $errors")
                                 val errorDetails = StringBuilder("Se encontraron los siguientes errores:\n")
                                 for ((campo, mensajes) in errors) {
                                     if (mensajes is List<*>) {
@@ -505,25 +635,26 @@ class CrearEventoViewModel : ViewModel() {
                                     }
                                 }
                                 updateError(errorDetails.toString().trim())
-                                return@launch
+                            } else {
+                                updateError(errorMessage)
                             }
+                        } else {
+                            updateError(errorMessage)
                         }
-                        
-                        updateError(errorMessage)
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error al procesar la respuesta de error", e)
-                        updateError("Error al crear el evento: ${response.message()} (${response.code()})")
+                        Log.e(TAG, "Error al parsear respuesta de error", e)
+                        updateError("Error al crear el evento: ${response.code()}")
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Excepción al crear el evento", e)
-                updateError("Error de conexión: ${e.message}")
+                Log.e(TAG, "Excepción al crear evento", e)
+                updateError("Error inesperado al crear el evento: ${e.message}")
             } finally {
                 isLoading = false
             }
         }
     }
-    
+
     // Función para limpiar el formulario después de crear el evento
     private fun limpiarFormulario() {
         titulo = ""

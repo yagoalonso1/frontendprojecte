@@ -1,5 +1,6 @@
 package com.example.app.view
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -43,8 +44,9 @@ fun MisEventosScreen(
     val userRole = SessionManager.getUserRole() ?: "participante"
     val isOrganizador = userRole == "organizador"
     
-    // Cargar mis eventos cuando se abre la pantalla, solo si es organizador
-    LaunchedEffect(key1 = Unit) {
+    // Actualizar eventos cada vez que se muestra la pantalla
+    LaunchedEffect(Unit) {
+        Log.d("MisEventosScreen", "Actualizando lista de mis eventos...")
         if (isOrganizador) {
             viewModel.fetchMisEventos()
         }
