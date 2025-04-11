@@ -3,6 +3,7 @@ package com.example.app.util
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.util.Log
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -11,91 +12,71 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.text.SimpleDateFormat
+import java.util.*
 
 object FileUtil {
     
     /**
-     * Convierte un Uri en un archivo multipart para subidas a la API
-     * Enfoque simplificado con mejor manejo de errores
+     * Convierte una Uri en un archivo MultipartBody.Part para su subida
+     * @param context El contexto de la aplicación
+     * @param uri Uri del archivo
+     * @param paramName Nombre del parámetro en el formulario
+     * @return MultipartBody.Part del archivo o null si ocurre un error
      */
     fun uriToMultipartImage(context: Context, uri: Uri, paramName: String): MultipartBody.Part? {
-        try {
-            // Añadir cerca de la línea 201, justo después de detectar que hay imagen
-            // (imagen != null)
-            android.util.Log.d("FileUtil", "Comprobando si hay imagen")
-            if (uri == null) {
-                android.util.Log.e("FileUtil", "La imagen es null")
-                return null
-            }
+        return try {
+            // Intentar obtener el archivo físico de la Uri
+            val tempFile = saveToCacheFile(context, uri)
             
-            // Obtener toda la información posible sobre la imagen
-            val mimeType = context.contentResolver.getType(uri) ?: "unknown/mime"
-            android.util.Log.d("FileUtil", "MIME type desde contentResolver: $mimeType")
-            
-            try {
-                android.util.Log.d("FileUtil", "Intentando crear archivo temporal desde URI")
-                val imageFile = getFileFromUri(context, uri)
-                android.util.Log.d("FileUtil", "URI: $uri")
-                android.util.Log.d("FileUtil", "Ruta archivo: ${imageFile.absolutePath}")
-                android.util.Log.d("FileUtil", "Existe: ${imageFile.exists()}")
-                android.util.Log.d("FileUtil", "Tamaño: ${imageFile.length()} bytes")
-                android.util.Log.d("FileUtil", "Es archivo: ${imageFile.isFile}")
-                android.util.Log.d("FileUtil", "Permisos: R=${imageFile.canRead()}, W=${imageFile.canWrite()}")
-            } catch (e: Exception) {
-                android.util.Log.e("FileUtil", "Error al analizar la imagen", e)
-            }
-            
-            // Comprobar si la imagen es demasiado grande
-            val fileSize = getFileSize(context, uri)
-            android.util.Log.d("FileUtil", "Tamaño de archivo calculado: $fileSize bytes (${fileSize/1024} KB)")
-            
-            if (fileSize > 5 * 1024 * 1024) { // 5MB límite
-                android.util.Log.e("FileUtil", "La imagen es demasiado grande: ${fileSize/1024/1024}MB")
-                return null
-            }
-            
-            try {
-                android.util.Log.d("FileUtil", "Abriendo InputStream para leer bytes")
-                val inputStream = context.contentResolver.openInputStream(uri)
-                if (inputStream == null) {
-                    android.util.Log.e("FileUtil", "No se pudo obtener InputStream de la URI")
-                    return null
-                }
+            if (tempFile != null && tempFile.exists()) {
+                Log.d("FileUtil", "Archivo creado correctamente: ${tempFile.absolutePath} (${tempFile.length()} bytes)")
                 
-                android.util.Log.d("FileUtil", "Leyendo bytes desde InputStream")
-                val byteArray = inputStream.readBytes()
-                inputStream.close()
+                // Crear RequestBody a partir del archivo
+                val requestFile = tempFile.asRequestBody("image/*".toMediaTypeOrNull())
                 
-                android.util.Log.d("FileUtil", "Bytes leídos: ${byteArray.size}")
-                
-                if (byteArray.isEmpty()) {
-                    android.util.Log.e("FileUtil", "Array de bytes está vacío")
-                    return null
-                }
-                
-                // Nombre de archivo simple sin caracteres especiales
-                val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
-                val fileName = "image_$timeStamp.jpg"
-                
-                android.util.Log.d("FileUtil", "Procesando imagen: $fileName, tamaño: ${byteArray.size} bytes")
-                
-                // Crear RequestBody directamente desde los bytes
-                android.util.Log.d("FileUtil", "Creando RequestBody con MIME type: $mimeType")
-                val requestBody = byteArray.toRequestBody(mimeType.toMediaTypeOrNull())
-                
-                // Crear la parte multipart con un nombre de archivo sencillo
-                android.util.Log.d("FileUtil", "Creando MultipartBody.Part")
-                val part = MultipartBody.Part.createFormData(paramName, fileName, requestBody)
-                android.util.Log.d("FileUtil", "MultipartBody.Part creado exitosamente")
-                
-                return part
-            } catch (e: Exception) {
-                android.util.Log.e("FileUtil", "Error procesando bytes de la imagen", e)
-                return null
+                // Crea parte multipart
+                MultipartBody.Part.createFormData(
+                    paramName,
+                    tempFile.name,
+                    requestFile
+                )
+            } else {
+                Log.e("FileUtil", "No se pudo crear el archivo temporal para la imagen")
+                null
             }
         } catch (e: Exception) {
-            android.util.Log.e("FileUtil", "Error general en uriToMultipartImage", e)
-            return null
+            Log.e("FileUtil", "Error al convertir Uri a MultipartBody.Part", e)
+            null
+        }
+    }
+    
+    /**
+     * Guarda un archivo URI en el directorio de caché
+     */
+    private fun saveToCacheFile(context: Context, uri: Uri): File? {
+        return try {
+            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val fileName = "IMG_${timeStamp}.jpg"
+            val cacheFile = File(context.cacheDir, fileName)
+            
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                FileOutputStream(cacheFile).use { outputStream ->
+                    inputStream.copyTo(outputStream)
+                }
+            }
+            
+            // Verificar que el archivo se creó correctamente
+            if (cacheFile.exists() && cacheFile.length() > 0) {
+                Log.d("FileUtil", "Imagen guardada en caché: ${cacheFile.absolutePath} (${cacheFile.length()} bytes)")
+                cacheFile
+            } else {
+                Log.e("FileUtil", "Error: El archivo de caché está vacío o no existe")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("FileUtil", "Error al guardar imagen en caché", e)
+            null
         }
     }
     
