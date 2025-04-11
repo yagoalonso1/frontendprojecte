@@ -72,6 +72,12 @@ fun EventosScreen(
     val errorMessage = viewModel.errorMessage
     val userRole = SessionManager.getUserRole() ?: "participante"
     
+    // Actualizar eventos cada vez que se muestra la pantalla
+    LaunchedEffect(Unit) {
+        Log.d("EventosScreen", "Actualizando lista de eventos...")
+        viewModel.fetchEventos()
+    }
+    
     Log.d("EventosScreen", "Rol del usuario: $userRole")
 
     // Colores consistentes con la app

@@ -502,7 +502,7 @@ fun EventoDetailScreen(
                                                     )
                                                     
                                                     Text(
-                                                        text = "${viewModel.calcularTotal()}0 €",
+                                                        text = formatoMoneda.format(viewModel.calcularTotal()),
                                                         style = MaterialTheme.typography.titleLarge,
                                                         fontWeight = FontWeight.Bold,
                                                         color = primaryColor
@@ -553,19 +553,34 @@ fun EventoDetailScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(56.dp)
-                                        .shadow(8.dp, RoundedCornerShape(8.dp)),
+                                        .then(
+                                            if (viewModel.hayEntradasSeleccionadas()) {
+                                                Modifier.shadow(8.dp, RoundedCornerShape(8.dp))
+                                            } else {
+                                                Modifier
+                                            }
+                                        ),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = primaryColor
+                                        containerColor = primaryColor,
+                                        disabledContainerColor = Color.Gray.copy(alpha = 0.5f),
+                                        contentColor = Color.White,
+                                        disabledContentColor = Color.White.copy(alpha = 0.7f)
                                     ),
                                     shape = RoundedCornerShape(8.dp),
-                                    enabled = viewModel.hayEntradasSeleccionadas()
+                                    enabled = viewModel.hayEntradasSeleccionadas(),
+                                    elevation = ButtonDefaults.buttonElevation(
+                                        defaultElevation = if (viewModel.hayEntradasSeleccionadas()) 4.dp else 0.dp,
+                                        pressedElevation = if (viewModel.hayEntradasSeleccionadas()) 8.dp else 0.dp
+                                    )
                                 ) {
                                     Text(
                                         text = "COMPRAR",
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold,
-                                            letterSpacing = 1.sp
-                                        )
+                                            letterSpacing = 1.sp,
+                                            fontSize = 18.sp
+                                        ),
+                                        color = Color.White
                                     )
                                 }
                                 
@@ -704,7 +719,8 @@ fun PaymentDialog(
                         // Total
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = "Total",
@@ -714,7 +730,7 @@ fun PaymentDialog(
                             
                             Text(
                                 text = formatoMoneda.format(viewModel.calcularTotal()),
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = primaryColor
                             )

@@ -1,5 +1,6 @@
 package com.example.app.util
 
+import android.util.Log
 import com.example.app.model.Evento
 import com.example.app.model.tickets.EventoCompra
 
@@ -11,11 +12,26 @@ import com.example.app.model.tickets.EventoCompra
  * @return URL completa de la imagen
  */
 fun Evento.getImageUrl(): String {
-    return imagenUrl ?: when {
+    // Diagnóstico: Imprimir valores actuales
+    Log.d("ImageUtils", "Diagnóstico - imagenUrl: $imagenUrl")
+    Log.d("ImageUtils", "Diagnóstico - imagen: $imagen")
+    Log.d("ImageUtils", "Diagnóstico - STORAGE_URL: ${Constants.STORAGE_URL}")
+    
+    // Intentar usar imagenUrl si está disponible
+    if (!imagenUrl.isNullOrEmpty()) {
+        Log.d("ImageUtils", "Usando imagen_url: $imagenUrl")
+        return imagenUrl
+    }
+    
+    // Si no, construir la URL basada en el campo imagen
+    val url = when {
         imagen.startsWith("http") -> imagen
         imagen.isNotEmpty() -> "${Constants.STORAGE_URL}${imagen}"
         else -> "${Constants.STORAGE_URL}${Constants.DEFAULT_EVENT_IMAGE}"
     }
+    
+    Log.d("ImageUtils", "URL construida: $url")
+    return url
 }
 
 /**
@@ -25,6 +41,10 @@ fun Evento.getImageUrl(): String {
  * @return URL completa de la imagen
  */
 fun EventoCompra.getImageUrl(): String {
+    // Diagnóstico: Imprimir valores actuales
+    Log.d("ImageUtils", "Diagnóstico - imagen (EventoCompra): $imagen")
+    Log.d("ImageUtils", "Diagnóstico - STORAGE_URL: ${Constants.STORAGE_URL}")
+    
     return imagen?.let { img ->
         when {
             img.startsWith("http") -> img

@@ -16,9 +16,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class ProfileViewModel : ViewModel() {
+    private val TAG = "ProfileViewModel"
+    
     // Estado del perfil
     var profileData by mutableStateOf<ProfileData?>(null)
-        private set
+        internal set
+    
+    // Estado de datos de usuario simplificado para reemplazar _userData
+    private val _userData = MutableStateFlow(UserData())
+    val userData = _userData.asStateFlow()
+    
+    // Estado para controlar si los datos están cargados
+    private val _userDataLoaded = MutableStateFlow(false)
+    val userDataLoaded = _userDataLoaded.asStateFlow()
     
     // Estado de edición
     var isEditing by mutableStateOf(false)
@@ -268,7 +278,7 @@ class ProfileViewModel : ViewModel() {
         isEditing = false
         initEditableFields() // Restaurar campos originales
         clearError()
-    }
+    }   
     
     fun saveProfile() {
         viewModelScope.launch {
@@ -387,11 +397,161 @@ class ProfileViewModel : ViewModel() {
         errorMessage = null
     }
     
-    fun resetNavigationState() {
-        _shouldNavigateToLogin.value = false
+    /**
+     * Resetea el flag de navegación al login
+     */
+    fun resetShouldNavigateToLogin() {
+        viewModelScope.launch {
+            withContext(Dispatchers.Main) {
+                _shouldNavigateToLogin.value = false
+                Log.d("ProfileViewModel", "Flag de navegación al login reseteado: ${_shouldNavigateToLogin.value}")
+            }
+        }
     }
     
     fun navigateToLogin() {
         _shouldNavigateToLogin.value = true
     }
-} 
+    
+    fun logout() {
+        Log.d(TAG, "Iniciando proceso de logout")
+        viewModelScope.launch {
+            try {
+                // Limpiar datos de perfil y sesión
+                _userData.value = UserData()
+                _userDataLoaded.value = false
+                
+                // Obtener token actual para el logout
+                val token = "Bearer ${SessionManager.getToken() ?: ""}"
+                Log.d(TAG, "Token para logout: ${token.takeLast(10)}...")
+                
+                // Llamar al API de logout
+                try {
+                    val response = withContext(Dispatchers.IO) {
+                        RetrofitClient.apiService.logoutUser(token)
+                    }
+                    if (response.isSuccessful) {
+                        Log.d(TAG, "Logout exitoso en el API")
+                    } else {
+                        Log.e(TAG, "Error en logout API: ${response.code()}")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Excepción durante logout: ${e.message}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Excepción durante logout: ${e.message}")
+            } finally {
+                // Siempre limpiar sesión y navegar a login independientemente de errores
+                SessionManager.clearSession()
+                Log.d(TAG, "Sesión limpiada localmente")
+                
+                withContext(Dispatchers.Main) {
+                    // Activar la navegación al login en el hilo principal
+                    _shouldNavigateToLogin.value = true
+                    Log.d(TAG, "Activada navegación al login, valor: ${_shouldNavigateToLogin.value}")
+                }
+            }
+        }
+    }
+    
+    /**
+     * Método para cerrar sesión con callback de navegación directa
+     * @param navigationCallback El callback que se ejecutará después de cerrar sesión con la API
+     */
+    fun logoutAndNavigate(navigationCallback: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                isLoading = true
+                clearError()
+                
+                Log.d("ProfileViewModel", "Iniciando proceso de logout directo")
+                
+                // Limpiar la sesión local inmediatamente
+                SessionManager.clearSession()
+                Log.d("ProfileViewModel", "Sesión limpiada localmente")
+                
+                // Obtener token antes de limpiarlo (si es posible)
+                val token = SessionManager.getToken()
+                if (token.isNullOrEmpty()) {
+                    Log.d("ProfileViewModel", "No hay token, cerrando sesión y navegando directamente")
+                    withContext(Dispatchers.Main) {
+                        navigationCallback()
+                    }
+                    return@launch
+                }
+                
+                // Llamar al endpoint de logout
+                try {
+                    Log.d("ProfileViewModel", "Llamando al endpoint de logout")
+                    val response = withContext(Dispatchers.IO) {
+                        RetrofitClient.apiService.logoutUser("Bearer $token")
+                    }
+                    
+                    if (response.isSuccessful) {
+                        Log.d("ProfileViewModel", "Logout exitoso: ${response.body()?.message}")
+                    } else {
+                        Log.e("ProfileViewModel", "Error en logout: ${response.code()} - ${response.message()}")
+                    }
+                } catch (e: Exception) {
+                    Log.e("ProfileViewModel", "Error al llamar logout API: ${e.message}")
+                }
+                
+                // Independientemente de la respuesta, ejecutar el callback de navegación
+                withContext(Dispatchers.Main) {
+                    Log.d("ProfileViewModel", "Ejecutando callback de navegación directo")
+                    navigationCallback()
+                }
+                
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Error general en logout directo: ${e.message}")
+                // Aún así, intentar ejecutar el callback de navegación
+                withContext(Dispatchers.Main) {
+                    navigationCallback()
+                }
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+    
+    /**
+     * Método para cerrar sesión en segundo plano, sin bloquear la UI y sin importar el resultado
+     */
+    fun logoutInBackground() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                Log.d("ProfileViewModel", "Iniciando logout en segundo plano")
+                val token = SessionManager.getToken()
+                
+                if (token.isNullOrEmpty()) {
+                    Log.d("ProfileViewModel", "No hay token para logout en segundo plano")
+                    return@launch
+                }
+                
+                try {
+                    Log.d("ProfileViewModel", "Llamando al API de logout en segundo plano")
+                    val response = RetrofitClient.apiService.logoutUser("Bearer $token")
+                    
+                    if (response.isSuccessful) {
+                        Log.d("ProfileViewModel", "Logout en segundo plano exitoso")
+                    } else {
+                        Log.w("ProfileViewModel", "Logout en segundo plano falló: ${response.code()}")
+                    }
+                } catch (e: Exception) {
+                    Log.w("ProfileViewModel", "Error al llamar al API de logout en segundo plano: ${e.message}")
+                }
+            } catch (e: Exception) {
+                Log.w("ProfileViewModel", "Error general en logout en segundo plano: ${e.message}")
+            }
+        }
+    }
+}
+
+// Clase de modelo simplificada para los datos de usuario
+data class UserData(
+    val id: Int = 0,
+    val nombre: String = "",
+    val apellidos: String = "",
+    val email: String = "",
+    val role: String = ""
+) 

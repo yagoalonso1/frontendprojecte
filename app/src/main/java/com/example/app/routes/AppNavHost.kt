@@ -17,6 +17,7 @@ import com.example.app.view.register.OrganizadorScreen
 import com.example.app.view.register.ParticipanteScreen
 import com.example.app.view.register.RegisterScreen
 import com.example.app.viewmodel.LoginViewModel
+import com.example.app.viewmodel.ProfileViewModel
 import com.example.app.viewmodel.RegisterViewModel
 import com.example.app.viewmodel.TicketsViewModel
 import kotlinx.coroutines.delay
@@ -26,23 +27,58 @@ import com.example.app.util.SessionManager
 @Composable
 fun AppNavHost(
     navController: NavHostController = rememberNavController(),
-    startDestination: String = Routes.Login.route
+    startDestination: String = determineStartDestination()
 ) {
     val sharedRegisterViewModel: RegisterViewModel = viewModel()
     val sharedLoginViewModel: LoginViewModel = viewModel()
+    val profileViewModel: ProfileViewModel = viewModel()
+    
+    // Verificar token al inicio y en cada cambio de ruta
+    LaunchedEffect(Unit) {
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            // Lista de rutas que requieren autenticación
+            val protectedRoutes = listOf(
+                Routes.Eventos.route,
+                Routes.MisEventos.route,
+                Routes.Perfil.route,
+                Routes.Favoritos.route
+            )
+            
+            if (destination.route in protectedRoutes) {
+                val token = SessionManager.getToken()
+                if (token.isNullOrEmpty()) {
+                    Log.d("AppNavHost", "Ruta protegida sin token, navegando a Login")
+                    navController.navigate(Routes.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Verificar token al inicio
+    LaunchedEffect(Unit) {
+        val token = SessionManager.getToken()
+        if (token.isNullOrEmpty()) {
+            Log.d("AppNavHost", "No hay token válido, navegando a Login")
+            navController.navigate(Routes.Login.route) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
     
     // Observar estados de navegación
     val isRegisterSuccessful by sharedRegisterViewModel.isRegisterSuccessful.collectAsState()
     val isLogoutSuccessful by sharedLoginViewModel.isLogoutSuccessful.collectAsState()
+    val shouldNavigateToLogin by profileViewModel.shouldNavigateToLogin.collectAsState()
 
     // Efecto para navegar después del registro exitoso
     LaunchedEffect(isRegisterSuccessful) {
         if (isRegisterSuccessful) {
-            // El rol ya se guarda en el RegisterViewModel, aquí solo confirmamos
             val userRole = SessionManager.getUserRole() ?: "participante"
             Log.d("AppNavHost", "Registro exitoso, rol en SessionManager: $userRole")
             
-            delay(1500) // Dar tiempo para mostrar el mensaje de éxito
+            delay(1500)
             navController.navigate(Routes.Eventos.route) {
                 popUpTo(0) { inclusive = true }
             }
@@ -50,13 +86,19 @@ fun AppNavHost(
         }
     }
 
-    // Efecto para navegar después del logout
-    LaunchedEffect(isLogoutSuccessful) {
-        if (isLogoutSuccessful) {
+    // Efecto para manejar la navegación después del logout
+    LaunchedEffect(shouldNavigateToLogin) {
+        if (shouldNavigateToLogin) {
+            Log.d("AppNavHost", "Detectada señal de logout, redirigiendo a login")
+            SessionManager.clearSession()
             navController.navigate(Routes.Login.route) {
-                popUpTo(0) { inclusive = true }
+                popUpTo(0) {
+                    inclusive = true
+                }
+                launchSingleTop = true
             }
-            sharedLoginViewModel.resetLogoutState()
+            // Resetear el estado para evitar navegaciones repetidas
+            profileViewModel.resetShouldNavigateToLogin()
         }
     }
     
@@ -179,5 +221,17 @@ fun AppNavHost(
                 navController = navController
             )
         }
+    }
+}
+
+// Función para determinar la ruta inicial basada en si hay token
+private fun determineStartDestination(): String {
+    val token = SessionManager.getToken()
+    return if (token.isNullOrEmpty()) {
+        Log.d("AppNavHost", "Iniciando en Login porque no hay token")
+        Routes.Login.route
+    } else {
+        Log.d("AppNavHost", "Iniciando en Eventos porque hay token")
+        Routes.Eventos.route
     }
 } 

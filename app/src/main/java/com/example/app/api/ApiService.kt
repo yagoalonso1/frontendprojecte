@@ -34,6 +34,8 @@ import retrofit2.http.Multipart
 import retrofit2.http.Part
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import retrofit2.http.FormUrlEncoded
+import retrofit2.http.Field
 
 interface ApiService {
     @POST("api/register")
@@ -42,7 +44,7 @@ interface ApiService {
     @POST("api/login")
     suspend fun loginUser(@Body loginRequest: LoginRequest): Response<LoginResponse>
     
-    @POST("logout")
+    @POST("api/logout")
     suspend fun logoutUser(
         @Header("Authorization") token: String
     ): Response<LogoutResponse>
@@ -93,7 +95,7 @@ interface ApiService {
     @POST("api/eventos")
     suspend fun crearEvento(
         @Header("Authorization") token: String,
-        @Body eventoRequest: EventoRequest
+        @Body request: EventoRequest
     ): Response<CrearEventoResponse>
 
     @Multipart
@@ -107,8 +109,8 @@ interface ApiService {
         @Part("ubicacion") ubicacion: RequestBody,
         @Part("categoria") categoria: RequestBody,
         @Part("es_online") esOnline: RequestBody,
-        @Part("tipos_entrada") tiposEntrada: RequestBody,
-        @Part imagen: MultipartBody.Part?
+        @Part tiposEntradas: List<MultipartBody.Part>,
+        @Part imagen: MultipartBody.Part
     ): Response<CrearEventoResponse>
 
     @GET("api/categorias")
