@@ -18,6 +18,8 @@ import com.example.app.model.CategoriasResponse
 import com.example.app.model.TiposEntradaResponse
 import com.example.app.model.CompraRequest
 import com.example.app.model.CompraResponse
+import com.example.app.model.response.GenericResponse
+import com.example.app.model.response.MisEventosResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -34,6 +36,8 @@ import retrofit2.http.Multipart
 import retrofit2.http.Part
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.Field
 
@@ -88,10 +92,10 @@ interface ApiService {
     suspend fun toggleFavorito(@Path("eventoId") eventoId: Int): Response<Unit>
     
     @GET("api/mis-eventos")
-    suspend fun getMisEventos(
+    suspend fun getMisEventosFromApi(
         @Header("Authorization") token: String
     ): Response<EventoResponse>
-
+    
     @POST("api/eventos")
     suspend fun crearEvento(
         @Header("Authorization") token: String,
@@ -144,6 +148,52 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body compraRequest: CompraRequest
     ): Response<CompraResponse>
+
+    @PUT("api/eventos/{id}")
+    suspend fun actualizarEvento(
+        @Path("id") id: String,
+        @Header("Authorization") token: String,
+        @Body request: EventoRequest
+    ): Response<CrearEventoResponse>
+
+    @Multipart
+    @POST("api/eventos/{id}")
+    suspend fun actualizarEventoConImagen(
+        @Path("id") id: String,
+        @Header("Authorization") token: String,
+        @Part("titulo") titulo: RequestBody,
+        @Part("descripcion") descripcion: RequestBody,
+        @Part("fecha") fecha: RequestBody,
+        @Part("hora") hora: RequestBody,
+        @Part("ubicacion") ubicacion: RequestBody,
+        @Part("categoria") categoria: RequestBody,
+        @Part("es_online") esOnline: RequestBody,
+        @Part tiposEntradas: List<MultipartBody.Part>,
+        @Part imagen: MultipartBody.Part,
+        @Part("_method") method: RequestBody = "PUT".toRequestBody("text/plain".toMediaTypeOrNull())
+    ): Response<CrearEventoResponse>
+
+    @GET("api/debug/testid/{id}")
+    suspend fun testId(@Path("id") id: String): Response<String>
+    
+    // Función extra para retornar el ID recibido, útil para depuración
+    @GET("api/debug/echo/{id}")
+    suspend fun echoId(@Path("id") id: String): Response<String>
+
+    // Obtener mis eventos (del organizador logueado)
+    @GET("api/mis-eventos")
+    suspend fun getMisEventos(
+        @Header("Authorization") token: String
+    ): Response<MisEventosResponse>
+    
+    // Eliminar un evento
+    @DELETE("api/eventos/{id}")
+    suspend fun deleteEvento(
+        @Path("id") id: String,
+        @Header("Authorization") token: String
+    ): Response<GenericResponse>
+    
+    // Añadir un evento a favoritos
 }
 
 data class FavoritosResponse(

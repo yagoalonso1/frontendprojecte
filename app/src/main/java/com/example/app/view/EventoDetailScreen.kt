@@ -1,6 +1,7 @@
 package com.example.app.view
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -34,6 +36,8 @@ import com.example.app.util.NotificationUtil
 import java.text.NumberFormat
 import java.util.Locale
 import kotlinx.coroutines.flow.collectLatest
+import com.example.app.util.isValidEventoId
+import com.example.app.util.getEventoIdErrorMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,12 +45,38 @@ fun EventoDetailScreen(
     navController: NavController,
     eventoId: String
 ) {
+    val context = LocalContext.current
+    val TAG = "EventoDetailScreen"
+
+    // Verificar que el ID sea válido
+    var idValido by remember { mutableStateOf(true) }
+    
+    LaunchedEffect(eventoId) {
+        Log.d(TAG, "Inicializando pantalla con ID: '$eventoId' (${eventoId.javaClass.name})")
+        
+        // Usar extensión para validar ID
+        idValido = eventoId.isValidEventoId()
+        
+        if (!idValido) {
+            val errorMsg = eventoId.getEventoIdErrorMessage()
+            Log.e(TAG, errorMsg)
+            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+        } else {
+            Log.d(TAG, "ID validado correctamente")
+        }
+    }
+
     // Inicializar ViewModel
     val viewModel: EventoDetailViewModel = viewModel()
     
-    // Cargar datos del evento
-    LaunchedEffect(eventoId) {
-        viewModel.loadEvento()
+    // Cargar datos del evento solo si el ID es válido
+    LaunchedEffect(eventoId, idValido) {
+        if (idValido) {
+            Log.d(TAG, "Cargando datos del evento con ID: $eventoId")
+            viewModel.loadEvento(eventoId)
+        } else {
+            Log.w(TAG, "No se cargarán datos porque el ID no es válido: $eventoId")
+        }
     }
 
     // Estados básicos
@@ -67,7 +97,6 @@ fun EventoDetailScreen(
     val compraProcesando = viewModel.compraProcesando.collectAsState()
     val compraExitosa = viewModel.compraExitosa.collectAsState()
     val mensajeCompra = viewModel.mensajeCompra.collectAsState()
-    val context = LocalContext.current
     
     // Mostrar notificación cuando la compra es exitosa
     LaunchedEffect(compraExitosa.value) {
@@ -134,8 +163,47 @@ fun EventoDetailScreen(
                     .padding(paddingValues)
                     .padding(16.dp)
             ) {
+                // Pantalla de ID inválido
+                if (!idValido) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "ID de evento inválido: '$eventoId'",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.Red,
+                                textAlign = TextAlign.Center
+                            )
+                            
+                            Spacer(modifier = Modifier.height(24.dp))
+                            
+                            Button(
+                                onClick = { navController.popBackStack() },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = primaryColor
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth(0.7f)
+                                    .height(48.dp)
+                            ) {
+                                Text(
+                                    text = "Volver",
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
                 // Pantalla de carga
-                if (isLoading) {
+                else if (isLoading) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -149,10 +217,37 @@ fun EventoDetailScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = errorMessage ?: "Error desconocido",
-                            color = Color.Red
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = errorMessage ?: "Error desconocido",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.Red,
+                                textAlign = TextAlign.Center
+                            )
+                            
+                            Spacer(modifier = Modifier.height(24.dp))
+                            
+                            Button(
+                                onClick = { navController.popBackStack() },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = primaryColor
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth(0.7f)
+                                    .height(48.dp)
+                            ) {
+                                Text(
+                                    text = "Volver",
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
+                        }
                     }
                 } 
                 // Detalles del evento

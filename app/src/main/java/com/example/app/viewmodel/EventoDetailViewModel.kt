@@ -13,18 +13,16 @@ import com.example.app.model.TipoEntradaDetalle
 import com.example.app.model.CompraRequest
 import com.example.app.model.EntradaCompra
 import com.example.app.util.SessionManager
+import com.example.app.util.isValidEventoId
+import com.example.app.util.getEventoIdErrorMessage
+import com.example.app.util.toValidEventoId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class EventoDetailViewModel(
-    savedStateHandle: SavedStateHandle
-) : ViewModel() {
-    // ID evento
-    private val eventoId: String = checkNotNull(savedStateHandle["eventoId"])
-    
+class EventoDetailViewModel : ViewModel() {
     // Evento
     var evento by mutableStateOf<Evento?>(null)
         private set
@@ -59,51 +57,104 @@ class EventoDetailViewModel(
     private val _mensajeCompra = MutableStateFlow("")
     val mensajeCompra: StateFlow<String> = _mensajeCompra
     
-    init {
-        Log.d("EventoDetailViewModel", "Inicializando con eventoId: $eventoId")
-        loadEvento()
-    }
-    
-    fun loadEvento() {
+    fun loadEvento(id: String) {
         viewModelScope.launch {
             try {
                 isLoading = true
                 errorMessage = null
                 isError = false
                 
-                Log.d("EventoDetailViewModel", "Cargando evento con ID: $eventoId")
+                Log.d("EventoDetailViewModel", "Cargando evento con ID: '$id' (${id.javaClass.name})")
                 
-                val response = withContext(Dispatchers.IO) {
-                    RetrofitClient.apiService.getEventoById(eventoId)
+                // Usar la extensión para validar ID
+                if (!id.isValidEventoId()) {
+                    val errorMsg = id.getEventoIdErrorMessage()
+                    Log.e("EventoDetailViewModel", errorMsg)
+                    setError(errorMsg)
+                    return@launch
                 }
                 
+                // Convertir a entero de forma segura
+                val idNum = id.toValidEventoId()
+                if (idNum == null) {
+                    setError("Error al procesar el ID del evento")
+                    return@launch
+                }
+                
+                Log.d("EventoDetailViewModel", "ID validado correctamente: $idNum")
+                
+                // Realizar petición a la API
+                val response = withContext(Dispatchers.IO) {
+                    try {
+                        Log.d("EventoDetailViewModel", "Realizando petición API para ID: $id")
+                        RetrofitClient.apiService.getEventoById(id)
+                    } catch (e: Exception) {
+                        Log.e("EventoDetailViewModel", "Error en petición API", e)
+                        null
+                    }
+                }
+                
+                if (response == null) {
+                    Log.e("EventoDetailViewModel", "Respuesta nula de la API")
+                    setError("Error de conexión al servidor")
+                    return@launch
+                }
+                
+                Log.d("EventoDetailViewModel", "Código de respuesta API: ${response.code()}")
+                
                 if (response.isSuccessful && response.body() != null) {
-                    evento = response.body()?.evento
-                    Log.d("EventoDetailViewModel", "Evento cargado exitosamente: ${evento?.titulo}")
+                    val eventoData = response.body()?.evento
                     
-                    // Cargar tipos de entrada detallados
-                    loadTiposEntrada()
+                    if (eventoData != null) {
+                        Log.d("EventoDetailViewModel", "Evento recibido - ID: ${eventoData.id}, Título: ${eventoData.titulo}")
+                        
+                        // Verificar la validez del evento recibido
+                        if (eventoData.id <= 0) {
+                            Log.e("EventoDetailViewModel", "Evento recibido con ID inválido: ${eventoData.id}")
+                            setError("El evento recibido tiene un ID inválido")
+                            return@launch
+                        }
+                        
+                        // Asignar el evento y cargar más datos
+                        evento = eventoData
+                        Log.d("EventoDetailViewModel", "Evento cargado exitosamente")
+                        
+                        // Cargar tipos de entrada detallados
+                        loadTiposEntrada(id)
+                    } else {
+                        Log.e("EventoDetailViewModel", "Respuesta exitosa pero evento es null")
+                        setError("No se encontró la información del evento")
+                    }
                 } else {
                     val error = response.errorBody()?.string() ?: "Error desconocido"
-                    Log.e("EventoDetailViewModel", "Error al cargar evento: $error")
-                    setError("No se pudo cargar el evento: Error en la respuesta")
+                    val statusCode = response.code()
+                    Log.e("EventoDetailViewModel", "Error al cargar evento [Código: $statusCode]: $error")
+                    
+                    val mensajeError = when (statusCode) {
+                        404 -> "Evento no encontrado"
+                        401 -> "No tienes permiso para ver este evento"
+                        500 -> "Error en el servidor"
+                        else -> "No se pudo cargar el evento (Error $statusCode)"
+                    }
+                    
+                    setError(mensajeError)
                 }
             } catch (e: Exception) {
                 Log.e("EventoDetailViewModel", "Excepción al cargar evento", e)
-                setError("Error de conexión: ${e.localizedMessage}")
+                setError("Error de conexión: ${e.localizedMessage ?: e.javaClass.simpleName}")
             } finally {
                 isLoading = false
             }
         }
     }
     
-    private fun loadTiposEntrada() {
+    private fun loadTiposEntrada(id: String) {
         viewModelScope.launch {
             try {
-                Log.d("EventoDetailViewModel", "Cargando tipos de entrada para evento ID: $eventoId")
+                Log.d("EventoDetailViewModel", "Cargando tipos de entrada para evento ID: $id")
                 
                 val response = withContext(Dispatchers.IO) {
-                    RetrofitClient.apiService.getTiposEntrada(eventoId)
+                    RetrofitClient.apiService.getTiposEntrada(id)
                 }
                 
                 if (response.isSuccessful && response.body() != null) {

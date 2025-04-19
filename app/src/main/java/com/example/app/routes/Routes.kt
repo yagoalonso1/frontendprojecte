@@ -1,5 +1,8 @@
 package com.example.app.routes
 
+import com.example.app.util.isValidEventoId
+import com.example.app.util.getEventoIdErrorMessage
+
 sealed class Routes(val route: String) {
     object Login : Routes("login")
     object Register : Routes("register")
@@ -14,7 +17,34 @@ sealed class Routes(val route: String) {
     
     // Ruta con parámetros
     object EventoDetalle : Routes("evento_detalle/{eventoId}") {
-        fun createRoute(eventoId: String) = "evento_detalle/$eventoId"
+        fun createRoute(eventoId: String): String {
+            val id = eventoId.trim()
+            if (!id.isValidEventoId()) {
+                val errorMsg = id.getEventoIdErrorMessage()
+                android.util.Log.e("Routes", errorMsg)
+                throw IllegalArgumentException(errorMsg)
+            }
+            android.util.Log.d("Routes", "Creando ruta para detalle de evento: $id")
+            return "evento_detalle/$id"
+        }
+    }
+    
+    object EditarEvento : Routes("editar_evento/{eventoId}") {
+        fun createRoute(eventoId: String): String {
+            val id = eventoId.trim()
+            
+            android.util.Log.d("Routes", "Creando ruta EditarEvento con ID: '$id' (${id.javaClass.name})")
+            
+            if (!id.isValidEventoId()) {
+                val errorMsg = id.getEventoIdErrorMessage()
+                android.util.Log.e("Routes", errorMsg)
+                throw IllegalArgumentException(errorMsg)
+            }
+            
+            val rutaFinal = "editar_evento/$id"
+            android.util.Log.d("Routes", "Ruta final creada: $rutaFinal")
+            return rutaFinal
+        }
     }
     
     object ForgotPassword : Routes("forgot_password")
