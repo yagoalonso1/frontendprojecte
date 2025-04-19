@@ -17,4 +17,10 @@ object Constants {
     
     // Valores por defecto
     const val DEFAULT_EVENT_IMAGE = "eventos/default.jpg"
+
+    // Formatos de fecha y hora
+    const val DATE_FORMAT = "yyyy-MM-dd"
+    const val TIME_FORMAT = "HH:mm"
+    const val DISPLAY_DATE_FORMAT = "d 'de' MMMM, yyyy"
+    const val DISPLAY_DATE_WITH_DAY_FORMAT = "EEEE d 'de' MMMM, yyyy"
 } 

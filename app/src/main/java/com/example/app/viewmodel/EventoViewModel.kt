@@ -44,6 +44,18 @@ class EventoViewModel : ViewModel() {
     private val _isRegisterSuccessful = MutableStateFlow(false)
     val isRegisterSuccessful: StateFlow<Boolean> = _isRegisterSuccessful
     
+    // Estado para el evento en proceso de eliminación
+    var eventoEliminandoId by mutableStateOf<Int?>(null)
+        private set
+    
+    // Estado para el resultado de la eliminación
+    private val _eventoEliminadoExitosamente = MutableStateFlow<Boolean>(false)
+    val eventoEliminadoExitosamente: StateFlow<Boolean> = _eventoEliminadoExitosamente
+    
+    // Estado para mensaje de éxito
+    private val _successMessage = MutableStateFlow<String>("Evento eliminado correctamente")
+    val successMessage: StateFlow<String> = _successMessage
+    
     // Cargar eventos al iniciar
     init {
         fetchEventos()
@@ -113,7 +125,7 @@ class EventoViewModel : ViewModel() {
                 try {
                     Log.d("MIS_EVENTOS", "Realizando petición a /api/mis-eventos con token")
                     val response = withContext(Dispatchers.IO) {
-                        RetrofitClient.apiService.getMisEventos("Bearer $token")
+                        RetrofitClient.apiService.getMisEventosFromApi("Bearer $token")
                     }
                     
                     Log.d("MIS_EVENTOS", "Respuesta recibida - Status: ${response.code()}, Success: ${response.isSuccessful}")
@@ -123,7 +135,12 @@ class EventoViewModel : ViewModel() {
                         if (eventosResponse != null) {
                             // Actualizar la lista de eventos del organizador
                             misEventos = eventosResponse.eventos
-                            Log.d("MIS_EVENTOS", "Eventos cargados: ${misEventos.size} - Mensaje: ${eventosResponse.message}")
+                            Log.d("MIS_EVENTOS", "Eventos cargados: ${misEventos.size}")
+                            
+                            // Log de IDs de eventos para depuración
+                            misEventos.forEachIndexed { index, evento ->
+                                Log.d("MIS_EVENTOS", "Evento[$index] - ID: ${evento.id}, IDEvento: ${evento.idEvento}, getEventoId(): ${evento.getEventoId()}, Título: ${evento.titulo}")
+                            }
                             
                             if (misEventos.isEmpty()) {
                                 Log.d("MIS_EVENTOS", "No hay eventos creados por este organizador")
@@ -188,7 +205,7 @@ class EventoViewModel : ViewModel() {
                     200 -> {
                         // Actualizar el estado del evento en la lista local
                         eventos = eventos.map { evento ->
-                            if (evento.id == eventoId) {
+                            if (evento.getEventoId() == eventoId) {
                                 evento.copy(isFavorito = !evento.isFavorito)
                             } else {
                                 evento
@@ -254,5 +271,160 @@ class EventoViewModel : ViewModel() {
     fun clearError() {
         isError = false
         errorMessage = null
+    }
+
+    // Función para eliminar un evento
+    fun deleteEvento(evento: Evento) {
+        viewModelScope.launch {
+            try {
+                // Obtener token desde SessionManager
+                val token = SessionManager.getToken()
+                
+                Log.d("DELETE_EVENTO", "Iniciando eliminación del evento ID: ${evento.id}")
+                
+                // Verificar si hay token válido
+                if (token.isNullOrEmpty()) {
+                    Log.e("DELETE_EVENTO", "Error: Token no disponible")
+                    setError("No hay sesión activa. Por favor, inicia sesión nuevamente.")
+                    return@launch
+                }
+                
+                // Iniciar proceso de eliminación
+                isLoading = true
+                errorMessage = null
+                isError = false
+                eventoEliminandoId = evento.getEventoId()
+                
+                // Limpiar cualquier respuesta exitosa anterior
+                _eventoEliminadoExitosamente.value = false
+                
+                // Ejecutar llamada a la API
+                try {
+                    // Obtenemos el ID correcto del evento
+                    val eventoId = evento.getEventoId()
+                    
+                    Log.d("DELETE_EVENTO", """
+                        Realizando petición DELETE:
+                        - Ruta: /api/eventos/$eventoId
+                        - ID original: ${evento.id}
+                        - IDEvento: ${evento.idEvento}
+                        - getEventoId(): $eventoId
+                        - Título: ${evento.titulo}
+                    """.trimIndent())
+                    
+                    val response = withContext(Dispatchers.IO) {
+                        RetrofitClient.apiService.deleteEvento(
+                            id = eventoId.toString(),
+                            token = "Bearer $token"
+                        )
+                    }
+                    
+                    Log.d("DELETE_EVENTO", "Respuesta recibida - Status: ${response.code()}, Success: ${response.isSuccessful}")
+                    
+                    if (response.isSuccessful) {
+                        val deleteResponse = response.body()
+                        Log.d("DELETE_EVENTO", "Cuerpo de respuesta: ${deleteResponse}")
+                        
+                        // Eliminar el evento de la lista de misEventos independientemente de la respuesta
+                        misEventos = misEventos.filter { it.getEventoId() != evento.getEventoId() }
+                        
+                        // Si la eliminación fue exitosa, emitir evento de éxito
+                        isError = false
+                        errorMessage = null
+                        
+                        // Extraer los campos del backend del GenericResponse
+                        val mensajeExito = deleteResponse?.message ?: "Evento eliminado correctamente"
+                        val codRespuesta = deleteResponse?.code ?: "DELETED_SUCCESS"
+                        val statusRespuesta = deleteResponse?.status ?: "success"
+                        
+                        Log.d("DELETE_EVENTO", """
+                            Respuesta exitosa:
+                            - Mensaje: $mensajeExito
+                            - Código: $codRespuesta
+                            - Estado: $statusRespuesta
+                        """.trimIndent())
+                        
+                        // Establecer mensaje de éxito con detalles completos
+                        _successMessage.value = mensajeExito
+                        _eventoEliminadoExitosamente.value = true
+                        
+                        if (codRespuesta == "DELETED_SUCCESS" && statusRespuesta == "success") {
+                            Log.d("DELETE_EVENTO", "¡Eliminación verificada! Código y estado coinciden con lo esperado")
+                        } else {
+                            Log.w("DELETE_EVENTO", "Respuesta con formato inesperado, pero operación exitosa")
+                        }
+                        
+                        // Actualizar la lista completa de eventos después de una eliminación exitosa
+                        Log.d("DELETE_EVENTO", "Actualizando lista de eventos tras eliminación exitosa")
+                        fetchMisEventos()
+                    } else {
+                        // Manejar errores específicos por código de respuesta
+                        when (response.code()) {
+                            401 -> {
+                                Log.e("DELETE_EVENTO", "Error 401: No autorizado")
+                                setError("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.")
+                                SessionManager.clearSession() // Limpiar sesión por expiración
+                            }
+                            403 -> {
+                                Log.e("DELETE_EVENTO", "Error 403: Acceso prohibido")
+                                setError("No tienes permisos para eliminar este evento")
+                            }
+                            404 -> {
+                                // El evento ya no existe, pero eso es lo que queríamos
+                                Log.d("DELETE_EVENTO", "Error 404: Evento no encontrado - Tratando como eliminación exitosa")
+                                
+                                // Eliminar el evento de la lista local al ser un 404
+                                misEventos = misEventos.filter { it.getEventoId() != evento.getEventoId() }
+                                
+                                // Tratar como éxito en lugar de error, con mensaje específico
+                                isError = false
+                                errorMessage = null
+                                _successMessage.value = "El evento ya ha sido eliminado previamente"
+                                _eventoEliminadoExitosamente.value = true
+                                
+                                // Actualizar la lista completa de eventos después de detectar que ya se eliminó
+                                Log.d("DELETE_EVENTO", "Actualizando lista de eventos tras detectar que ya fue eliminado (404)")
+                                fetchMisEventos()
+                            }
+                            else -> {
+                                // Extraer mensaje de error del cuerpo de la respuesta
+                                val errorBody = response.errorBody()?.string()
+                                Log.e("DELETE_EVENTO", """
+                                    Error ${response.code()}:
+                                    - Cuerpo del error: $errorBody
+                                    - Headers: ${response.headers()}
+                                    - URL: ${response.raw().request.url}
+                                    - Método: ${response.raw().request.method}
+                                """.trimIndent())
+                                
+                                try {
+                                    val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
+                                    val errorMessage = errorResponse?.get("message") as? String 
+                                        ?: errorResponse?.get("error") as? String
+                                        ?: "Error desconocido (${response.code()})"
+                                    setError(errorMessage)
+                                } catch (e: Exception) {
+                                    setError("Error al eliminar el evento (${response.code()})")
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("DELETE_EVENTO", "Excepción en la petición HTTP", e)
+                    setError("Error de conexión: ${e.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("DELETE_EVENTO", "Excepción general", e)
+                setError("Error inesperado: ${e.message}")
+            } finally {
+                isLoading = false
+                eventoEliminandoId = null
+            }
+        }
+    }
+    
+    // Resetear el estado de eliminación
+    fun resetEventoEliminado() {
+        _eventoEliminadoExitosamente.value = false
     }
 }

@@ -112,4 +112,9 @@ object SessionManager {
     fun isInitialized(): Boolean {
         return initialized && prefs != null
     }
+    
+    fun getUserLanguage(): String {
+        // Por defecto, devolvemos español
+        return "es"
+    }
 }

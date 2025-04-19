@@ -27,6 +27,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.runtime.remember
+import com.example.app.util.SessionManager
 
 // Enumeración para los tipos de usuario
 enum class UserType {
@@ -46,7 +47,7 @@ data class NavItem(
 @Composable
 fun BottomNavigationBar(
     navController: NavController,
-    userRole: String
+    userRole: String = SessionManager.getUserRole() ?: "participante"
 ) {
     Log.d("BottomNavigationBar", "Iniciando BottomNavigationBar con userRole: '$userRole'")
     

@@ -23,6 +23,9 @@ import com.example.app.viewmodel.TicketsViewModel
 import kotlinx.coroutines.delay
 import android.util.Log
 import com.example.app.util.SessionManager
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
 
 @Composable
 fun AppNavHost(
@@ -128,17 +131,34 @@ fun AppNavHost(
         composable(Routes.Eventos.route) {
             EventosScreen(
                 onEventoClick = { evento ->
-                    Log.d("Navigation", "Clicked on evento with id: ${evento.id}")
-                    val route = Routes.EventoDetalle.createRoute(evento.id.toString())
-                    Log.d("Navigation", "Created route: $route")
-                    try {
-                        navController.navigate(route) {
-                            launchSingleTop = true
-                            restoreState = true
+                    val eventoId = evento.getEventoId()
+                    Log.d("Navigation", "Clicked on evento with id: $eventoId")
+                    val idString = eventoId.toString()
+                    
+                    if (eventoId > 0) {
+                        try {
+                            val route = Routes.EventoDetalle.createRoute(idString)
+                            Log.d("Navigation", "Created route: $route")
+                            navController.navigate(route) {
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                            Log.d("Navigation", "Successfully navigated to route: $route")
+                        } catch (e: Exception) {
+                            Log.e("Navigation", "Error navigating to route", e)
+                            Toast.makeText(
+                                navController.context,
+                                "Error al abrir detalle de evento: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
-                        Log.d("Navigation", "Successfully navigated to route: $route")
-                    } catch (e: Exception) {
-                        Log.e("Navigation", "Error navigating to route: $route", e)
+                    } else {
+                        Log.e("Navigation", "Invalid evento ID: $eventoId")
+                        Toast.makeText(
+                            navController.context,
+                            "ID de evento inválido: $eventoId",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 },
                 navController = navController
@@ -189,17 +209,108 @@ fun AppNavHost(
             MisEventosScreen(
                 navController = navController,
                 onEventoClick = { evento ->
-                    val route = Routes.EventoDetalle.createRoute(evento.id.toString())
-                    navController.navigate(route)
+                    val eventoId = evento.getEventoId()
+                    Log.d("Navigation", "Clicked on evento from MisEventos with id: $eventoId")
+                    val idString = eventoId.toString()
+                    
+                    if (eventoId > 0) {
+                        try {
+                            val route = Routes.EventoDetalle.createRoute(idString)
+                            Log.d("Navigation", "MisEventos - Created route: $route")
+                            navController.navigate(route) {
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                            Log.d("Navigation", "MisEventos - Successfully navigated to route: $route")
+                        } catch (e: Exception) {
+                            Log.e("Navigation", "MisEventos - Error navigating to detail route", e)
+                            Toast.makeText(
+                                navController.context,
+                                "Error al abrir detalle de evento: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    } else {
+                        Log.e("Navigation", "MisEventos - Invalid evento ID: $eventoId")
+                        Toast.makeText(
+                            navController.context,
+                            "ID de evento inválido: $eventoId",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 },
                 onCreateEventoClick = {
                     navController.navigate(Routes.CrearEvento.route)
+                },
+                onEditEventoClick = { evento ->
+                    val eventoId = evento.getEventoId()
+                    Log.d("Navigation", "===== INICIO EDICIÓN DESDE MIS EVENTOS =====")
+                    Log.d("Navigation", "Evento a editar - ID: $eventoId, Título: ${evento.titulo}")
+                    Log.d("Navigation", "Tipo de ID: ${eventoId.javaClass.name}")
+                    
+                    if (eventoId > 0) {
+                        try {
+                            val idStr = eventoId.toString()
+                            Log.d("Navigation", "ID convertido a String: '$idStr'")
+                            
+                            val route = Routes.EditarEvento.createRoute(idStr)
+                            Log.d("Navigation", "Ruta de edición creada: $route")
+                            
+                            navController.navigate(route) {
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                            Log.d("Navigation", "Navegación a edición completada")
+                        } catch (e: Exception) {
+                            Log.e("Navigation", "Error al crear ruta de edición", e)
+                            Toast.makeText(
+                                navController.context,
+                                "Error al abrir pantalla de edición: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    } else {
+                        Log.e("Navigation", "Error: ID de evento inválido: $eventoId")
+                        Toast.makeText(
+                            navController.context,
+                            "No se puede editar: ID de evento inválido ($eventoId)",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                },
+                onDeleteEventoClick = { evento ->
+                    Log.d("Navigation", "===== INICIO ELIMINACIÓN DESDE MIS EVENTOS =====")
+                    Log.d("Navigation", "Evento a eliminar - ID: ${evento.getEventoId()}, Título: ${evento.titulo}")
+                    // No se requiere ninguna acción adicional, ya que la eliminación se maneja en el ViewModel
+                    // La propia pantalla MisEventosScreen contiene la lógica de confirmación y eliminación
                 }
             )
         }
         
         composable(Routes.CrearEvento.route) {
             CrearEventoScreen(navController = navController)
+        }
+        
+        composable(
+            route = Routes.EditarEvento.route,
+            arguments = listOf(
+                navArgument("eventoId") { 
+                    type = NavType.StringType 
+                    nullable = false
+                }
+            )
+        ) { backStackEntry ->
+            val eventoIdString = backStackEntry.arguments?.getString("eventoId")
+            Log.d("Navigation", "EditarEvento recibió eventoId string: '$eventoIdString'")
+            
+            // Procesar el ID fuera del composable
+            val eventoId = procesarEventoId(eventoIdString, navController.context)
+            Log.d("Navigation", "Pasando a EditarEventoScreen ID: $eventoId")
+            
+            EditarEventoScreen(
+                navController = navController,
+                eventoId = eventoId
+            )
         }
         
         composable(Routes.MisTickets.route) {
@@ -233,5 +344,54 @@ private fun determineStartDestination(): String {
     } else {
         Log.d("AppNavHost", "Iniciando en Eventos porque hay token")
         Routes.Eventos.route
+    }
+}
+
+// Función auxiliar para procesar el ID del evento
+private fun procesarEventoId(eventoIdString: String?, context: Context): Int {
+    return eventoIdString?.let {
+        try {
+            // Limpieza adicional del ID antes de convertir
+            val cleanId = it.trim()
+            Log.d("Navigation", "ID limpiado: '$cleanId'")
+            
+            val id = cleanId.toIntOrNull()
+            if (id == null) {
+                Log.e("Navigation", "Error: No se pudo convertir '$cleanId' a Int")
+                Toast.makeText(
+                    context,
+                    "Error: ID de evento inválido",
+                    Toast.LENGTH_LONG
+                ).show()
+                -1
+            } else if (id <= 0) {
+                Log.e("Navigation", "Error: ID de evento <= 0: $id")
+                Toast.makeText(
+                    context,
+                    "Error: ID de evento inválido ($id)",
+                    Toast.LENGTH_LONG
+                ).show()
+                -1
+            } else {
+                Log.d("Navigation", "ID de evento válido: $id")
+                id
+            }
+        } catch (e: Exception) {
+            Log.e("Navigation", "Excepción al procesar ID de evento: $it", e)
+            Toast.makeText(
+                context,
+                "Error al procesar ID de evento: ${e.message}",
+                Toast.LENGTH_LONG
+            ).show()
+            -1
+        }
+    } ?: run {
+        Log.e("Navigation", "Error: ID de evento es nulo")
+        Toast.makeText(
+            context,
+            "Error: ID de evento no especificado",
+            Toast.LENGTH_LONG
+        ).show()
+        -1
     }
 } 
