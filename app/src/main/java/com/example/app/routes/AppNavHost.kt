@@ -332,6 +332,12 @@ fun AppNavHost(
                 navController = navController
             )
         }
+        
+        composable(Routes.HistorialCompras.route) {
+            HistorialComprasScreen(
+                navController = navController
+            )
+        }
     }
 }
 

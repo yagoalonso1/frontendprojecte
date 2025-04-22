@@ -500,7 +500,7 @@ fun EventoDetailScreen(
                                                 ) {
                                                     // Precio del tipo de entrada
                                                     Text(
-                                                        text = "${tipoEntrada.precio.toDoubleOrNull() ?: 0.0}0 €",
+                                                        text = formatoMoneda.format(tipoEntrada.precio.toDoubleOrNull() ?: 0.0),
                                                         style = MaterialTheme.typography.titleMedium,
                                                         fontWeight = FontWeight.Bold,
                                                         color = primaryColor
