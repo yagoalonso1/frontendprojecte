@@ -6,6 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Save
@@ -18,6 +19,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,7 +30,9 @@ import androidx.navigation.NavController
 import com.example.app.viewmodel.ProfileViewModel
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import com.example.app.routes.BottomNavigationBar
+import kotlinx.coroutines.delay
 
 // Colores consistentes con la app
 private val primaryColor = Color(0xFFE53935)  // Rojo del logo
@@ -355,6 +362,41 @@ fun ProfileViewMode(
             Spacer(modifier = Modifier.height(16.dp))
         }
         
+        // Botón de cambiar contraseña (todos los usuarios)
+        var showChangePasswordDialog by remember { mutableStateOf(false) }
+        
+        Button(
+            onClick = { showChangePasswordDialog = true },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = primaryColor,
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Icon(
+                Icons.Default.Edit,
+                contentDescription = "Cambiar contraseña",
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "CAMBIAR CONTRASEÑA",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
+        // Mostrar el diálogo de cambio de contraseña si es necesario
+        if (showChangePasswordDialog) {
+            ChangePasswordDialog(
+                viewModel = viewModel,
+                onDismiss = { showChangePasswordDialog = false }
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
         // Botón de cerrar sesión - solución directa
         Button(
             onClick = { 
@@ -612,4 +654,221 @@ fun ProfileField(label: String, value: String) {
             fontWeight = FontWeight.Medium
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChangePasswordDialog(
+    viewModel: ProfileViewModel,
+    onDismiss: () -> Unit
+) {
+    val isChangingPassword = viewModel.isChangingPassword
+    val isPasswordChangeSuccessful by viewModel.isPasswordChangeSuccessful.collectAsState()
+    val errorMessage = viewModel.errorMessage
+    
+    var currentPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    
+    // Para mostrar u ocultar las contraseñas
+    var currentPasswordVisible by remember { mutableStateOf(false) }
+    var newPasswordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
+    
+    // Resetear el estado si el diálogo se cierra
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.resetPasswordChangeState()
+        }
+    }
+    
+    // Si el cambio fue exitoso, cerrar automáticamente después de un tiempo
+    LaunchedEffect(isPasswordChangeSuccessful) {
+        if (isPasswordChangeSuccessful) {
+            delay(1500)
+            onDismiss()
+        }
+    }
+    
+    AlertDialog(
+        onDismissRequest = { 
+            if (!isChangingPassword) onDismiss() 
+        },
+        title = {
+            Text(
+                text = if (isPasswordChangeSuccessful) "¡Contraseña cambiada!" else "Cambiar contraseña",
+                fontWeight = FontWeight.Bold,
+                color = if (isPasswordChangeSuccessful) primaryColor else textPrimaryColor
+            )
+        },
+        text = {
+            if (isChangingPassword) {
+                // Pantalla de carga
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = primaryColor)
+                }
+            } else if (isPasswordChangeSuccessful) {
+                // Mensaje de éxito
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Éxito",
+                        tint = primaryColor,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "Tu contraseña ha sido actualizada correctamente",
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                // Formulario de cambio de contraseña
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Contraseña actual
+                    OutlinedTextField(
+                        value = currentPassword,
+                        onValueChange = { currentPassword = it },
+                        label = { Text("Contraseña actual") },
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = if (currentPasswordVisible) 
+                            VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password
+                        ),
+                        trailingIcon = {
+                            IconButton(onClick = { currentPasswordVisible = !currentPasswordVisible }) {
+                                Icon(
+                                    imageVector = if (currentPasswordVisible) 
+                                        Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = if (currentPasswordVisible) 
+                                        "Ocultar contraseña" else "Mostrar contraseña"
+                                )
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
+                            focusedLabelColor = primaryColor,
+                            unfocusedLabelColor = Color.Gray
+                        )
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Nueva contraseña
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        label = { Text("Nueva contraseña") },
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = if (newPasswordVisible) 
+                            VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password
+                        ),
+                        trailingIcon = {
+                            IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
+                                Icon(
+                                    imageVector = if (newPasswordVisible) 
+                                        Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = if (newPasswordVisible) 
+                                        "Ocultar contraseña" else "Mostrar contraseña"
+                                )
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
+                            focusedLabelColor = primaryColor,
+                            unfocusedLabelColor = Color.Gray
+                        )
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Confirmar contraseña
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        label = { Text("Confirmar contraseña") },
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = if (confirmPasswordVisible) 
+                            VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password
+                        ),
+                        trailingIcon = {
+                            IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                                Icon(
+                                    imageVector = if (confirmPasswordVisible) 
+                                        Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = if (confirmPasswordVisible) 
+                                        "Ocultar contraseña" else "Mostrar contraseña"
+                                )
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
+                            focusedLabelColor = primaryColor,
+                            unfocusedLabelColor = Color.Gray
+                        )
+                    )
+                    
+                    // Mostrar mensaje de error si hay alguno
+                    if (errorMessage != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = errorMessage,
+                            color = Color.Red,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (!isPasswordChangeSuccessful && !isChangingPassword) {
+                Button(
+                    onClick = {
+                        viewModel.changePassword(
+                            currentPassword,
+                            newPassword,
+                            confirmPassword
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryColor
+                    ),
+                    enabled = currentPassword.isNotEmpty() && 
+                              newPassword.isNotEmpty() && 
+                              confirmPassword.isNotEmpty()
+                ) {
+                    Text("Cambiar")
+                }
+            }
+        },
+        dismissButton = {
+            if (!isChangingPassword) {
+                TextButton(
+                    onClick = onDismiss
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        }
+    )
 } 

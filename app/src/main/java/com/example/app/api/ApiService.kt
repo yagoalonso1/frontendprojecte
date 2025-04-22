@@ -200,6 +200,13 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<HistorialComprasResponse>
     
+    // Cambiar contraseña
+    @POST("api/change-password")
+    suspend fun changePassword(
+        @Header("Authorization") token: String,
+        @Body passwordData: Map<String, String>
+    ): Response<GenericResponse>
+    
     // Añadir un evento a favoritos
 }
 
