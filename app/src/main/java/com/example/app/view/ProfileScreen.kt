@@ -44,13 +44,13 @@ import com.example.app.routes.BottomNavigationBar
 import kotlinx.coroutines.delay
 
 // Colores consistentes con la app y la marca
-private val primaryColor = Color(0xFFE53C3D)  // Rojo principal del logo (#e53c3d)
+private val primaryColor = Color(0xFFE53935)  // Rojo principal del logo usado en otras pantallas
 private val secondaryDarkRed = Color(0xFF652C2D) // Tono más oscuro de rojo (#652c2d)
 private val accentRed = Color(0xFFA53435) // Tono medio de rojo (#a53435)
-private val backgroundColor = Color(0xFFDBD9D6) // Gris claro para fondos (#dbd9d6)
-private val textPrimaryColor = Color(0xFF252525) // Gris oscuro/negro para texto (#252525)
-private val textSecondaryColor = Color(0xFF464646) // Color más claro para textos secundarios
-private val surfaceColor = Color(0xFFF1F1F1)  // Gris muy claro para fondos de tarjetas
+private val backgroundColor = Color.White // Fondo blanco como en otras pantallas
+private val textPrimaryColor = Color.Black // Texto negro para consistencia
+private val textSecondaryColor = Color.Gray // Gris para textos secundarios, como en LoginScreen
+private val surfaceColor = Color(0xFFF5F5F5)  // Gris muy claro para fondos de tarjetas
 private val cardBackground = Color(0xFFFFFFFF) // Blanco puro para tarjetas
 private val dividerColor = Color(0xFFE0E0E0) // Color para divisores
 
@@ -163,7 +163,7 @@ fun ProfileScreen(
                             fontSize = 24.sp,
                             letterSpacing = 1.sp
                         ),
-                        color = Color.White
+                        color = primaryColor
                     )
                 },
                 navigationIcon = {
@@ -171,7 +171,7 @@ fun ProfileScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack, 
                             contentDescription = "Volver",
-                            tint = Color.White
+                            tint = primaryColor
                         )
                     }
                 },
@@ -181,14 +181,14 @@ fun ProfileScreen(
                             Icon(
                                 Icons.Default.Edit, 
                                 contentDescription = "Editar perfil",
-                                tint = Color.White
+                                tint = primaryColor
                             )
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = primaryColor,
-                    titleContentColor = Color.White
+                    containerColor = backgroundColor,
+                    titleContentColor = primaryColor
                 )
             )
         },
@@ -205,7 +205,7 @@ fun ProfileScreen(
             SnackbarHost(snackbarHostState) { data ->
                 Snackbar(
                     snackbarData = data,
-                    containerColor = secondaryDarkRed,  // Más consistente con la marca
+                    containerColor = secondaryDarkRed,
                     contentColor = Color.White
                 )
             }
