@@ -194,13 +194,22 @@ interface ApiService {
         @Path("id") id: String,
         @Header("Authorization") token: String
     ): Response<GenericResponse>
-    
+
     // Historial de compras
     @GET("api/compras")
     suspend fun getHistorialCompras(
         @Header("Authorization") token: String
     ): Response<HistorialComprasResponse>
     
+    // Cambiar contraseña
+    @POST("api/change-password")
+    suspend fun changePassword(
+        @Header("Authorization") token: String,
+        @Body passwordData: Map<String, String>
+    ): Response<GenericResponse>
+    
+    // Añadir un evento a favoritos
+   
     // Eliminar cuenta de usuario (usando POST con un parámetro _method=DELETE)
     @POST("api/account")
     suspend fun deleteAccount(

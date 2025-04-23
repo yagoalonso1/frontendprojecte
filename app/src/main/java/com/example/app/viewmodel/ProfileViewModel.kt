@@ -58,6 +58,14 @@ class ProfileViewModel : ViewModel() {
     private val _isUpdateSuccessful = MutableStateFlow(false)
     val isUpdateSuccessful = _isUpdateSuccessful.asStateFlow()
     
+    // Estado para cambio de contraseña
+    private val _isPasswordChangeSuccessful = MutableStateFlow(false)
+    val isPasswordChangeSuccessful = _isPasswordChangeSuccessful.asStateFlow()
+    
+    // Estado para el proceso de cambio de contraseña
+    var isChangingPassword by mutableStateOf(false)
+        private set
+    
     // Añadir un nuevo estado para controlar la redirección a login
     private val _shouldNavigateToLogin = MutableStateFlow(false)
     val shouldNavigateToLogin = _shouldNavigateToLogin.asStateFlow()
@@ -65,6 +73,10 @@ class ProfileViewModel : ViewModel() {
     // Estado para eliminar cuenta
     private val _isDeleteAccountSuccessful = MutableStateFlow(false)
     val isDeleteAccountSuccessful = _isDeleteAccountSuccessful.asStateFlow()
+    
+    // Estado para controlar si mostrar el diálogo de eliminación de cuenta
+    private val _showDeleteConfirmationDialog = MutableStateFlow(false)
+    val showDeleteConfirmationDialog = _showDeleteConfirmationDialog.asStateFlow()
     
     // Estado para controlar si mostrar el diálogo de éxito
     private val _showDeleteSuccessDialog = MutableStateFlow(false)
@@ -556,6 +568,102 @@ class ProfileViewModel : ViewModel() {
         }
     }
     
+    // Función para cambiar la contraseña
+    fun changePassword(currentPassword: String, newPassword: String, confirmPassword: String) {
+        viewModelScope.launch {
+            try {
+                isChangingPassword = true
+                clearError()
+                
+                // Validar que las contraseñas coincidan
+                if (newPassword != confirmPassword) {
+                    setError("Las contraseñas no coinciden")
+                    return@launch
+                }
+                
+                // Validar que la nueva contraseña sea diferente a la actual
+                if (currentPassword == newPassword) {
+                    setError("La nueva contraseña debe ser diferente a la actual")
+                    return@launch
+                }
+                
+                // Validar longitud mínima
+                if (newPassword.length < 6) {
+                    setError("La nueva contraseña debe tener al menos 6 caracteres")
+                    return@launch
+                }
+                
+                // Obtener token
+                val token = SessionManager.getToken()
+                if (token.isNullOrEmpty()) {
+                    Log.e(TAG, "Error: No hay token disponible")
+                    setError("No se ha iniciado sesión")
+                    return@launch
+                }
+                
+                // Crear el objeto de datos para el cambio de contraseña
+                val passwordData = mapOf(
+                    "current_password" to currentPassword,
+                    "new_password" to newPassword,
+                    "confirm_password" to confirmPassword
+                )
+                
+                // Realizar la petición
+                val response = withContext(Dispatchers.IO) {
+                    try {
+                        RetrofitClient.apiService.changePassword("Bearer $token", passwordData)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error HTTP al cambiar contraseña: ${e.message}", e)
+                        return@withContext null
+                    }
+                }
+                
+                // Procesar la respuesta
+                if (response == null) {
+                    setError("Error de conexión al servidor")
+                    return@launch
+                }
+                
+                if (response.isSuccessful) {
+                    // Marcar como exitoso y limpiar errores
+                    _isPasswordChangeSuccessful.value = true
+                    clearError()
+                    Log.d(TAG, "Contraseña cambiada con éxito")
+                } else {
+                    // Procesar el error según el código
+                    val errorBody = response.errorBody()?.string()
+                    Log.e(TAG, "Error al cambiar contraseña: ${response.code()} - $errorBody")
+                    
+                    when (response.code()) {
+                        400 -> {
+                            // Intentar extraer mensaje específico
+                            if (errorBody?.contains("contraseña actual no es correcta") == true) {
+                                setError("La contraseña actual es incorrecta")
+                            } else {
+                                setError("Error en los datos enviados")
+                            }
+                        }
+                        401 -> {
+                            setError("Tu sesión ha expirado. Por favor, inicia sesión nuevamente")
+                            _shouldNavigateToLogin.value = true
+                        }
+                        else -> setError("Error al cambiar la contraseña (${response.code()})")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error al cambiar contraseña: ${e.message}", e)
+                setError("Error: ${e.message}")
+            } finally {
+                isChangingPassword = false
+            }
+        }
+    }
+    
+    // Resetea el estado de éxito del cambio de contraseña
+    fun resetPasswordChangeState() {
+        _isPasswordChangeSuccessful.value = false
+    }
+    
     /**
      * Eliminar la cuenta del usuario
      * @param password La contraseña del usuario para confirmar
@@ -660,6 +768,15 @@ class ProfileViewModel : ViewModel() {
     fun resetDeleteAccountState() {
         _isDeleteAccountSuccessful.value = false
         _showDeleteSuccessDialog.value = false
+        _showDeleteConfirmationDialog.value = false
+    }
+    
+    fun showDeleteConfirmationDialog() {
+        _showDeleteConfirmationDialog.value = true
+    }
+    
+    fun hideDeleteConfirmationDialog() {
+        _showDeleteConfirmationDialog.value = false
     }
     
     fun confirmDeleteSuccess() {
