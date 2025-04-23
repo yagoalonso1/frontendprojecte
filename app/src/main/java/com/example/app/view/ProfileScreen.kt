@@ -10,6 +10,10 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ReceiptLong
@@ -18,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -25,6 +30,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.app.viewmodel.ProfileViewModel
@@ -34,12 +41,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import com.example.app.routes.BottomNavigationBar
 import kotlinx.coroutines.delay
 
-// Colores consistentes con la app
+// Colores consistentes con la app y la marca
 private val primaryColor = Color(0xFFE53935)  // Rojo del logo
+private val secondaryDarkRed = Color(0xFF652C2D) // Tono más oscuro de rojo (#652c2d)
+private val accentRed = Color(0xFFA53435) // Tono medio de rojo (#a53435)
 private val backgroundColor = Color.White
 private val textPrimaryColor = Color.Black
 private val textSecondaryColor = Color.DarkGray
 private val surfaceColor = Color(0xFFF5F5F5)  // Gris muy claro para fondos
+private val lightGrayBackground = Color(0xFFDBD9D6) // Color gris claro (#dbd9d6)
+private val darkBackground = Color(0xFF252525) // Color negro/gris oscuro (#252525)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,6 +66,25 @@ fun ProfileScreen(
     val successState = viewModel.isUpdateSuccessful.collectAsState(initial = false)
     val shouldNavigateToLogin = viewModel.shouldNavigateToLogin.collectAsState(initial = false)
     
+    // Verificación de token inmediata al inicio del composable
+    val hasValidToken = remember { mutableStateOf(true) }
+    
+    // Verificar token inmediatamente
+    LaunchedEffect(Unit) {
+        val token = com.example.app.util.SessionManager.getToken()
+        if (token.isNullOrEmpty()) {
+            Log.d("ProfileScreen", "No hay token válido, redirigiendo a login inmediatamente")
+            hasValidToken.value = false
+            navController.navigate(com.example.app.routes.Routes.Login.route) {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+        } else {
+            // Solo cargar el perfil si hay token válido
+            viewModel.loadProfile()
+        }
+    }
+    
     // Obtener el rol del usuario desde SessionManager para mostrar el menú correcto desde el inicio
     val initialUserRole = remember {
         com.example.app.util.SessionManager.getUserRole() ?: "participante"
@@ -65,9 +95,11 @@ fun ProfileScreen(
         if (shouldNavigateToLogin.value) {
             Log.d("ProfileScreen", "shouldNavigateToLogin es true, iniciando navegación a login")
             
-            // Asegurarse de que la sesión esté limpia
-            com.example.app.util.SessionManager.clearSession()
-            Log.d("ProfileScreen", "Sesión limpiada antes de navegar")
+            // Asegurarse de que la sesión esté limpia (esto debería ya estar hecho antes de este punto)
+            if (com.example.app.util.SessionManager.getToken() != null) {
+                Log.d("ProfileScreen", "Limpiando sesión antes de navegar")
+                com.example.app.util.SessionManager.clearSession()
+            }
             
             // Navegar a login limpiando el back stack completamente
             Log.d("ProfileScreen", "Navegando a la pantalla de login")
@@ -83,21 +115,15 @@ fun ProfileScreen(
         }
     }
     
-    // Verificar si hay token al inicio, si no hay redireccionar a login
-    LaunchedEffect(Unit) {
-        val token = com.example.app.util.SessionManager.getToken()
-        if (token == null || token.isEmpty()) {
-            Log.d("ProfileScreen", "No hay token al cargar la pantalla, redirigiendo a login")
-            // Limpiar datos del perfil en el ViewModel
-            viewModel.profileData = null
-            // Navegar a login
-            navController.navigate(com.example.app.routes.Routes.Login.route) {
-                popUpTo(0) { inclusive = true }
-            }
-        } else {
-            // Si hay token, cargar el perfil
-            viewModel.loadProfile()
+    // Si no hay token válido, no mostramos nada (ya se está navegando a login)
+    if (!hasValidToken.value) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = primaryColor
+            )
         }
+        return
     }
     
     // Mostrar snackbar en caso de éxito
@@ -261,6 +287,37 @@ fun ProfileViewMode(
     navController: NavController,
     viewModel: ProfileViewModel
 ) {
+    // Estado para manejar la visibilidad del diálogo de confirmación
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    // Estado para el campo de contraseña
+    var password by remember { mutableStateOf("") }
+    // Estado para controlar si la contraseña es visible
+    var passwordVisible by remember { mutableStateOf(false) }
+    
+    // Monitor del estado de eliminación exitosa
+    val deleteSuccessState = viewModel.isDeleteAccountSuccessful.collectAsState(initial = false)
+    val showSuccessDialog = viewModel.showDeleteSuccessDialog.collectAsState(initial = false)
+    
+    // Verificar si hay token válido y redirigir si es necesario
+    LaunchedEffect(Unit) {
+        val token = com.example.app.util.SessionManager.getToken()
+        if (token.isNullOrEmpty()) {
+            Log.d("ProfileViewMode", "No hay token válido, redirigiendo a login")
+            navController.navigate(com.example.app.routes.Routes.Login.route) {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+    
+    // Mostrar un snackbar cuando la eliminación de cuenta sea exitosa
+    LaunchedEffect(deleteSuccessState.value) {
+        if (deleteSuccessState.value) {
+            // Ya no hacemos nada aquí porque ahora se muestra un diálogo
+            viewModel.resetDeleteAccountState()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -400,15 +457,29 @@ fun ProfileViewMode(
         // Botón de cerrar sesión - solución directa
         Button(
             onClick = { 
-                // Usar el método logout del ViewModel que ya maneja la navegación
-                viewModel.logout()
+                // Verificar token antes de proceder
+                val token = com.example.app.util.SessionManager.getToken()
+                if (token.isNullOrEmpty()) {
+                    // Si no hay token, navegar directamente a login
+                    navController.navigate(com.example.app.routes.Routes.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                } else {
+                    // Si hay token, proceder con el logout normal
+                    viewModel.logout()
+                }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFE53935), // Rojo primario
+                containerColor = primaryColor, 
                 contentColor = Color.White
             ),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(8.dp),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 4.dp
+            )
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.Logout,
@@ -423,8 +494,315 @@ fun ProfileViewMode(
             )
         }
         
+        // Espaciador para separar el botón de eliminación de cuenta
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Botón de eliminar cuenta (color rojo más oscuro)
+        Button(
+            onClick = { 
+                // Verificar token antes de mostrar el diálogo
+                val token = com.example.app.util.SessionManager.getToken()
+                if (token.isNullOrEmpty()) {
+                    // Si no hay token, navegar directamente a login
+                    navController.navigate(com.example.app.routes.Routes.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                } else {
+                    // Si hay token, mostrar el diálogo
+                    showDeleteDialog = true
+                    // Limpiar contraseña en caso de que haya quedado de algún intento anterior
+                    password = ""
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .padding(vertical = 0.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = secondaryDarkRed,
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(8.dp),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 4.dp
+            )
+        ) {
+            Icon(
+                Icons.Filled.Delete,
+                contentDescription = "Eliminar cuenta",
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "ELIMINAR CUENTA",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
         // Espacio al final para evitar que el contenido quede pegado a la barra inferior
         Spacer(modifier = Modifier.height(16.dp))
+    }
+    
+    // Diálogo de confirmación para eliminar cuenta
+    if (showDeleteDialog) {
+        val isLoading = viewModel.isLoading
+        val errorMessage = viewModel.errorMessage
+        
+        // Verificación de token antes de mostrar el diálogo
+        DisposableEffect(Unit) {
+            val token = com.example.app.util.SessionManager.getToken()
+            if (token.isNullOrEmpty()) {
+                // Si no hay token, cerrar el diálogo y navegar a login
+                showDeleteDialog = false
+                navController.navigate(com.example.app.routes.Routes.Login.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+            
+            onDispose { }
+        }
+        
+        Dialog(
+            onDismissRequest = { 
+                if (!isLoading) showDeleteDialog = false 
+            }
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = backgroundColor
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 8.dp
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Título
+                    Text(
+                        text = "Eliminar cuenta",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = primaryColor
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    if (isLoading) {
+                        // Contenido del diálogo cuando está cargando
+                        CircularProgressIndicator(
+                            color = primaryColor,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .padding(8.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Text(
+                            "Procesando...",
+                            fontSize = 14.sp,
+                            color = textSecondaryColor,
+                            textAlign = TextAlign.Center
+                        )
+                    } else {
+                        // Contenido del diálogo normal
+                        Text(
+                            "Esta acción eliminará permanentemente tu cuenta y todos tus datos. No podrás recuperar la información una vez confirmada esta acción.",
+                            textAlign = TextAlign.Center,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp,
+                            color = textPrimaryColor
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Si hay un mensaje de error, mostrarlo
+                        if (errorMessage != null) {
+                            Text(
+                                text = errorMessage,
+                                color = primaryColor,
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                        
+                        // Campo de contraseña
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text("Contraseña para confirmar") },
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                                        tint = primaryColor
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password
+                            ),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = primaryColor,
+                                unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
+                                focusedLabelColor = primaryColor,
+                                unfocusedLabelColor = Color.Gray
+                            )
+                        )
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
+                        
+                        // Botones
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Botón Cancelar
+                            OutlinedButton(
+                                onClick = { showDeleteDialog = false },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = Color.Gray
+                                ),
+                                border = ButtonDefaults.outlinedButtonBorder.copy(
+                                    brush = SolidColor(Color.Gray.copy(alpha = 0.5f))
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                enabled = !isLoading
+                            ) {
+                                Text("Cancelar")
+                            }
+                            
+                            // Botón Confirmar
+                            Button(
+                                onClick = {
+                                    // Verificar token antes de eliminar
+                                    val token = com.example.app.util.SessionManager.getToken()
+                                    if (token.isNullOrEmpty()) {
+                                        // Si no hay token, cerrar el diálogo y navegar a login
+                                        showDeleteDialog = false
+                                        navController.navigate(com.example.app.routes.Routes.Login.route) {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    } else {
+                                        viewModel.deleteAccount(password)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = primaryColor
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                enabled = !isLoading && password.isNotEmpty()
+                            ) {
+                                Text("Confirmar", color = Color.White)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Diálogo de éxito cuando la cuenta se ha eliminado correctamente
+    if (showSuccessDialog.value) {
+        Dialog(
+            onDismissRequest = { /* No permitir cerrar tocando fuera */ },
+            properties = DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false
+            )
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = backgroundColor
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 8.dp
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Ícono de éxito
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Éxito",
+                        tint = primaryColor,
+                        modifier = Modifier
+                            .size(64.dp)
+                            .padding(bottom = 16.dp)
+                    )
+                    
+                    // Título
+                    Text(
+                        "Cuenta eliminada",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = primaryColor,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Mensaje
+                    Text(
+                        "Tu cuenta ha sido eliminada correctamente. Gracias por utilizar nuestra aplicación.",
+                        textAlign = TextAlign.Center,
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        color = textPrimaryColor
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Botón de aceptar
+                    Button(
+                        onClick = { 
+                            viewModel.confirmDeleteSuccess() 
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = primaryColor
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Aceptar", color = Color.White)
+                    }
+                }
+            }
+        }
     }
 }
 

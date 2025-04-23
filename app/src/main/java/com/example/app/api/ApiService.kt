@@ -41,6 +41,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.Field
+import retrofit2.http.Query
 
 interface ApiService {
     @POST("api/register")
@@ -193,7 +194,7 @@ interface ApiService {
         @Path("id") id: String,
         @Header("Authorization") token: String
     ): Response<GenericResponse>
-    
+
     // Historial de compras
     @GET("api/compras")
     suspend fun getHistorialCompras(
@@ -208,6 +209,14 @@ interface ApiService {
     ): Response<GenericResponse>
     
     // Añadir un evento a favoritos
+
+    // Eliminar cuenta de usuario (usando POST con un parámetro _method=DELETE)
+    @POST("api/account")
+    suspend fun deleteAccount(
+        @Header("Authorization") token: String,
+        @Body deleteRequest: DeleteAccountRequest,
+        @Query("_method") method: String = "DELETE"
+    ): Response<GenericResponse>
 }
 
 data class FavoritosResponse(
@@ -221,4 +230,10 @@ data class MessageResponse(
 
 data class FavoritoCheckResponse(
     @SerializedName("isFavorito") val isFavorito: Boolean
+)
+
+// Modelo para la solicitud de eliminación de cuenta
+data class DeleteAccountRequest(
+    @SerializedName("password") val password: String,
+    @SerializedName("confirm_deletion") val confirmDeletion: Boolean
 )
