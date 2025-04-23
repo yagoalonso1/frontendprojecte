@@ -18,6 +18,7 @@ import com.example.app.model.CategoriasResponse
 import com.example.app.model.TiposEntradaResponse
 import com.example.app.model.CompraRequest
 import com.example.app.model.CompraResponse
+import com.example.app.model.HistorialComprasResponse
 import com.example.app.model.response.GenericResponse
 import com.example.app.model.response.MisEventosResponse
 import retrofit2.Response
@@ -193,6 +194,12 @@ interface ApiService {
         @Path("id") id: String,
         @Header("Authorization") token: String
     ): Response<GenericResponse>
+    
+    // Historial de compras
+    @GET("api/compras")
+    suspend fun getHistorialCompras(
+        @Header("Authorization") token: String
+    ): Response<HistorialComprasResponse>
     
     // Eliminar cuenta de usuario (usando POST con un parámetro _method=DELETE)
     @POST("api/account")

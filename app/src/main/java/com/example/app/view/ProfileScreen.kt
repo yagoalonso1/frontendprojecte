@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -386,6 +387,35 @@ fun ProfileViewMode(
         
         // Espaciador para separar el botón de cerrar sesión
         Spacer(modifier = Modifier.height(24.dp))
+        
+        // Botón de historial de compras (solo para participantes)
+        if (profileData.role == "participante") {
+            Button(
+                onClick = { 
+                    navController.navigate(com.example.app.routes.Routes.HistorialCompras.route)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primaryColor, // Usar el color primario de la app (rojo)
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(
+                    Icons.Default.ReceiptLong,
+                    contentDescription = "Historial de compras",
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "VER HISTORIAL DE COMPRAS",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+        }
         
         // Botón de cerrar sesión - solución directa
         Button(

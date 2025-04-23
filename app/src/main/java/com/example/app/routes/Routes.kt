@@ -14,6 +14,7 @@ sealed class Routes(val route: String) {
     object MisTickets : Routes("mis_tickets")
     object Favoritos : Routes("favoritos")
     object Perfil : Routes("perfil")
+    object HistorialCompras : Routes("historial_compras")
     
     // Ruta con parámetros
     object EventoDetalle : Routes("evento_detalle/{eventoId}") {

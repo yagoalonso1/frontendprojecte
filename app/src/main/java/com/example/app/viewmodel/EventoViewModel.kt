@@ -78,8 +78,49 @@ class EventoViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     val eventosResponse = response.body()
                     if (eventosResponse != null) {
-                        eventos = eventosResponse.eventos
+                        // Filtrar eventos con fechas anteriores a hoy
+                        val hoy = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            LocalDate.now()
+                        } else {
+                            // Para versiones anteriores a Android O
+                            val calendar = java.util.Calendar.getInstance()
+                            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                            sdf.format(calendar.time)
+                        }
+                        
+                        eventos = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            eventosResponse.eventos.filter { evento ->
+                                try {
+                                    val fechaEvento = LocalDate.parse(evento.fechaEvento, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                                    val fechaHoy = LocalDate.now()
+                                    fechaEvento.isEqual(fechaHoy) || fechaEvento.isAfter(fechaHoy)
+                                } catch (e: Exception) {
+                                    Log.e("EVENTOS", "Error al parsear fecha: ${evento.fechaEvento}", e)
+                                    true // Si hay error al parsear, incluirlo por defecto
+                                }
+                            }
+                        } else {
+                            // Para versiones anteriores a Android O
+                            eventosResponse.eventos.filter { evento ->
+                                try {
+                                    val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                                    val fechaEvento = sdf.parse(evento.fechaEvento)
+                                    val fechaHoy = sdf.parse(hoy.toString())
+                                    fechaEvento != null && fechaHoy != null && !fechaEvento.before(fechaHoy)
+                                } catch (e: Exception) {
+                                    Log.e("EVENTOS", "Error al parsear fecha: ${evento.fechaEvento}", e)
+                                    true // Si hay error al parsear, incluirlo por defecto
+                                }
+                            }
+                        }
+                        
                         Log.d("EVENTOS", "Eventos cargados: ${eventos.size}")
+                        
+                        // Si no hay eventos, actualizar mensaje de error
+                        if (eventos.isEmpty()) {
+                            Log.d("EVENTOS", "No hay eventos disponibles")
+                            setError("No hay eventos registrados")
+                        }
                     } else {
                         setError("No se pudieron cargar los eventos: Respuesta vacía")
                     }
