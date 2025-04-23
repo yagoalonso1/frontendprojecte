@@ -57,6 +57,23 @@ class EventoDetailViewModel : ViewModel() {
     private val _mensajeCompra = MutableStateFlow("")
     val mensajeCompra: StateFlow<String> = _mensajeCompra
     
+    // Estado para indicar si la funcionalidad de favoritos está habilitada (solo para participantes)
+    var puedeMarcarFavorito by mutableStateOf(false)
+        private set
+        
+    private val _toggleFavoritoLoading = MutableStateFlow(false)
+    val toggleFavoritoLoading: StateFlow<Boolean> = _toggleFavoritoLoading
+
+    init {
+        // Verificar si el usuario tiene rol de participante para habilitar favoritos
+        checkRolUsuario()
+    }
+    
+    private fun checkRolUsuario() {
+        val userRole = SessionManager.getUserRole()?.lowercase() ?: ""
+        puedeMarcarFavorito = userRole == "participante" && SessionManager.isLoggedIn()
+    }
+    
     fun loadEvento(id: String) {
         viewModelScope.launch {
             try {
@@ -300,6 +317,68 @@ class EventoDetailViewModel : ViewModel() {
                     _showPaymentDialog.value = false
                     _compraExitosa.value = false
                 }
+            }
+        }
+    }
+    
+    fun toggleFavorito() {
+        viewModelScope.launch {
+            if (!puedeMarcarFavorito || evento == null) {
+                return@launch
+            }
+            
+            try {
+                _toggleFavoritoLoading.value = true
+                
+                // Obtener token y validar
+                val token = SessionManager.getToken()
+                if (token.isNullOrEmpty()) {
+                    return@launch
+                }
+                
+                val eventoId = evento?.getEventoId() ?: return@launch
+                
+                // Llamar a la API para cambiar estado de favorito
+                val response = withContext(Dispatchers.IO) {
+                    try {
+                        RetrofitClient.apiService.checkFavorito(
+                            token = "Bearer $token",
+                            idEvento = eventoId
+                        )
+                    } catch (e: Exception) {
+                        Log.e("EventoDetailViewModel", "Error al verificar favorito", e)
+                        null
+                    }
+                }
+                
+                if (response != null && response.isSuccessful) {
+                    val isFavorito = response.body()?.isFavorito ?: false
+                    
+                    // Si es favorito, eliminar de favoritos; si no, añadir a favoritos
+                    val toggleResponse = withContext(Dispatchers.IO) {
+                        if (isFavorito) {
+                            RetrofitClient.apiService.removeFavorito(
+                                token = "Bearer $token",
+                                idEvento = eventoId
+                            )
+                        } else {
+                            RetrofitClient.apiService.addFavorito(
+                                token = "Bearer $token",
+                                request = com.example.app.model.favoritos.FavoritoRequest(idEvento = eventoId)
+                            )
+                        }
+                    }
+                    
+                    // Actualizar el estado local del evento
+                    if (toggleResponse.isSuccessful) {
+                        evento = evento?.copy(isFavorito = !isFavorito)
+                        Log.d("EventoDetailViewModel", "Favorito actualizado correctamente: ${!isFavorito}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("EventoDetailViewModel", "Error al cambiar estado de favorito", e)
+            } finally {
+                _toggleFavoritoLoading.value = false
             }
         }
     }

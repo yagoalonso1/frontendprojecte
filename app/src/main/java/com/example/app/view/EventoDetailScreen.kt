@@ -153,7 +153,33 @@ fun EventoDetailScreen(
                         containerColor = Color.White,
                         titleContentColor = primaryColor,
                         navigationIconContentColor = primaryColor
-                    )
+                    ),
+                    actions = {
+                        // Botón de Favorito (solo para participantes)
+                        if (viewModel.puedeMarcarFavorito && evento != null) {
+                            val isFavorito = evento.isFavorito
+                            val toggleFavoritoLoading = viewModel.toggleFavoritoLoading.collectAsState()
+                            
+                            IconButton(
+                                onClick = { viewModel.toggleFavorito() },
+                                enabled = !toggleFavoritoLoading.value
+                            ) {
+                                if (toggleFavoritoLoading.value) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        color = primaryColor,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = if (isFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        contentDescription = if (isFavorito) "Quitar de favoritos" else "Añadir a favoritos",
+                                        tint = if (isFavorito) primaryColor else Color.Gray
+                                    )
+                                }
+                            }
+                        }
+                    }
                 )
             }
         ) { paddingValues ->
