@@ -1,7 +1,7 @@
 package com.example.app.view.favoritos
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,40 +26,37 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.app.model.Evento
 import com.example.app.routes.BottomNavigationBar
-import com.example.app.routes.Routes
-import com.example.app.util.Constants
 import com.example.app.util.formatDate
 import com.example.app.util.getImageUrl
-import com.example.app.viewmodel.EventoViewModel
-import com.example.app.view.EventoCard
+import com.example.app.viewmodel.favoritos.FavoritosViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritosScreen(
     navController: NavHostController,
-    viewModel: EventoViewModel = viewModel()
+    viewModel: FavoritosViewModel = viewModel()
 ) {
-    val eventos = viewModel.eventos
+    val favoritos = viewModel.favoritos
     val isLoading = viewModel.isLoading
     val isError = viewModel.isError
     val errorMessage = viewModel.errorMessage
-    
-    val eventosFavoritos = remember(eventos) {
-        eventos.filter { evento -> evento.isFavorito }
-    }
     
     val primaryColor = Color(0xFFE53935)
     val backgroundColor = Color.White
     val textPrimaryColor = Color.Black
     val textSecondaryColor = Color.DarkGray
     val successColor = Color(0xFF4CAF50)
+    
+    // Efecto para recargar los favoritos cuando se muestra la pantalla
+    LaunchedEffect(Unit) {
+        viewModel.loadFavoritos()
+    }
     
     Scaffold(
         topBar = {
@@ -75,13 +72,25 @@ fun FavoritosScreen(
                         color = primaryColor
                     ) 
                 },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = primaryColor
-                        )
+                actions = {
+                    // Botón para recargar favoritos
+                    IconButton(
+                        onClick = { viewModel.loadFavoritos() },
+                        enabled = !isLoading
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = primaryColor,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Recargar favoritos",
+                                tint = primaryColor
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -117,11 +126,12 @@ fun FavoritosScreen(
                     }
                 }
                 isError -> {
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(16.dp),
-                        contentAlignment = Alignment.Center
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Text(
                             text = errorMessage ?: "Error desconocido",
@@ -129,21 +139,53 @@ fun FavoritosScreen(
                             color = Color.Red,
                             textAlign = TextAlign.Center
                         )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Button(
+                            onClick = { viewModel.loadFavoritos() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = primaryColor
+                            )
+                        ) {
+                            Text("Reintentar")
+                        }
                     }
                 }
-                eventosFavoritos.isEmpty() -> {
-                    Box(
+                favoritos.isEmpty() -> {
+                    Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(16.dp),
-                        contentAlignment = Alignment.Center
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = null,
+                            modifier = Modifier.size(72.dp),
+                            tint = Color.LightGray
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
                         Text(
                             text = "No tienes eventos favoritos",
                             style = MaterialTheme.typography.bodyLarge,
                             color = textSecondaryColor,
                             textAlign = TextAlign.Center
                         )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Button(
+                            onClick = { navController.navigate("eventos") },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = primaryColor
+                            )
+                        ) {
+                            Text("Explorar eventos")
+                        }
                     }
                 }
                 else -> {
@@ -153,11 +195,11 @@ fun FavoritosScreen(
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(eventosFavoritos) { evento ->
+                        items(favoritos) { evento ->
                             EventoCard(
                                 evento = evento,
                                 onClick = { 
-                                    navController.navigate("evento_detalle/${evento.id.toString()}")
+                                    navController.navigate("evento_detalle/${evento.getEventoId()}")
                                 },
                                 primaryColor = primaryColor,
                                 textPrimaryColor = textPrimaryColor,
@@ -200,6 +242,7 @@ private fun EventoCard(
         ) {
             val imageUrl = evento.getImageUrl()
             
+            // Imagen del evento
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(imageUrl)
@@ -213,9 +256,10 @@ private fun EventoCard(
                     .clip(RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp))
             )
             
+            // Información del evento
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .weight(1f)
                     .padding(16.dp)
             ) {
                 Box(
@@ -245,64 +289,29 @@ private fun EventoCard(
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
+                // Fecha
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Fecha
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = "Fecha",
-                            tint = primaryColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        
-                        Spacer(modifier = Modifier.width(4.dp))
-                        
-                        Text(
-                            text = formatDate(evento.fechaEvento, true),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = textSecondaryColor
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.CalendarMonth,
+                        contentDescription = "Fecha",
+                        tint = primaryColor,
+                        modifier = Modifier.size(16.dp)
+                    )
                     
-                    // Hora
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Schedule,
-                            contentDescription = "Hora",
-                            tint = primaryColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        
-                        Spacer(modifier = Modifier.width(4.dp))
-                        
-                        // Asegurar que la hora siempre tenga formato HH:MM
-                        val formattedHora = if (evento.hora.contains(":")) {
-                            val parts = evento.hora.split(":")
-                            val hours = parts[0].padStart(2, '0')
-                            val minutes = if (parts.size > 1) parts[1].padStart(2, '0') else "00"
-                            "$hours:$minutes"
-                        } else {
-                            evento.hora.padStart(2, '0') + ":00"
-                        }
-                        
-                        Text(
-                            text = formattedHora,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = textSecondaryColor
-                        )
-                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    
+                    Text(
+                        text = formatDate(evento.fechaEvento),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = textSecondaryColor
+                    )
                 }
                 
                 Spacer(modifier = Modifier.height(4.dp))
                 
+                // Ubicación
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -317,18 +326,19 @@ private fun EventoCard(
                     
                     Text(
                         text = evento.ubicacion,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = textSecondaryColor,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = textSecondaryColor
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
+                // Precio
                 Text(
                     text = if (evento.precio > 0) "${evento.precio}€" else "Gratuito",
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (evento.precio > 0) primaryColor else successColor
                 )
