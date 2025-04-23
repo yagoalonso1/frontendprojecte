@@ -74,6 +74,10 @@ class ProfileViewModel : ViewModel() {
     private val _isDeleteAccountSuccessful = MutableStateFlow(false)
     val isDeleteAccountSuccessful = _isDeleteAccountSuccessful.asStateFlow()
     
+    // Estado para controlar si mostrar el diálogo de eliminación de cuenta
+    private val _showDeleteConfirmationDialog = MutableStateFlow(false)
+    val showDeleteConfirmationDialog = _showDeleteConfirmationDialog.asStateFlow()
+    
     // Estado para controlar si mostrar el diálogo de éxito
     private val _showDeleteSuccessDialog = MutableStateFlow(false)
     val showDeleteSuccessDialog = _showDeleteSuccessDialog.asStateFlow()
@@ -764,6 +768,15 @@ class ProfileViewModel : ViewModel() {
     fun resetDeleteAccountState() {
         _isDeleteAccountSuccessful.value = false
         _showDeleteSuccessDialog.value = false
+        _showDeleteConfirmationDialog.value = false
+    }
+    
+    fun showDeleteConfirmationDialog() {
+        _showDeleteConfirmationDialog.value = true
+    }
+    
+    fun hideDeleteConfirmationDialog() {
+        _showDeleteConfirmationDialog.value = false
     }
     
     fun confirmDeleteSuccess() {

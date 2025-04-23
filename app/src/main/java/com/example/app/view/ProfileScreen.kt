@@ -37,20 +37,22 @@ import androidx.navigation.NavController
 import com.example.app.viewmodel.ProfileViewModel
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.text.KeyboardOptions
 import com.example.app.routes.BottomNavigationBar
 import kotlinx.coroutines.delay
 
 // Colores consistentes con la app y la marca
-private val primaryColor = Color(0xFFE53935)  // Rojo del logo
+private val primaryColor = Color(0xFFE53C3D)  // Rojo principal del logo (#e53c3d)
 private val secondaryDarkRed = Color(0xFF652C2D) // Tono más oscuro de rojo (#652c2d)
 private val accentRed = Color(0xFFA53435) // Tono medio de rojo (#a53435)
-private val backgroundColor = Color.White
-private val textPrimaryColor = Color.Black
-private val textSecondaryColor = Color.DarkGray
-private val surfaceColor = Color(0xFFF5F5F5)  // Gris muy claro para fondos
-private val lightGrayBackground = Color(0xFFDBD9D6) // Color gris claro (#dbd9d6)
-private val darkBackground = Color(0xFF252525) // Color negro/gris oscuro (#252525)
+private val backgroundColor = Color(0xFFDBD9D6) // Gris claro para fondos (#dbd9d6)
+private val textPrimaryColor = Color(0xFF252525) // Gris oscuro/negro para texto (#252525)
+private val textSecondaryColor = Color(0xFF464646) // Color más claro para textos secundarios
+private val surfaceColor = Color(0xFFF1F1F1)  // Gris muy claro para fondos de tarjetas
+private val cardBackground = Color(0xFFFFFFFF) // Blanco puro para tarjetas
+private val dividerColor = Color(0xFFE0E0E0) // Color para divisores
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -157,11 +159,11 @@ fun ProfileScreen(
                     Text(
                         text = "MI PERFIL",
                         style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 24.sp,
                             letterSpacing = 1.sp
                         ),
-                        color = primaryColor
+                        color = Color.White
                     )
                 },
                 navigationIcon = {
@@ -169,7 +171,7 @@ fun ProfileScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack, 
                             contentDescription = "Volver",
-                            tint = primaryColor
+                            tint = Color.White
                         )
                     }
                 },
@@ -179,14 +181,14 @@ fun ProfileScreen(
                             Icon(
                                 Icons.Default.Edit, 
                                 contentDescription = "Editar perfil",
-                                tint = primaryColor
+                                tint = Color.White
                             )
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = backgroundColor,
-                    titleContentColor = primaryColor
+                    containerColor = primaryColor,
+                    titleContentColor = Color.White
                 )
             )
         },
@@ -203,7 +205,7 @@ fun ProfileScreen(
             SnackbarHost(snackbarHostState) { data ->
                 Snackbar(
                     snackbarData = data,
-                    containerColor = Color(0xFF4CAF50),  // Verde para éxito
+                    containerColor = secondaryDarkRed,  // Más consistente con la marca
                     contentColor = Color.White
                 )
             }
@@ -262,11 +264,122 @@ fun ProfileScreen(
                 if (isEditing) {
                     ProfileEditMode(viewModel = viewModel)
                 } else {
-                    ProfileViewMode(
-                        profileData = profileData,
-                        navController = navController,
-                        viewModel = viewModel
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        // Card de perfil principal con avatar y nombre
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                            colors = CardDefaults.cardColors(containerColor = cardBackground),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                // Avatar con color de la marca
+                                Surface(
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .padding(8.dp),
+                                    shape = RoundedCornerShape(percent = 50),
+                                    color = primaryColor.copy(alpha = 0.15f),
+                                    border = BorderStroke(2.dp, primaryColor.copy(alpha = 0.5f))
+                                ) {
+                                    Icon(
+                                        Icons.Default.Person,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .padding(24.dp)
+                                            .size(64.dp),
+                                        tint = primaryColor
+                                    )
+                                }
+                                
+                                // Nombre completo
+                                Text(
+                                    text = "${profileData.nombre ?: ""} ${profileData.apellido1 ?: ""} ${profileData.apellido2 ?: ""}",
+                                    style = MaterialTheme.typography.headlineMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 24.sp
+                                    ),
+                                    modifier = Modifier.padding(top = 16.dp),
+                                    textAlign = TextAlign.Center,
+                                    color = textPrimaryColor
+                                )
+                                
+                                // Rol
+                                Text(
+                                    text = when(profileData.role) {
+                                        "organizador" -> "Organizador"
+                                        "participante" -> "Participante"
+                                        else -> profileData.role ?: ""
+                                    },
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = primaryColor,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                    textAlign = TextAlign.Center
+                                )
+                                
+                                // Email
+                                Text(
+                                    text = profileData.email ?: "",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = textSecondaryColor,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                        
+                        // Tarjeta con información personal
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                            colors = CardDefaults.cardColors(containerColor = cardBackground),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp)
+                            ) {
+                                Text(
+                                    text = "Información Personal",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    ),
+                                    color = secondaryDarkRed,
+                                    modifier = Modifier.padding(bottom = 12.dp)
+                                )
+                                
+                                // Mostrar campos según el rol
+                                if (profileData.role == "participante") {
+                                    ProfileFieldRow("DNI", profileData.dni ?: "No especificado")
+                                    HorizontalDivider(color = dividerColor, thickness = 1.dp, modifier = Modifier.padding(vertical = 8.dp))
+                                    ProfileFieldRow("Teléfono", profileData.telefono ?: "No especificado")
+                                } else if (profileData.role == "organizador") {
+                                    ProfileFieldRow("Nombre de la organización", profileData.nombreOrganizacion ?: "No especificado")
+                                    HorizontalDivider(color = dividerColor, thickness = 1.dp, modifier = Modifier.padding(vertical = 8.dp))
+                                    ProfileFieldRow("Teléfono de contacto", profileData.telefonoContacto ?: "No especificado")
+                                }
+                            }
+                        }
+                        
+                        // Botones de acción
+                        ActionsButtonsSection(navController, viewModel, profileData)
+                    }
                 }
             } else {
                 Text(
@@ -1032,6 +1145,171 @@ fun ProfileField(label: String, value: String) {
             fontWeight = FontWeight.Medium
         )
     }
+}
+
+@Composable
+fun ProfileFieldRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = textSecondaryColor
+            )
+            
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                color = textPrimaryColor,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+fun ActionsButtonsSection(
+    navController: NavController,
+    viewModel: ProfileViewModel,
+    profileData: com.example.app.model.ProfileData
+) {
+    // Variable para controlar diálogo de cambio de contraseña
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    
+    // Botón de historial de compras (solo para participantes)
+    if (profileData.role == "participante") {
+        Button(
+            onClick = { 
+                navController.navigate(com.example.app.routes.Routes.HistorialCompras.route)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = accentRed, // Tono medio de rojo para distinguir
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(12.dp),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+        ) {
+            Icon(
+                Icons.Default.ReceiptLong,
+                contentDescription = "Historial de compras",
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "VER HISTORIAL DE COMPRAS",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+    
+    // Botón de cambiar contraseña
+    Button(
+        onClick = { showChangePasswordDialog = true },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = secondaryDarkRed, // Tono oscuro para botones importantes
+            contentColor = Color.White
+        ),
+        shape = RoundedCornerShape(12.dp),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+    ) {
+        Icon(
+            Icons.Default.Edit,
+            contentDescription = "Cambiar contraseña",
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            "CAMBIAR CONTRASEÑA",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+    
+    // Mostrar el diálogo de cambio de contraseña si es necesario
+    if (showChangePasswordDialog) {
+        ChangePasswordDialog(
+            viewModel = viewModel,
+            onDismiss = { showChangePasswordDialog = false }
+        )
+    }
+    
+    Spacer(modifier = Modifier.height(16.dp))
+    
+    // Botón de cerrar sesión
+    Button(
+        onClick = { viewModel.logout() },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = primaryColor,
+            contentColor = Color.White
+        ),
+        shape = RoundedCornerShape(12.dp),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+    ) {
+        Icon(
+            Icons.AutoMirrored.Filled.Logout,
+            contentDescription = "Cerrar sesión",
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            "CERRAR SESIÓN",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+    
+    Spacer(modifier = Modifier.height(16.dp))
+    
+    // Botón de eliminar cuenta
+    Button(
+        onClick = { 
+            // Mostrar diálogo de confirmación para eliminar cuenta
+            viewModel.showDeleteConfirmationDialog()
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFFAD2A2A), // Rojo más oscuro para acciones peligrosas
+            contentColor = Color.White
+        ),
+        shape = RoundedCornerShape(12.dp),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+    ) {
+        Icon(
+            Icons.Filled.Delete,
+            contentDescription = "Eliminar cuenta",
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            "ELIMINAR CUENTA",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+    
+    // Espacio al final para evitar que el contenido quede pegado a la barra inferior
+    Spacer(modifier = Modifier.height(24.dp))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
