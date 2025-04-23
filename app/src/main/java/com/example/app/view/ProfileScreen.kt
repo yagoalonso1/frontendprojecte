@@ -505,16 +505,16 @@ fun ProfileViewMode(
         
         // Botón de historial de compras (solo para participantes)
         if (profileData.role == "participante") {
-        Button(
-            onClick = { 
+            Button(
+                onClick = { 
                     navController.navigate(com.example.app.routes.Routes.HistorialCompras.route)
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
                     containerColor = primaryColor, // Usar el color primario de la app (rojo)
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(8.dp)
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(8.dp)
             ) {
                 Icon(
                     Icons.Default.ReceiptLong,
@@ -531,41 +531,6 @@ fun ProfileViewMode(
             
             Spacer(modifier = Modifier.height(16.dp))
         }
-        
-        // Botón de cambiar contraseña (todos los usuarios)
-        var showChangePasswordDialog by remember { mutableStateOf(false) }
-        
-        Button(
-            onClick = { showChangePasswordDialog = true },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = primaryColor,
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Icon(
-                Icons.Default.Edit,
-                contentDescription = "Cambiar contraseña",
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                "CAMBIAR CONTRASEÑA",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-        
-        // Mostrar el diálogo de cambio de contraseña si es necesario
-        if (showChangePasswordDialog) {
-            ChangePasswordDialog(
-                viewModel = viewModel,
-                onDismiss = { showChangePasswordDialog = false }
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
         
         // Botón de cerrar sesión - solución directa
         Button(

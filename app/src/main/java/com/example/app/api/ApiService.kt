@@ -209,7 +209,7 @@ interface ApiService {
     ): Response<GenericResponse>
     
     // Añadir un evento a favoritos
-
+   
     // Eliminar cuenta de usuario (usando POST con un parámetro _method=DELETE)
     @POST("api/account")
     suspend fun deleteAccount(
