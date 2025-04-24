@@ -166,15 +166,6 @@ fun ProfileScreen(
                         color = primaryColor
                     )
                 },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack, 
-                            contentDescription = "Volver",
-                            tint = primaryColor
-                        )
-                    }
-                },
                 actions = {
                     if (!isEditing && profileData != null) {
                         IconButton(onClick = { viewModel.startEditing() }) {
