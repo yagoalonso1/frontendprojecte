@@ -126,29 +126,31 @@ object SessionManager {
     }
     
     /**
-     * Limpia la sesión y espera a que se complete (bloquea el hilo)
-     * Usar solo cuando sea absolutamente necesario garantizar que se ha limpiado
-     * antes de continuar con otra operación.
+     * Limpia la sesión de forma síncrona
      */
-    fun clearSessionSync(): Boolean {
-        Log.d("SessionManager", "Limpiando sesión sincrónicamente")
+    fun clearSessionSync() {
+        Log.d("SessionManager", "Limpiando sesión de forma síncrona")
         try {
-            // Limpiar caché inmediatamente
+            // Limpiar caché en memoria
             cachedToken = null
             cachedRole = null
             
-            if (!initialized || prefs == null) {
-                Log.e("SessionManager", "No inicializado, no se puede limpiar la sesión")
-                return false
+            // Limpiar SharedPreferences de forma síncrona
+            if (initialized && prefs != null) {
+                val editor = prefs?.edit()
+                editor?.remove(KEY_TOKEN)
+                editor?.remove(KEY_USER_ROLE)
+                editor?.apply() // apply es asíncrono pero es más seguro que commit
+                
+                // Forzar commit para garantizar que se guarde inmediatamente
+                editor?.commit()
+                
+                Log.d("SessionManager", "Sesión limpiada correctamente (síncrono)")
+            } else {
+                Log.w("SessionManager", "No se pudo limpiar la sesión: no inicializada o prefs nulo")
             }
-            
-            // Limpiar disco usando commit (síncrono)
-            val result = prefs?.edit()?.clear()?.commit() ?: false
-            Log.d("SessionManager", "Sesión limpiada correctamente (síncrono): $result")
-            return result
         } catch (e: Exception) {
-            Log.e("SessionManager", "Error al limpiar sesión síncrona: ${e.message}")
-            return false
+            Log.e("SessionManager", "Error al limpiar sesión de forma síncrona: ${e.message}")
         }
     }
     
@@ -178,8 +180,18 @@ object SessionManager {
         }
     }
     
+    /**
+     * Verifica si hay un token válido en la sesión
+     * @return true si hay un token, false si no
+     */
     fun hasValidToken(): Boolean {
-        return cachedToken != null || (initialized && prefs?.getString(KEY_TOKEN, null) != null)
+        val token = getToken()
+        if (token.isNullOrEmpty()) {
+            Log.d("SessionManager", "No hay token válido en la sesión")
+            return false
+        }
+        Log.d("SessionManager", "Hay un token válido en la sesión")
+        return true
     }
     
     fun isInitialized(): Boolean {

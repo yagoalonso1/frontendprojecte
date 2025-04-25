@@ -34,6 +34,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.app.routes.Routes
 import com.example.app.viewmodel.ProfileViewModel
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -385,6 +386,7 @@ fun ProfileScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileViewMode(
     profileData: com.example.app.model.ProfileData,
@@ -566,7 +568,7 @@ fun ProfileViewMode(
         // Espaciador para separar el botón de eliminación de cuenta
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Botón de eliminar cuenta (color rojo más oscuro)
+        // Botón de eliminar cuenta
         Button(
             onClick = { 
                 // Verificar token antes de mostrar el diálogo
@@ -585,16 +587,13 @@ fun ProfileViewMode(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp)
-                .padding(vertical = 0.dp),
+                .height(56.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = secondaryDarkRed,
+                containerColor = Color(0xFFAD2A2A), // Rojo más oscuro para acciones peligrosas
                 contentColor = Color.White
             ),
-            shape = RoundedCornerShape(8.dp),
-            elevation = ButtonDefaults.buttonElevation(
-                defaultElevation = 4.dp
-            )
+            shape = RoundedCornerShape(12.dp),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
         ) {
             Icon(
                 Icons.Filled.Delete,
@@ -613,194 +612,30 @@ fun ProfileViewMode(
         Spacer(modifier = Modifier.height(16.dp))
     }
     
-    // Diálogo de confirmación para eliminar cuenta
-    if (showDeleteDialog) {
-        val isLoading = viewModel.isLoading
-        val errorMessage = viewModel.errorMessage
-        
-        // Verificación de token antes de mostrar el diálogo
-        DisposableEffect(Unit) {
-            val token = com.example.app.util.SessionManager.getToken()
-            if (token.isNullOrEmpty()) {
-                // Si no hay token, cerrar el diálogo y navegar a login
-                showDeleteDialog = false
-                navController.navigate(com.example.app.routes.Routes.Login.route) {
-                    popUpTo(0) { inclusive = true }
-                }
-            }
-            
-            onDispose { }
-        }
-        
-        Dialog(
-            onDismissRequest = { 
-                if (!isLoading) showDeleteDialog = false 
-            }
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = backgroundColor
-                ),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = 8.dp
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Título
-                    Text(
-                        text = "Eliminar cuenta",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = primaryColor
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    if (isLoading) {
-                        // Contenido del diálogo cuando está cargando
-                        CircularProgressIndicator(
-                            color = primaryColor,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .padding(8.dp)
-                        )
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Text(
-                            "Procesando...",
-                            fontSize = 14.sp,
-                            color = textSecondaryColor,
-                            textAlign = TextAlign.Center
-                        )
-                    } else {
-                        // Contenido del diálogo normal
-                        Text(
-                            "Esta acción eliminará permanentemente tu cuenta y todos tus datos. No podrás recuperar la información una vez confirmada esta acción.",
-                            textAlign = TextAlign.Center,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp,
-                            color = textPrimaryColor
-                        )
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        // Si hay un mensaje de error, mostrarlo
-                        if (errorMessage != null) {
-                            Text(
-                                text = errorMessage,
-                                color = primaryColor,
-                                fontSize = 14.sp,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
-                        }
-                        
-                        // Campo de contraseña
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = { password = it },
-                            label = { Text("Contraseña para confirmar") },
-                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            trailingIcon = {
-                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                    Icon(
-                                        if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                        contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
-                                        tint = primaryColor
-                                    )
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Password
-                            ),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = primaryColor,
-                                unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
-                                focusedLabelColor = primaryColor,
-                                unfocusedLabelColor = Color.Gray
-                            )
-                        )
-                        
-                        Spacer(modifier = Modifier.height(24.dp))
-                        
-                        // Botones
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            // Botón Cancelar
-                            OutlinedButton(
-                                onClick = { showDeleteDialog = false },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color.Gray
-                                ),
-                                border = ButtonDefaults.outlinedButtonBorder.copy(
-                                    brush = SolidColor(Color.Gray.copy(alpha = 0.5f))
-                                ),
-                                shape = RoundedCornerShape(8.dp),
-                                enabled = !isLoading
-                            ) {
-                                Text("Cancelar")
-                            }
-                            
-                            // Botón Confirmar
-                            Button(
-                                onClick = {
-                                    // Verificar token antes de eliminar
-                                    val token = com.example.app.util.SessionManager.getToken()
-                                    if (token.isNullOrEmpty()) {
-                                        // Si no hay token, cerrar el diálogo y navegar a login
-                                        showDeleteDialog = false
-                                        navController.navigate(com.example.app.routes.Routes.Login.route) {
-                                            popUpTo(0) { inclusive = true }
-                                        }
-                                    } else {
-                                        viewModel.deleteAccount(password)
-                                    }
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = primaryColor
-                                ),
-                                shape = RoundedCornerShape(8.dp),
-                                enabled = !isLoading && password.isNotEmpty()
-                            ) {
-                                Text("Confirmar", color = Color.White)
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    // Si hay un mensaje de error, mostrarlo
+    if (viewModel.errorMessage != null) {
+        Text(
+            text = viewModel.errorMessage ?: "",
+            color = Color.Red,
+            fontSize = 14.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
     }
     
-    // Diálogo de éxito cuando la cuenta se ha eliminado correctamente
-    if (showSuccessDialog.value) {
-        Dialog(
-            onDismissRequest = { /* No permitir cerrar tocando fuera */ },
+    // Diálogo de confirmación para eliminar cuenta
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                if (!viewModel.isLoading) {
+                    showDeleteDialog = false
+                    password = ""
+                    viewModel.clearError()
+                }
+            },
             properties = DialogProperties(
-                dismissOnBackPress = false,
-                dismissOnClickOutside = false
+                dismissOnBackPress = !viewModel.isLoading,
+                dismissOnClickOutside = !viewModel.isLoading
             )
         ) {
             Card(
@@ -822,42 +657,223 @@ fun ProfileViewMode(
                         .padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Ícono de éxito
+                    // Título con icono
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Eliminar cuenta",
+                            tint = primaryColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Eliminar cuenta",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = primaryColor
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    if (viewModel.isLoading) {
+                        // Contenido del diálogo cuando está cargando
+                        CircularProgressIndicator(
+                            color = primaryColor,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .padding(8.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Text(
+                            "Eliminando cuenta...",
+                            fontSize = 14.sp,
+                            color = textSecondaryColor,
+                            textAlign = TextAlign.Center
+                        )
+                    } else {
+                        // Contenido del diálogo normal
+                        Text(
+                            "Esta acción eliminará permanentemente tu cuenta y todos tus datos asociados:",
+                            textAlign = TextAlign.Center,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp,
+                            color = textPrimaryColor
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Lista de lo que se eliminará
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp)
+                        ) {
+                            BulletPoint("Tu perfil y datos personales")
+                            BulletPoint("Historial de compras y facturas")
+                            if (profileData.role == "participante") {
+                                BulletPoint("Eventos favoritos")
+                                BulletPoint("Organizadores favoritos")
+                            } else {
+                                BulletPoint("Eventos creados")
+                                BulletPoint("Tipos de entrada")
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text(
+                            "Esta acción no se puede deshacer.",
+                            textAlign = TextAlign.Center,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Red
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Campo de contraseña
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text("Contraseña actual") },
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password
+                            ),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña"
+                                    )
+                                }
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = primaryColor,
+                                unfocusedBorderColor = Color.Gray,
+                                focusedLabelColor = primaryColor,
+                                unfocusedLabelColor = Color.Gray
+                            )
+                        )
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
+                        
+                        // Botones
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Botón Cancelar
+                            OutlinedButton(
+                                onClick = { 
+                                    showDeleteDialog = false
+                                    password = ""
+                                    viewModel.clearError()
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = primaryColor
+                                ),
+                                border = BorderStroke(1.dp, primaryColor),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Cancelar")
+                            }
+                            
+                            // Botón Confirmar
+                            Button(
+                                onClick = {
+                                    viewModel.deleteAccount(password)
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = primaryColor,
+                                    contentColor = Color.White,
+                                    disabledContainerColor = primaryColor.copy(alpha = 0.5f)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                enabled = password.isNotBlank()
+                            ) {
+                                Text("Confirmar")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Diálogo de éxito cuando la cuenta se ha eliminado correctamente
+    if (showSuccessDialog.value) {
+        AlertDialog(
+            onDismissRequest = { },
+            properties = DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false
+            )
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = backgroundColor
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Icon(
                         Icons.Default.CheckCircle,
                         contentDescription = "Éxito",
-                        tint = primaryColor,
-                        modifier = Modifier
-                            .size(64.dp)
-                            .padding(bottom = 16.dp)
-                    )
-                    
-                    // Título
-                    Text(
-                        "Cuenta eliminada",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = primaryColor,
-                        textAlign = TextAlign.Center
+                        tint = Color.Green,
+                        modifier = Modifier.size(48.dp)
                     )
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    // Mensaje
                     Text(
-                        "Tu cuenta ha sido eliminada correctamente. Gracias por utilizar nuestra aplicación.",
-                        textAlign = TextAlign.Center,
+                        "Cuenta eliminada con éxito",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        "Gracias por haber usado nuestra aplicación",
                         fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        color = textPrimaryColor
+                        textAlign = TextAlign.Center,
+                        color = textSecondaryColor
                     )
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    // Botón de aceptar
                     Button(
-                        onClick = { 
-                            viewModel.confirmDeleteSuccess() 
+                        onClick = {
+                            viewModel.confirmDeleteSuccess()
+                            navController.navigate(Routes.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -867,11 +883,31 @@ fun ProfileViewMode(
                         ),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Aceptar", color = Color.White)
+                        Text("Aceptar")
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun BulletPoint(text: String) {
+    Row(
+        modifier = Modifier.padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .background(primaryColor, CircleShape)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            color = textPrimaryColor
+        )
     }
 }
 
@@ -1130,6 +1166,7 @@ fun ProfileFieldRow(label: String, value: String) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActionsButtonsSection(
     navController: NavController,
@@ -1138,6 +1175,14 @@ fun ActionsButtonsSection(
 ) {
     // Variable para controlar diálogo de cambio de contraseña
     var showChangePasswordDialog by remember { mutableStateOf(false) }
+    // Variables para el diálogo de eliminar cuenta
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    
+    // Monitor del estado de eliminación exitosa
+    val deleteSuccessState = viewModel.isDeleteAccountSuccessful.collectAsState(initial = false)
+    val showSuccessDialog = viewModel.showDeleteSuccessDialog.collectAsState(initial = false)
     
     // Botón de historial de compras (solo para participantes)
     if (profileData.role == "participante") {
@@ -1238,8 +1283,19 @@ fun ActionsButtonsSection(
     // Botón de eliminar cuenta
     Button(
         onClick = { 
-            // Mostrar diálogo de confirmación para eliminar cuenta
-            viewModel.showDeleteConfirmationDialog()
+            // Verificar token antes de mostrar el diálogo
+            val token = com.example.app.util.SessionManager.getToken()
+            if (token.isNullOrEmpty()) {
+                // Si no hay token, navegar directamente a login
+                navController.navigate(com.example.app.routes.Routes.Login.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+            } else {
+                // Si hay token, mostrar el diálogo
+                showDeleteDialog = true
+                // Limpiar contraseña en caso de que haya quedado de algún intento anterior
+                password = ""
+            }
         },
         modifier = Modifier
             .fillMaxWidth()
@@ -1266,6 +1322,301 @@ fun ActionsButtonsSection(
     
     // Espacio al final para evitar que el contenido quede pegado a la barra inferior
     Spacer(modifier = Modifier.height(24.dp))
+    
+    // Diálogo de confirmación para eliminar cuenta
+    if (showDeleteDialog) {
+        val isLoading = viewModel.isLoading
+        val errorMessage = viewModel.errorMessage
+        
+        // Verificación de token antes de mostrar el diálogo
+        DisposableEffect(Unit) {
+            val token = com.example.app.util.SessionManager.getToken()
+            if (token.isNullOrEmpty()) {
+                // Si no hay token, cerrar el diálogo y navegar a login
+                showDeleteDialog = false
+                navController.navigate(com.example.app.routes.Routes.Login.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+            
+            onDispose { }
+        }
+        
+        AlertDialog(
+            onDismissRequest = { 
+                if (!isLoading) {
+                    showDeleteDialog = false
+                    password = ""
+                    viewModel.clearError()
+                }
+            },
+            properties = DialogProperties(
+                dismissOnBackPress = !isLoading,
+                dismissOnClickOutside = !isLoading
+            )
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = backgroundColor
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 8.dp
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Título con icono
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Eliminar cuenta",
+                            tint = primaryColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Eliminar cuenta",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = primaryColor
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    if (isLoading) {
+                        // Contenido del diálogo cuando está cargando
+                        CircularProgressIndicator(
+                            color = primaryColor,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .padding(8.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Text(
+                            "Eliminando cuenta...",
+                            fontSize = 14.sp,
+                            color = textSecondaryColor,
+                            textAlign = TextAlign.Center
+                        )
+                    } else {
+                        // Contenido del diálogo normal
+                        Text(
+                            "Esta acción eliminará permanentemente tu cuenta y todos tus datos asociados:",
+                            textAlign = TextAlign.Center,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp,
+                            color = textPrimaryColor
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Lista de lo que se eliminará
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp)
+                        ) {
+                            BulletPoint("Tu perfil y datos personales")
+                            BulletPoint("Historial de compras y facturas")
+                            if (profileData.role == "participante") {
+                                BulletPoint("Eventos favoritos")
+                                BulletPoint("Organizadores favoritos")
+                            } else {
+                                BulletPoint("Eventos creados")
+                                BulletPoint("Tipos de entrada")
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text(
+                            "Esta acción no se puede deshacer.",
+                            textAlign = TextAlign.Center,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Red
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Si hay un mensaje de error, mostrarlo
+                        if (errorMessage != null) {
+                            Text(
+                                text = errorMessage,
+                                color = Color.Red,
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                        
+                        // Campo de contraseña
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text("Contraseña actual") },
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password
+                            ),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña"
+                                    )
+                                }
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = primaryColor,
+                                unfocusedBorderColor = Color.Gray,
+                                focusedLabelColor = primaryColor,
+                                unfocusedLabelColor = Color.Gray
+                            )
+                        )
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
+                        
+                        // Botones
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Botón Cancelar
+                            OutlinedButton(
+                                onClick = { 
+                                    showDeleteDialog = false
+                                    password = ""
+                                    viewModel.clearError()
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = primaryColor
+                                ),
+                                border = BorderStroke(1.dp, primaryColor),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Cancelar")
+                            }
+                            
+                            // Botón Confirmar
+                            Button(
+                                onClick = {
+                                    viewModel.deleteAccount(password)
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = primaryColor,
+                                    contentColor = Color.White,
+                                    disabledContainerColor = primaryColor.copy(alpha = 0.5f)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                enabled = password.isNotBlank()
+                            ) {
+                                Text("Confirmar")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Diálogo de éxito cuando la cuenta se ha eliminado correctamente
+    if (showSuccessDialog.value) {
+        AlertDialog(
+            onDismissRequest = { },
+            properties = DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false
+            )
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = backgroundColor
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Éxito",
+                        tint = Color.Green,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        "Cuenta eliminada con éxito",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        "Gracias por haber usado nuestra aplicación",
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                        color = textSecondaryColor
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    Button(
+                        onClick = {
+                            viewModel.confirmDeleteSuccess()
+                            navController.navigate(Routes.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = primaryColor
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Aceptar")
+                    }
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1481,7 +1832,8 @@ fun ChangePasswordDialog(
                                     confirmPassword
                                 )
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = primaryColor,
                                 contentColor = Color.White
