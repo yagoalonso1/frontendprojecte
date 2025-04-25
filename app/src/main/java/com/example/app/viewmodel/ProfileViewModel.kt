@@ -6,7 +6,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.app.api.DeleteAccountRequest
 import com.example.app.api.RetrofitClient
 import com.example.app.model.ProfileData
 import com.example.app.util.SessionManager
@@ -16,13 +15,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.content.Context
+import com.example.app.api.DeleteAccountRequest
+import com.google.gson.Gson
 
 class ProfileViewModel : ViewModel() {
     private val TAG = "ProfileViewModel"
     
     // Estado del perfil
     var profileData by mutableStateOf<ProfileData?>(null)
-        internal set
+        private set
     
     // Estado de datos de usuario simplificado para reemplazar _userData
     private val _userData = MutableStateFlow(UserData())
@@ -52,7 +53,9 @@ class ProfileViewModel : ViewModel() {
     
     // Estados de UI
     var isLoading by mutableStateOf(false)
+        private set
     var errorMessage by mutableStateOf<String?>(null)
+        private set
     
     // Estado de actualización
     private val _isUpdateSuccessful = MutableStateFlow(false)
@@ -415,7 +418,7 @@ class ProfileViewModel : ViewModel() {
         errorMessage = message
     }
     
-    private fun clearError() {
+    fun clearError() {
         errorMessage = null
     }
     
@@ -672,14 +675,20 @@ class ProfileViewModel : ViewModel() {
         // Limpiar cualquier error previo al iniciar el proceso
         clearError()
         
-        // Verificar token antes de continuar (usando método optimizado)
+        // Verificar que la contraseña no esté vacía
+        if (password.isBlank()) {
+            setError("La contraseña es obligatoria")
+            return
+        }
+        
+        // Verificar token antes de continuar
         if (!SessionManager.hasValidToken()) {
             Log.d(TAG, "No hay token válido para eliminar cuenta, navegando a login")
             _shouldNavigateToLogin.value = true
             return
         }
         
-        // Obtener token (debería estar en caché ahora)
+        // Obtener token
         val token = SessionManager.getToken()
         
         viewModelScope.launch {
@@ -693,70 +702,51 @@ class ProfileViewModel : ViewModel() {
                 )
                 
                 try {
-                    Log.d(TAG, "Enviando solicitud para eliminar cuenta con token: ${token?.take(10)}...")
+                    Log.d(TAG, "Enviando solicitud para eliminar cuenta")
                     
                     // Llamar al endpoint para eliminar la cuenta
                     val response = withContext(Dispatchers.IO) {
-                        try {
-                            RetrofitClient.apiService.deleteAccount(
-                                "Bearer $token",
-                                deleteRequest
-                            )
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error al realizar la petición HTTP: ${e.message}", e)
-                            null
-                        }
-                    }
-                    
-                    if (response == null) {
-                        setError("Error de conexión al servidor")
-                        return@launch
+                        RetrofitClient.apiService.deleteAccount(
+                            "Bearer $token",
+                            deleteRequest
+                        )
                     }
                     
                     if (response.isSuccessful) {
                         Log.d(TAG, "Cuenta eliminada correctamente: ${response.body()?.message}")
                         
-                        // Actualizar estado para mostrar el diálogo de éxito inmediatamente
+                        // Actualizar estado para mostrar el diálogo de éxito
                         _isDeleteAccountSuccessful.value = true
                         _showDeleteSuccessDialog.value = true
                         
-                        // La sesión se limpiará solo cuando el usuario confirme el diálogo de éxito
                     } else {
-                        val errorBody = response.errorBody()?.string() ?: "Error desconocido"
-                        Log.e(TAG, "Error al eliminar cuenta: ${response.code()} - $errorBody")
-                        
-                        // Verificar si el error es de token inválido
-                        if (response.code() == 401) {
-                            Log.d(TAG, "Token inválido (401), limpiando sesión y navegando a login")
-                            SessionManager.clearSession()
-                            _shouldNavigateToLogin.value = true
-                            return@launch
-                        }
-                        
-                        // Intentar extraer un mensaje de error más informativo
-                        val errorMessage = if (errorBody.contains("\"message\"")) {
-                            try {
-                                // Extraer el mensaje del JSON usando una expresión regular simple
-                                val regex = "\"message\"\\s*:\\s*\"([^\"]+)\"".toRegex()
-                                val matchResult = regex.find(errorBody)
-                                matchResult?.groupValues?.get(1) ?: "Error al eliminar la cuenta"
-                            } catch (e: Exception) {
-                                "Error al eliminar la cuenta: ${response.code()}"
+                        // Manejar diferentes tipos de errores
+                        val errorBody = response.errorBody()?.string()
+                        val errorMessage = when (response.code()) {
+                            400 -> {
+                                try {
+                                    val errorResponse = Gson().fromJson<ErrorResponse>(errorBody, ErrorResponse::class.java)
+                                    errorResponse?.message ?: "La contraseña proporcionada no es correcta"
+                                } catch (e: Exception) {
+                                    "La contraseña proporcionada no es correcta"
+                                }
                             }
-                        } else {
-                            when (response.code()) {
-                                400 -> "Contraseña incorrecta o no has confirmado la eliminación"
-                                401 -> "No autorizado. Cierra sesión e inténtalo de nuevo"
-                                422 -> "Datos inválidos para eliminar la cuenta"
-                                500 -> "Error en el servidor al procesar la solicitud"
-                                else -> "Error al eliminar la cuenta: ${response.code()}"
+                            401 -> "No autorizado. Por favor, inicia sesión de nuevo."
+                            422 -> {
+                                try {
+                                    val errorResponse = Gson().fromJson<ErrorResponse>(errorBody, ErrorResponse::class.java)
+                                    errorResponse?.message ?: "Error de validación. Verifica tus datos."
+                                } catch (e: Exception) {
+                                    "Error de validación. Verifica tus datos."
+                                }
                             }
+                            500 -> "Error interno del servidor. Por favor, intenta más tarde."
+                            else -> "Error al eliminar la cuenta: ${response.message()}"
                         }
-                        
                         setError(errorMessage)
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Excepción al eliminar cuenta: ${e.message}", e)
+                    Log.e(TAG, "Error al eliminar cuenta: ${e.message}", e)
                     setError("Error de conexión: ${e.message}")
                 }
             } finally {
@@ -825,4 +815,9 @@ data class UserData(
     val apellidos: String = "",
     val email: String = "",
     val role: String = ""
+)
+
+// Clase para manejar errores de la API
+data class ErrorResponse(
+    val message: String?
 ) 

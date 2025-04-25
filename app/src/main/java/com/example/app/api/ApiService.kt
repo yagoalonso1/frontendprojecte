@@ -42,6 +42,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.Field
 import retrofit2.http.Query
+import retrofit2.http.Headers
 
 interface ApiService {
     @POST("api/register")
@@ -212,10 +213,10 @@ interface ApiService {
    
     // Eliminar cuenta de usuario (usando POST con un parámetro _method=DELETE)
     @POST("api/account")
+    @Headers("X-HTTP-Method-Override: DELETE")
     suspend fun deleteAccount(
         @Header("Authorization") token: String,
-        @Body deleteRequest: DeleteAccountRequest,
-        @Query("_method") method: String = "DELETE"
+        @Body request: DeleteAccountRequest
     ): Response<GenericResponse>
 }
 
@@ -235,5 +236,6 @@ data class FavoritoCheckResponse(
 // Modelo para la solicitud de eliminación de cuenta
 data class DeleteAccountRequest(
     @SerializedName("password") val password: String,
-    @SerializedName("confirm_deletion") val confirmDeletion: Boolean
+    @SerializedName("confirm_deletion") val confirmDeletion: Boolean,
+    @SerializedName("_method") val method: String = "DELETE"
 )
