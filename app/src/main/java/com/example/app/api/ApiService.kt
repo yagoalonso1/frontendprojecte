@@ -211,8 +211,8 @@ interface ApiService {
     
     // Añadir un evento a favoritos
    
-    // Eliminar cuenta de usuario (usando POST con un parámetro _method=DELETE)
-    @POST("api/account")
+    // Eliminar cuenta de usuario
+    @POST("account")
     @Headers("X-HTTP-Method-Override: DELETE")
     suspend fun deleteAccount(
         @Header("Authorization") token: String,
