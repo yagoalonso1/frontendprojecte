@@ -33,6 +33,8 @@ data class Organizador(
     @SerializedName("id") val id: Int,
     @SerializedName("nombre_organizacion") val nombre: String,
     @SerializedName("telefono_contacto") val telefonoContacto: String,
+    @SerializedName("direccion_fiscal") val direccionFiscal: String? = null,
+    @SerializedName("cif") val cif: String? = null,
     @SerializedName("user") val user: User?
 )
 
