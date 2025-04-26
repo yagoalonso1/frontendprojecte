@@ -31,7 +31,9 @@ data class Evento(
 
 data class Organizador(
     @SerializedName("id") val id: Int,
-    @SerializedName("nombre") val nombre: String
+    @SerializedName("nombre_organizacion") val nombre: String,
+    @SerializedName("telefono_contacto") val telefonoContacto: String,
+    @SerializedName("user") val user: User?
 )
 
 data class TipoEntrada(

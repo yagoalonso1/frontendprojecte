@@ -3,6 +3,7 @@ package com.example.app.view
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -439,6 +440,54 @@ fun EventoDetailScreen(
                                 }
                                 
                                 Spacer(modifier = Modifier.height(24.dp))
+                                
+                                // Organizador clicable
+                                evento.organizador?.let { organizador ->
+                                    Text(
+                                        text = "Organizador",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = textPrimaryColor
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable {
+                                                // TODO: navegar a perfil del organizador
+                                                Toast
+                                                    .makeText(context, "Perfil de organizador: ${organizador.nombre}", Toast.LENGTH_SHORT)
+                                                    .show()
+                                            },
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp)
+                                        ) {
+                                            Text(
+                                                text = organizador.nombre,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Medium,
+                                                color = textPrimaryColor
+                                            )
+                                            organizador.user?.let { user ->
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text(
+                                                    text = listOfNotNull(user.nombre, user.apellido1, user.apellido2)
+                                                        .joinToString(" "),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = textSecondaryColor
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                }
                                 
                                 // Descripción
                                 Text(
