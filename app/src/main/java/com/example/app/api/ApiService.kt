@@ -259,6 +259,7 @@ data class OrganizadorDetalle(
     @SerializedName("telefono_contacto") val telefonoContacto: String,
     @SerializedName("direccion_fiscal") val direccionFiscal: String? = null,
     @SerializedName("cif") val cif: String? = null,
+    @SerializedName("nombre_usuario") val nombreUsuario: String? = null,
     @SerializedName("user") val user: com.example.app.model.UserInfo?,
     @SerializedName("avatar_url") val avatarUrl: String? = null
 )

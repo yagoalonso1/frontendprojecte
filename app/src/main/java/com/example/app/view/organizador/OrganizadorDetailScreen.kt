@@ -179,14 +179,6 @@ fun OrganizadorDetailScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 24.dp)
                         )
-                        
-                        // ID
-                        Text(
-                            text = "ID: ${organizadorData.id}",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = textSecondaryColor,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
                     }
                 }
 
@@ -296,17 +288,10 @@ fun OrganizadorDetailScreen(
                                         modifier = Modifier.padding(bottom = 16.dp)
                                     )
                                     
-                                    // ID usuario
-                                    InfoRow(
-                                        label = "ID Usuario:",
-                                        value = user.id.toString(),
-                                        icon = Icons.Default.Person
-                                    )
-                                    
                                     // Nombre
                                     InfoRow(
                                         label = "Nombre:",
-                                        value = user.nombre,
+                                        value = organizadorData.nombreUsuario ?: user.nombre,
                                         icon = Icons.Default.Person
                                     )
                                     

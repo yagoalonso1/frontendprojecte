@@ -90,6 +90,7 @@ class OrganizadorDetailViewModel : ViewModel() {
                 telefonoContacto = it.telefonoContacto,
                 direccionFiscal = it.direccionFiscal,
                 cif = it.cif,
+                nombreUsuario = it.nombreUsuario,
                 user = it.user,
                 avatarUrl = it.avatarUrl
             )

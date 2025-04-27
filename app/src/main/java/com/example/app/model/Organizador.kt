@@ -46,6 +46,7 @@ data class Organizador(
     @SerializedName("telefono_contacto") val telefonoContacto: String,
     @SerializedName("direccion_fiscal") val direccionFiscal: String? = null,
     @SerializedName("cif") val cif: String? = null,
+    @SerializedName("nombre_usuario") val nombreUsuario: String? = null,
     @SerializedName("user") val user: UserInfo?,
     @SerializedName("avatar_url") val avatarUrl: String? = null
 )
@@ -58,6 +59,7 @@ fun OrganizadorEntity.toOrganizador(): Organizador {
         telefonoContacto = this.telefonoContacto,
         direccionFiscal = this.direccionFiscal,
         cif = this.cif,
+        nombreUsuario = null,
         user = this.user,
         avatarUrl = this.avatarUrl
     )
