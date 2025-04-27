@@ -476,8 +476,7 @@ fun EventoDetailScreen(
                                             organizador.user?.let { user ->
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Text(
-                                                    text = listOfNotNull(user.nombre, user.apellido1, user.apellido2)
-                                                        .joinToString(" "),
+                                                    text = user.nombre,
                                                     style = MaterialTheme.typography.bodyMedium,
                                                     color = textSecondaryColor
                                                 )

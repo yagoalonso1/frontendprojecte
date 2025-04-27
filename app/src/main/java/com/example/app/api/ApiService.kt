@@ -218,6 +218,12 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body request: DeleteAccountRequest
     ): Response<GenericResponse>
+
+    @GET("api/organizadores/{id}")
+    suspend fun getOrganizadorById(
+        @Path("id") id: String,
+        @Header("Authorization") token: String? = null
+    ): Response<OrganizadorResponse>
 }
 
 data class FavoritosResponse(
@@ -238,4 +244,21 @@ data class DeleteAccountRequest(
     @SerializedName("password") val password: String,
     @SerializedName("confirm_deletion") val confirmDeletion: Boolean,
     @SerializedName("_method") val method: String = "DELETE"
+)
+
+// Añadir la data class para la respuesta del organizador
+data class OrganizadorResponse(
+    @SerializedName("message") val message: String,
+    @SerializedName("organizador") val organizador: OrganizadorDetalle,
+    @SerializedName("status") val status: String
+)
+
+data class OrganizadorDetalle(
+    @SerializedName("id") val id: Int,
+    @SerializedName("nombre_organizacion") val nombre: String,
+    @SerializedName("telefono_contacto") val telefonoContacto: String,
+    @SerializedName("direccion_fiscal") val direccionFiscal: String? = null,
+    @SerializedName("cif") val cif: String? = null,
+    @SerializedName("user") val user: com.example.app.model.UserInfo?,
+    @SerializedName("avatar_url") val avatarUrl: String? = null
 )

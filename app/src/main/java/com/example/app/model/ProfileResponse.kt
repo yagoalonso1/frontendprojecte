@@ -21,5 +21,6 @@ data class ProfileData(
     @SerializedName("telefono") val telefono: String? = null,
     // Campos específicos de organizador
     @SerializedName("nombre_organizacion") val nombreOrganizacion: String? = null,
-    @SerializedName("telefono_contacto") val telefonoContacto: String? = null
+    @SerializedName("telefono_contacto") val telefonoContacto: String? = null,
+    @SerializedName("avatar_url") val avatarUrl: String? = null
 ) 
