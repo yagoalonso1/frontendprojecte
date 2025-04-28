@@ -39,6 +39,15 @@ import kotlinx.coroutines.flow.collectLatest
 import com.example.app.util.isValidEventoId
 import com.example.app.util.getEventoIdErrorMessage
 import com.example.app.routes.Routes
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.CameraPositionState
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.android.gms.maps.model.LatLng
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import android.location.Geocoder
+import com.google.android.gms.maps.model.CameraPosition
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -441,6 +450,79 @@ fun EventoDetailScreen(
                                                 color = textPrimaryColor
                                             )
                                         }
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                Text(
+                                    text = "Localización",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = textPrimaryColor
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                val context = LocalContext.current
+                                var latLng by remember { mutableStateOf<LatLng?>(null) }
+                                var geocodeError by remember { mutableStateOf<String?>(null) }
+                                val cameraPositionState = rememberCameraPositionState()
+
+                                LaunchedEffect(evento.ubicacion) {
+                                    geocodeError = null
+                                    withContext(Dispatchers.IO) {
+                                        try {
+                                            val geocoder = Geocoder(context, Locale.getDefault())
+                                            val addresses = geocoder.getFromLocationName(evento.ubicacion, 1)
+                                            if (!addresses.isNullOrEmpty()) {
+                                                val address = addresses[0]
+                                                val newLatLng = LatLng(address.latitude, address.longitude)
+                                                latLng = newLatLng
+                                                withContext(Dispatchers.Main) {
+                                                    cameraPositionState.position = CameraPosition.fromLatLngZoom(newLatLng, 15f)
+                                                }
+                                            } else {
+                                                geocodeError = "No se pudo encontrar la localización."
+                                            }
+                                        } catch (e: Exception) {
+                                            geocodeError = "Error al obtener la localización: ${e.localizedMessage}"
+                                        }
+                                    }
+                                }
+
+                                if (latLng != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(220.dp)
+                                            .clip(RoundedCornerShape(16.dp))
+                                    ) {
+                                        GoogleMap(
+                                            modifier = Modifier.matchParentSize(),
+                                            cameraPositionState = cameraPositionState
+                                        ) {
+                                            Marker(
+                                                state = com.google.maps.android.compose.MarkerState(position = latLng!!),
+                                                title = evento.titulo,
+                                                snippet = evento.ubicacion
+                                            )
+                                        }
+                                    }
+                                } else if (geocodeError != null) {
+                                    Text(
+                                        text = geocodeError ?: "No se pudo mostrar el mapa.",
+                                        color = Color.Red,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(220.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator()
                                     }
                                 }
                                 

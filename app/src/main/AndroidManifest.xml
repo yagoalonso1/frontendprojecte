@@ -43,6 +43,9 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyAvgyXWFbY2o0mWTCzmaD-X1Mvwksjnk4Q"/>
     </application>
 
 </manifest>
