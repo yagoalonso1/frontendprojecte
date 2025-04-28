@@ -48,8 +48,29 @@ data class Organizador(
     @SerializedName("cif") val cif: String? = null,
     @SerializedName("nombre_usuario") val nombreUsuario: String? = null,
     @SerializedName("user") val user: UserInfo?,
-    @SerializedName("avatar_url") val avatarUrl: String? = null
-)
+    @SerializedName("avatar_url") val avatarUrl: String? = null,
+    @SerializedName("is_favorite") val isFavorite: Boolean = false
+) {
+    // Función que actualiza si el organizador es favorito o no
+    fun copyWithFavorite(isFavorite: Boolean): Organizador {
+        return Organizador(
+            id = this.id,
+            nombre = this.nombre,
+            telefonoContacto = this.telefonoContacto,
+            direccionFiscal = this.direccionFiscal,
+            cif = this.cif,
+            nombreUsuario = this.nombreUsuario,
+            user = this.user,
+            avatarUrl = this.avatarUrl,
+            isFavorite = isFavorite
+        )
+    }
+    
+    // Función para obtener la URL completa del avatar
+    fun obtenerAvatarUrl(): String {
+        return avatarUrl ?: "https://ui-avatars.com/api/?name=${nombre.take(1)}&background=random"
+    }
+}
 
 // Función global para convertir una OrganizadorEntity a un Organizador
 fun OrganizadorEntity.toOrganizador(): Organizador {
@@ -63,6 +84,18 @@ fun OrganizadorEntity.toOrganizador(): Organizador {
         user = this.user,
         avatarUrl = this.avatarUrl
     )
+}
+
+// Función para obtener la URL del avatar con formato consistente (para usar desde fuera de la clase)
+fun getOrganizadorAvatarUrl(organizador: Organizador, viewModelUrl: String? = null): String {
+    val defaultUrl = "https://ui-avatars.com/api/?name=${organizador.nombre.take(1)}&background=random"
+    
+    return when {
+        !organizador.avatarUrl.isNullOrBlank() -> organizador.avatarUrl
+        !viewModelUrl.isNullOrBlank() -> viewModelUrl
+        organizador.user?.avatarUrl != null -> organizador.user.avatarUrl
+        else -> defaultUrl
+    }
 }
 
 // Función para obtener la URL del avatar con formato consistente
@@ -87,26 +120,7 @@ fun getValidAvatarUrl(url: String?): String {
     return formattedUrl
 }
 
-// Extensión para obtener la URL del avatar del organizador
-fun Organizador.getAvatarUrl(viewModelUrl: String? = null): String {
-    val defaultAvatarUrl = "https://example.com/storage/avatars/default_avatar.png"
-    
-    return when {
-        !this.avatarUrl.isNullOrBlank() -> {
-            Log.d("Organizador", "Usando avatarUrl del modelo: ${this.avatarUrl}")
-            this.avatarUrl
-        }
-        !viewModelUrl.isNullOrBlank() -> {
-            Log.d("Organizador", "Usando avatarUrl del viewModel: $viewModelUrl")
-            viewModelUrl
-        }
-        user?.avatarUrl != null -> {
-            Log.d("Organizador", "Usando avatarUrl del usuario: ${user.avatarUrl}")
-            user.avatarUrl
-        }
-        else -> {
-            Log.d("Organizador", "Usando avatarUrl por defecto")
-            defaultAvatarUrl
-        }
-    }
+// Función para obtener la URL del avatar con formato consistente
+fun obtenerAvatarUrl(organizador: Organizador): String {
+    return organizador.avatarUrl ?: "https://ui-avatars.com/api/?name=${organizador.nombre}&background=random"
 }

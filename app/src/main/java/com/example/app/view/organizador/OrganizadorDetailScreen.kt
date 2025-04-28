@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,7 +33,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.app.model.Evento
 import com.example.app.model.Organizador
-import com.example.app.model.getAvatarUrl
+import com.example.app.model.getOrganizadorAvatarUrl
 import com.example.app.routes.Routes
 import com.example.app.view.EventoCard
 import com.example.app.viewmodel.OrganizadorDetailViewModel
@@ -45,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import android.util.Log
+import androidx.compose.foundation.clickable
 import com.example.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,8 +60,8 @@ fun OrganizadorDetailScreen(
     
     // Cargar datos cuando se inicia la pantalla
     LaunchedEffect(organizador.id) { 
-        viewModel.loadEventos(organizador.id) 
         Log.d("OrganizadorDetailScreen", "Cargando datos para organizador ID: ${organizador.id}")
+        viewModel.loadEventos(organizador.id)
     }
     
     // Obtener datos del ViewModel
@@ -79,9 +82,9 @@ fun OrganizadorDetailScreen(
     var expanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
     
-    // Calcular la URL del avatar usando la función de extensión
+    // Calcular la URL del avatar usando la función global
     val avatarUrl = remember(organizador, avatarUrlFromViewModel) {
-        organizadorData.getAvatarUrl(avatarUrlFromViewModel)
+        getOrganizadorAvatarUrl(organizadorData, avatarUrlFromViewModel)
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = backgroundColor) {
@@ -108,7 +111,40 @@ fun OrganizadorDetailScreen(
                         containerColor = backgroundColor,
                         titleContentColor = primaryColor,
                         navigationIconContentColor = primaryColor
-                    )
+                    ),
+                    actions = {
+                        // Botón de Favorito (solo para participantes)
+                        if (viewModel.puedeMarcarFavorito) {
+                            val isFavorito = viewModel.isFavorito
+                            Log.d("OrganizadorDetailScreen", "Renderizando corazón: isFavorito = $isFavorito (🔴=${isFavorito} ⚪️=${!isFavorito})")
+                            val toggleFavoritoLoading = viewModel.toggleFavoritoLoading.collectAsState()
+                            
+                            IconButton(
+                                onClick = { 
+                                    Log.d("OrganizadorDetailScreen", "💥 BOTÓN FAVORITO PULSADO - Estado antes: $isFavorito")
+                                    viewModel.toggleFavorito(organizador.id) 
+                                },
+                                enabled = !toggleFavoritoLoading.value,
+                                modifier = Modifier.size(56.dp)
+                            ) {
+                                if (toggleFavoritoLoading.value) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        color = primaryColor,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Log.d("OrganizadorDetailScreen", "🎨 Renderizando icono, estado isFavorito=$isFavorito")
+                                    Icon(
+                                        imageVector = if (isFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        contentDescription = if (isFavorito) "Quitar de favoritos" else "Añadir a favoritos",
+                                        tint = if (isFavorito) primaryColor else Color.Gray,
+                                        modifier = Modifier.size(30.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 )
             }
         ) { paddingValues ->

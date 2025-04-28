@@ -31,6 +31,8 @@ import retrofit2.http.Path
 import com.google.gson.annotations.SerializedName
 import com.example.app.model.evento.CrearEventoResponse
 import com.example.app.model.ProfileResponse
+import com.example.app.model.favoritos.OrganizadorFavoritoRequest
+import com.example.app.model.favoritos.OrganizadoresFavoritosResponse
 import retrofit2.http.PUT
 import com.example.app.model.tickets.TicketsResponse
 import retrofit2.http.Multipart
@@ -224,6 +226,30 @@ interface ApiService {
         @Path("id") id: String,
         @Header("Authorization") token: String? = null
     ): Response<OrganizadorResponse>
+    
+    // Endpoints para organizadores favoritos
+    @GET("api/organizadores-favoritos")
+    suspend fun getOrganizadoresFavoritos(
+        @Header("Authorization") token: String
+    ): Response<OrganizadoresFavoritosResponse>
+    
+    @POST("api/organizadores-favoritos")
+    suspend fun addOrganizadorFavorito(
+        @Header("Authorization") token: String,
+        @Body request: OrganizadorFavoritoRequest
+    ): Response<MessageResponse>
+    
+    @DELETE("api/organizadores-favoritos/{idOrganizador}")
+    suspend fun removeOrganizadorFavorito(
+        @Header("Authorization") token: String,
+        @Path("idOrganizador") idOrganizador: Int
+    ): Response<MessageResponse>
+    
+    @GET("api/organizadores-favoritos/check/{idOrganizador}")
+    suspend fun checkOrganizadorFavorito(
+        @Header("Authorization") token: String,
+        @Path("idOrganizador") idOrganizador: Int
+    ): Response<FavoritoCheckResponse>
 }
 
 data class FavoritosResponse(
@@ -236,8 +262,13 @@ data class MessageResponse(
 )
 
 data class FavoritoCheckResponse(
-    @SerializedName("isFavorito") val isFavorito: Boolean
-)
+    @SerializedName("is_favorite") val isFavorito: Boolean,
+    @SerializedName("status") val status: String = "success"
+) {
+    override fun toString(): String {
+        return "FavoritoCheckResponse(isFavorito=$isFavorito, status=$status)"
+    }
+}
 
 // Modelo para la solicitud de eliminación de cuenta
 data class DeleteAccountRequest(
@@ -251,15 +282,4 @@ data class OrganizadorResponse(
     @SerializedName("message") val message: String,
     @SerializedName("organizador") val organizador: OrganizadorDetalle,
     @SerializedName("status") val status: String
-)
-
-data class OrganizadorDetalle(
-    @SerializedName("id") val id: Int,
-    @SerializedName("nombre_organizacion") val nombre: String,
-    @SerializedName("telefono_contacto") val telefonoContacto: String,
-    @SerializedName("direccion_fiscal") val direccionFiscal: String? = null,
-    @SerializedName("cif") val cif: String? = null,
-    @SerializedName("nombre_usuario") val nombreUsuario: String? = null,
-    @SerializedName("user") val user: com.example.app.model.UserInfo?,
-    @SerializedName("avatar_url") val avatarUrl: String? = null
 )
