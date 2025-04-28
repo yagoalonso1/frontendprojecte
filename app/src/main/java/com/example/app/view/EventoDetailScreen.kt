@@ -314,7 +314,13 @@ fun EventoDetailScreen(
                                     text = evento.categoria,
                                     style = MaterialTheme.typography.labelLarge,
                                     color = Color.White,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier
+                                        .clickable {
+                                            navController.navigate(
+                                                com.example.app.routes.Routes.EventosCategoria.createRoute(evento.categoria)
+                                            )
+                                        }
                                 )
                             }
                         }

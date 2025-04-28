@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import android.content.Context
 import com.example.app.model.Organizador
 import com.example.app.view.organizador.OrganizadorDetailScreen
+import com.example.app.view.EventosCategoriaScreen
 
 @Composable
 fun AppNavHost(
@@ -354,6 +355,18 @@ fun AppNavHost(
             OrganizadorDetailScreen(
                 navController = navController,
                 organizador = organizador
+            )
+        }
+
+        // Ruta para eventos por categoría
+        composable(
+            route = Routes.EventosCategoria.route,
+            arguments = listOf(navArgument("categoria") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val categoria = backStackEntry.arguments?.getString("categoria") ?: ""
+            EventosCategoriaScreen(
+                categoria = categoria,
+                navController = navController
             )
         }
     }
