@@ -54,4 +54,8 @@ sealed class Routes(val route: String) {
     object OrganizadorDetalle : Routes("organizador/{organizadorId}") {
         fun createRoute(organizadorId: Int): String = "organizador/$organizadorId"
     }
+
+    object EventosCategoria : Routes("eventos_categoria/{categoria}") {
+        fun createRoute(categoria: String) = "eventos_categoria/$categoria"
+    }
 }

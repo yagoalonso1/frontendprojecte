@@ -18,6 +18,7 @@ import com.example.app.model.CategoriasResponse
 import com.example.app.model.TiposEntradaResponse
 import com.example.app.model.CompraRequest
 import com.example.app.model.CompraResponse
+import com.example.app.model.EventosResponse
 import com.example.app.model.HistorialComprasResponse
 import com.example.app.model.response.GenericResponse
 import com.example.app.model.response.MisEventosResponse
@@ -250,6 +251,9 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("idOrganizador") idOrganizador: Int
     ): Response<FavoritoCheckResponse>
+
+    @GET("api/eventos/categoria/{categoria}")
+    suspend fun getEventosByCategoria(@Path("categoria") categoria: String): Response<EventosResponse>
 }
 
 data class FavoritosResponse(
