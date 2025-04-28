@@ -1,37 +1,126 @@
-package com.example.app.data.model
+package com.example.app.model
 
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.ForeignKey
-import androidx.room.PrimaryKey
-import com.example.app.model.User
+import com.google.gson.annotations.SerializedName
+import android.util.Log
 
-@Entity(
-    tableName = "organizador",
-    foreignKeys = [
-        ForeignKey(
-            entity = User::class,
-            parentColumns = arrayOf("id"),
-            childColumns = arrayOf("user_id"),
-            onDelete = ForeignKey.CASCADE
-        )
-    ]
+data class OrganizadorEntity(
+    @SerializedName("id")
+    val id: Int = 0,
+    
+    @SerializedName("nombre_organizacion")
+    val nombre: String = "",
+    
+    @SerializedName("telefono_contacto")
+    val telefonoContacto: String = "",
+    
+    @SerializedName("direccion_fiscal")
+    val direccionFiscal: String = "",
+    
+    @SerializedName("cif")
+    val cif: String = "",
+    
+    @SerializedName("user")
+    val user: UserInfo? = null,
+    
+    @SerializedName("avatar_url")
+    val avatarUrl: String? = null
+)
+
+data class UserInfo(
+    @SerializedName("id")
+    val id: Int = 0,
+    
+    @SerializedName("name")
+    val nombre: String = "",
+    
+    @SerializedName("email")
+    val email: String = "",
+    
+    @SerializedName("avatar_url")
+    val avatarUrl: String? = null
 )
 
 data class Organizador(
-    @PrimaryKey(autoGenerate = true)
-    @ColumnInfo(name = "idOrganizador")
-    val idOrganizador: Int = 0,
+    @SerializedName("id") val id: Int,
+    @SerializedName("nombre_organizacion") val nombre: String,
+    @SerializedName("telefono_contacto") val telefonoContacto: String,
+    @SerializedName("direccion_fiscal") val direccionFiscal: String? = null,
+    @SerializedName("cif") val cif: String? = null,
+    @SerializedName("nombre_usuario") val nombreUsuario: String? = null,
+    @SerializedName("user") val user: UserInfo?,
+    @SerializedName("avatar_url") val avatarUrl: String? = null,
+    @SerializedName("is_favorite") val isFavorite: Boolean = false
+) {
+    // Función que actualiza si el organizador es favorito o no
+    fun copyWithFavorite(isFavorite: Boolean): Organizador {
+        return Organizador(
+            id = this.id,
+            nombre = this.nombre,
+            telefonoContacto = this.telefonoContacto,
+            direccionFiscal = this.direccionFiscal,
+            cif = this.cif,
+            nombreUsuario = this.nombreUsuario,
+            user = this.user,
+            avatarUrl = this.avatarUrl,
+            isFavorite = isFavorite
+        )
+    }
+    
+    // Función para obtener la URL completa del avatar
+    fun obtenerAvatarUrl(): String {
+        return avatarUrl ?: "https://ui-avatars.com/api/?name=${nombre.take(1)}&background=random"
+    }
+}
 
-    @ColumnInfo(name = "nombre_organizacion")
-    val nombreOrganizacion: String,
+// Función global para convertir una OrganizadorEntity a un Organizador
+fun OrganizadorEntity.toOrganizador(): Organizador {
+    return Organizador(
+        id = this.id,
+        nombre = this.nombre,
+        telefonoContacto = this.telefonoContacto,
+        direccionFiscal = this.direccionFiscal,
+        cif = this.cif,
+        nombreUsuario = null,
+        user = this.user,
+        avatarUrl = this.avatarUrl
+    )
+}
 
-    @ColumnInfo(name = "telefono_contacto")
-    val telefonoContacto: String,
+// Función para obtener la URL del avatar con formato consistente (para usar desde fuera de la clase)
+fun getOrganizadorAvatarUrl(organizador: Organizador, viewModelUrl: String? = null): String {
+    val defaultUrl = "https://ui-avatars.com/api/?name=${organizador.nombre.take(1)}&background=random"
+    
+    return when {
+        !organizador.avatarUrl.isNullOrBlank() -> organizador.avatarUrl
+        !viewModelUrl.isNullOrBlank() -> viewModelUrl
+        organizador.user?.avatarUrl != null -> organizador.user.avatarUrl
+        else -> defaultUrl
+    }
+}
 
-    @ColumnInfo(name = "user_id")
-    val userId: Int,
+// Función para obtener la URL del avatar con formato consistente
+fun getValidAvatarUrl(url: String?): String {
+    // URL por defecto si es null o vacío
+    val defaultUrl = "https://example.com/storage/avatars/default_avatar.png"
+    
+    if (url.isNullOrBlank()) {
+        Log.d("AvatarUrl", "Usando URL por defecto: $defaultUrl")
+        return defaultUrl
+    }
+    
+    // Si la URL ya empieza con http:// o https://, se usa directamente
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        Log.d("AvatarUrl", "Usando URL completa: $url")
+        return url
+    }
+    
+    // Si no tiene protocolo, añadir https://
+    val formattedUrl = "https://$url"
+    Log.d("AvatarUrl", "Formateando URL: $formattedUrl")
+    return formattedUrl
+}
 
-    @ColumnInfo(name = "deleted_at")
-    val deletedAt: String? = null
-)
+// Función para obtener la URL del avatar con formato consistente
+fun obtenerAvatarUrl(organizador: Organizador): String {
+    return organizador.avatarUrl ?: "https://ui-avatars.com/api/?name=${organizador.nombre}&background=random"
+}

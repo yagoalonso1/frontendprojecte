@@ -49,4 +49,9 @@ sealed class Routes(val route: String) {
     }
     
     object ForgotPassword : Routes("forgot_password")
+    
+    /** Ruta para detalle de organizador */
+    object OrganizadorDetalle : Routes("organizador/{organizadorId}") {
+        fun createRoute(organizadorId: Int): String = "organizador/$organizadorId"
+    }
 }

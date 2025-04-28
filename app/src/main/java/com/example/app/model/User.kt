@@ -38,5 +38,9 @@ data class User(
     
     @SerializedName("updated_at")
     @ColumnInfo(name = "updated_at")
-    val updatedAt: String?
+    val updatedAt: String?,
+    
+    @SerializedName("avatar_url")
+    @ColumnInfo(name = "avatar_url")
+    val avatarUrl: String?
 )

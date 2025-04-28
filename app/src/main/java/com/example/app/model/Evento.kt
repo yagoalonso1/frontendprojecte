@@ -16,7 +16,7 @@ data class Evento(
     @SerializedName("categoria") val categoria: String,
     @SerializedName("lugar") val lugar: String,
     @SerializedName("precio") val precio: Double,
-    @SerializedName("organizador") val organizador: Organizador?,
+    @SerializedName("organizador") val organizador: OrganizadorEvento?,
     @SerializedName("isFavorito") val isFavorito: Boolean = false,
     @SerializedName("entradas") val entradas: List<TipoEntrada> = emptyList(),
     @SerializedName("es_online") val esOnline: Boolean = false
@@ -29,11 +29,14 @@ data class Evento(
     }
 }
 
-data class Organizador(
+data class OrganizadorEvento(
     @SerializedName("id") val id: Int,
     @SerializedName("nombre_organizacion") val nombre: String,
     @SerializedName("telefono_contacto") val telefonoContacto: String,
-    @SerializedName("user") val user: User?
+    @SerializedName("direccion_fiscal") val direccionFiscal: String? = null,
+    @SerializedName("cif") val cif: String? = null,
+    @SerializedName("user") val user: com.example.app.model.UserInfo?,
+    @SerializedName("avatar_url") val avatarUrl: String? = null
 )
 
 data class TipoEntrada(

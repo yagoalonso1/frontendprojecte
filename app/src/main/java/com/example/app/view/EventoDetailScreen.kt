@@ -1,7 +1,6 @@
 package com.example.app.view
 
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -39,6 +38,7 @@ import java.util.Locale
 import kotlinx.coroutines.flow.collectLatest
 import com.example.app.util.isValidEventoId
 import com.example.app.util.getEventoIdErrorMessage
+import com.example.app.routes.Routes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,7 +61,6 @@ fun EventoDetailScreen(
         if (!idValido) {
             val errorMsg = eventoId.getEventoIdErrorMessage()
             Log.e(TAG, errorMsg)
-            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
         } else {
             Log.d(TAG, "ID validado correctamente")
         }
@@ -455,10 +454,9 @@ fun EventoDetailScreen(
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(12.dp))
                                             .clickable {
-                                                // TODO: navegar a perfil del organizador
-                                                Toast
-                                                    .makeText(context, "Perfil de organizador: ${organizador.nombre}", Toast.LENGTH_SHORT)
-                                                    .show()
+                                                navController.navigate(
+                                                    Routes.OrganizadorDetalle.createRoute(organizador.id)
+                                                )
                                             },
                                         shape = RoundedCornerShape(12.dp),
                                         colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
@@ -478,8 +476,7 @@ fun EventoDetailScreen(
                                             organizador.user?.let { user ->
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Text(
-                                                    text = listOfNotNull(user.nombre, user.apellido1, user.apellido2)
-                                                        .joinToString(" "),
+                                                    text = user.nombre,
                                                     style = MaterialTheme.typography.bodyMedium,
                                                     color = textSecondaryColor
                                                 )

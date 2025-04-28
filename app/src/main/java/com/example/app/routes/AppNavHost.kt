@@ -26,6 +26,8 @@ import com.example.app.util.SessionManager
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import android.content.Context
+import com.example.app.model.Organizador
+import com.example.app.view.organizador.OrganizadorDetailScreen
 
 @Composable
 fun AppNavHost(
@@ -336,6 +338,22 @@ fun AppNavHost(
         composable(Routes.HistorialCompras.route) {
             HistorialComprasScreen(
                 navController = navController
+            )
+        }
+        
+        composable(
+            route = Routes.OrganizadorDetalle.route,
+            arguments = listOf(
+                navArgument("organizadorId") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val organizadorId = backStackEntry.arguments?.getInt("organizadorId") ?: 0
+            // Aquí podrías cargar el objeto Organizador si tu API lo permite
+            // Temporalmente pasamos un organizador con datos mínimos
+            val organizador = Organizador(id = organizadorId, nombre = "Organización #$organizadorId", telefonoContacto = "", user = null)
+            OrganizadorDetailScreen(
+                navController = navController,
+                organizador = organizador
             )
         }
     }
