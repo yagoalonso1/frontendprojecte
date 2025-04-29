@@ -15,7 +15,7 @@ import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,6 +37,8 @@ import com.example.app.viewmodel.TicketsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 import com.example.app.util.getImageUrl
+import com.example.app.util.GoogleCalendarHelper
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +55,12 @@ fun MisTicketsScreen(
     val primaryColor = Color(0xFFE53935)  // Rojo del logo
     val backgroundColor = Color.White
     val grisClaro = Color(0xFFF5F5F5)
+    
+    // Inicializar el calendarHelper
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        viewModel.calendarHelper = GoogleCalendarHelper(context)
+    }
     
     Scaffold(
         topBar = {
@@ -96,98 +104,112 @@ fun MisTicketsScreen(
                 .padding(paddingValues)
                 .background(backgroundColor)
         ) {
-            if (isLoading) {
-                // Mostrar cargando
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = primaryColor
-                    )
-                }
-            } else if (errorMessage != null) {
-                // Mostrar error
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = errorMessage,
-                        color = primaryColor,
-                        modifier = Modifier.padding(bottom = 16.dp),
-                        textAlign = TextAlign.Center
-                    )
-                    Button(
-                        onClick = { viewModel.loadTickets() },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = primaryColor
-                        )
-                    ) {
-                        Text("Reintentar", color = Color.White)
-                    }
-                }
-            } else if (tickets.isEmpty()) {
-                // Mostrar mensaje de no hay tickets
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ConfirmationNumber,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(80.dp)
-                            .padding(bottom = 16.dp),
-                        tint = Color.Gray
-                    )
-                    Text(
-                        text = "No tienes tickets comprados",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Explora los eventos disponibles y compra tus entradas",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = { navController.navigate("eventos") },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = primaryColor
-                        )
-                    ) {
-                        Text("Ver eventos", color = Color.White)
-                    }
-                }
-            } else {
-                // Mostrar lista de tickets
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(tickets) { compra ->
-                        TicketCompraItem(
-                            compra = compra,
-                            onItemClick = {
-                                // Aquí podríamos navegar a los detalles del ticket
-                                // En una futura implementación
-                            }
-                        )
-                    }
-                }
+            when {
+                isLoading -> LoadingScreen(primaryColor)
+                errorMessage != null -> ErrorScreen(errorMessage, primaryColor) { viewModel.loadTickets() }
+                tickets.isEmpty() -> EmptyTicketsScreen(navController, primaryColor)
+                else -> TicketsList(tickets, viewModel, primaryColor)
             }
+        }
+    }
+}
+
+@Composable
+private fun LoadingScreen(primaryColor: Color) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(color = primaryColor)
+    }
+}
+
+@Composable
+private fun ErrorScreen(errorMessage: String, primaryColor: Color, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = errorMessage,
+            color = primaryColor,
+            modifier = Modifier.padding(bottom = 16.dp),
+            textAlign = TextAlign.Center
+        )
+        Button(
+            onClick = onRetry,
+            colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+        ) {
+            Text("Reintentar", color = Color.White)
+        }
+    }
+}
+
+@Composable
+private fun EmptyTicketsScreen(navController: NavController, primaryColor: Color) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.ConfirmationNumber,
+            contentDescription = null,
+            modifier = Modifier
+                .size(80.dp)
+                .padding(bottom = 16.dp),
+            tint = Color.Gray
+        )
+        Text(
+            text = "No tienes tickets comprados",
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Explora los eventos disponibles y compra tus entradas",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = { navController.navigate("eventos") },
+            colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+        ) {
+            Text("Ver eventos", color = Color.White)
+        }
+    }
+}
+
+@Composable
+private fun TicketsList(
+    tickets: List<TicketCompra>,
+    viewModel: TicketsViewModel,
+    primaryColor: Color
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(tickets) { compra ->
+            TicketCompraItem(
+                compra = compra,
+                onItemClick = {
+                    // Aquí podríamos navegar a los detalles del ticket
+                    // En una futura implementación
+                },
+                onAddToCalendar = {
+                    viewModel.addEventToCalendar(compra)
+                }
+            )
         }
     }
 }
@@ -195,9 +217,22 @@ fun MisTicketsScreen(
 @Composable
 fun TicketCompraItem(
     compra: TicketCompra,
-    onItemClick: () -> Unit
+    onItemClick: () -> Unit,
+    onAddToCalendar: suspend () -> Unit
 ) {
     val context = LocalContext.current
+    val primaryColor = Color(0xFFE53935)
+    val backgroundColor = Color.White
+    val grisClaro = Color(0xFFF5F5F5)
+    
+    val showCalendarDialog = remember { mutableStateOf(false) }
+    
+    LaunchedEffect(showCalendarDialog.value) {
+        if (showCalendarDialog.value) {
+            onAddToCalendar()
+            showCalendarDialog.value = false
+        }
+    }
     
     Card(
         modifier = Modifier
@@ -205,14 +240,16 @@ fun TicketCompraItem(
             .clickable(onClick = onItemClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = backgroundColor
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 4.dp
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
             // Imagen y detalles del evento
             Row(
@@ -222,18 +259,15 @@ fun TicketCompraItem(
                 // Imagen del evento
                 Box(
                     modifier = Modifier
-                        .size(64.dp)
+                        .size(80.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFEEEEEE))
+                        .background(grisClaro)
                 ) {
                     if (compra.evento.imagen != null) {
-                        // Usar la función de extensión para obtener la URL de la imagen
-                        val imageUrl = compra.evento.getImageUrl()
-                        
                         Image(
                             painter = rememberAsyncImagePainter(
                                 ImageRequest.Builder(context)
-                                    .data(imageUrl)
+                                    .data(compra.evento.imagen)
                                     .crossfade(true)
                                     .build()
                             ),
@@ -264,17 +298,28 @@ fun TicketCompraItem(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                     
                     Spacer(modifier = Modifier.height(4.dp))
                     
-                    Text(
-                        text = formatDate(compra.evento.fecha) + " • " + compra.evento.hora,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Event,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = formatDate(compra.evento.fecha),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+                    }
                 }
                 
                 Icon(
@@ -285,58 +330,36 @@ fun TicketCompraItem(
             }
             
             Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = Color(0xFFEEEEEE))
-            Spacer(modifier = Modifier.height(16.dp))
             
-            // Información de tickets
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Botón para añadir al calendario
+            Button(
+                onClick = { showCalendarDialog.value = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primaryColor
+                ),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Column {
-                    Text(
-                        text = "${compra.tickets.size} entradas",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Medium
-                        )
+                Text(
+                    text = "Añadir al calendario",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold
                     )
-                    
-                    Text(
-                        text = "Compra: ${formatDateShort(compra.fechaCompra)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                }
-                
-                // Precio total
-                Card(
-                    shape = RoundedCornerShape(4.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFF5F5F5)
-                    )
-                ) {
-                    Text(
-                        text = "Total: ${formatPrice(compra.total)} €",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = Color(0xFF333333)
-                    )
-                }
+                )
             }
         }
     }
 }
 
-// Función para formatear la fecha
-fun formatDate(dateString: String): String {
+private fun formatDate(dateString: String): String {
     return try {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val outputFormat = SimpleDateFormat("dd MMMM yyyy", Locale("es", "ES"))
+        val outputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         val date = inputFormat.parse(dateString)
-        date?.let { outputFormat.format(it) } ?: dateString
+        outputFormat.format(date)
     } catch (e: Exception) {
         dateString
     }

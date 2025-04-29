@@ -15,6 +15,7 @@ import com.example.app.model.login.LoginRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import com.example.app.util.SessionManager
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 
 class LoginViewModel : ViewModel() {
     // Campos del formulario
@@ -33,6 +34,7 @@ class LoginViewModel : ViewModel() {
     // Datos de sesión
     var token by mutableStateOf<String?>(null)
     var user by mutableStateOf<com.example.app.model.User?>(null)
+    var googleAccount by mutableStateOf<GoogleSignInAccount?>(null)
 
     // Estado del logout
     private val _isLogoutSuccessful = MutableStateFlow(false)
