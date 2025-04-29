@@ -32,13 +32,15 @@ import com.example.app.viewmodel.ForgotPasswordViewModel
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.LaunchedEffect
 import com.example.app.util.SessionManager
+import com.example.app.viewmodel.TicketsViewModel
 
 @Composable
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit,
     navController: NavController,
-    viewModel: LoginViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: LoginViewModel = viewModel(),
+    ticketsViewModel: TicketsViewModel = viewModel()
 ) {
     // Estados básicos
     val isLoading = viewModel.isLoading
@@ -49,42 +51,55 @@ fun LoginScreen(
     // Asegurar que la sesión esté limpia al abrir LoginScreen
     LaunchedEffect(Unit) {
         Log.d("LoginScreen", "Comprobando y limpiando el estado de sesión")
-        
-        // Limpiar la sesión para asegurarnos
         SessionManager.clearSession()
-        
-        // Reiniciar viewModels relevantes si fuera necesario
         viewModel.resetState()
     }
     
     // Navegar cuando el login es exitoso
     LaunchedEffect(isLoginSuccessful) {
         if (isLoginSuccessful) {
-            // Obtener el rol del usuario
             val userRole = viewModel.user?.role ?: ""
             Log.d("LoginScreen", "Rol del usuario en login: $userRole")
             
-            // Guardar en SessionManager
             SessionManager.saveUserRole(userRole)
             Log.d("LoginScreen", "Rol guardado en SessionManager: ${SessionManager.getUserRole()}")
             
-            // Guardar datos del usuario
             navController.currentBackStackEntry?.savedStateHandle?.set("login_successful", true)
             
-            // Ir a eventos
+            viewModel.googleAccount?.let { account ->
+                ticketsViewModel.googleAccount = account
+            }
+            
             navController.navigate("eventos") {
                 popUpTo("login") { inclusive = true }
             }
         }
     }
     
-    // Pantalla completa
+    LoginContent(
+        isLoading = isLoading,
+        isError = isError,
+        errorMessage = errorMessage,
+        viewModel = viewModel,
+        onNavigateToRegister = { navController.navigate("register") },
+        onNavigateToForgotPassword = { navController.navigate("forgot_password") }
+    )
+}
+
+@Composable
+private fun LoginContent(
+    isLoading: Boolean,
+    isError: Boolean,
+    errorMessage: String?,
+    viewModel: LoginViewModel,
+    onNavigateToRegister: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit
+) {
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color.White
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Contenido principal
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -165,9 +180,7 @@ fun LoginScreen(
                 
                 // Enlace olvidé contraseña
                 TextButton(
-                    onClick = { 
-                        navController.navigate("forgot_password") 
-                    },
+                    onClick = onNavigateToForgotPassword,
                     modifier = Modifier.align(Alignment.End)
                 ) {
                     Text(
@@ -224,84 +237,13 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 // Botones redes sociales
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Botón de Facebook
-                    Button(
-                        onClick = { /* TODO: Implementar inicio de sesión con Facebook */ },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1877F2)
-                        )
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.logo_facebook),
-                                contentDescription = "Facebook",
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Continuar con Facebook",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = Color.White
-                            )
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    // Botón de Google
-                    OutlinedButton(
-                        onClick = { /* TODO: Implementar inicio de sesión con Google */ },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(
-                            width = 1.dp,
-                            brush = androidx.compose.ui.graphics.SolidColor(Color.Gray.copy(alpha = 0.5f))
-                        )
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.logo_google),
-                                contentDescription = "Google",
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Continuar con Google",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                color = Color.Black.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-                }
+                SocialButtons()
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 // Botón crear cuenta
                 OutlinedButton(
-                    onClick = { 
-                        // Navegar directamente a la pantalla de registro
-                        navController.navigate("register")
-                    },
+                    onClick = onNavigateToRegister,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
@@ -334,55 +276,142 @@ fun LoginScreen(
                 )
             }
             
-            // Círculo de carga
             if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = Color(0xFFE53935),
-                        modifier = Modifier.size(64.dp)
-                    )
-                }
+                LoadingOverlay()
             }
             
-            // Mensaje de error
             if (isError) {
-                AlertDialog(
-                    onDismissRequest = { viewModel.clearError() },
-                    title = { 
-                        Text(
-                            text = "Error",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = Color(0xFFE53935)
-                        ) 
-                    },
-                    text = { 
-                        Text(
-                            text = errorMessage ?: "",
-                            style = MaterialTheme.typography.bodyMedium
-                        ) 
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { viewModel.clearError() }) {
-                            Text(
-                                text = "Aceptar",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = Color(0xFFE53935)
-                            )
-                        }
-                    },
-                    containerColor = Color.White,
-                    shape = RoundedCornerShape(16.dp)
+                ErrorDialog(
+                    errorMessage = errorMessage,
+                    onDismiss = { viewModel.clearError() }
                 )
             }
         }
     }
+}
+
+@Composable
+private fun SocialButtons() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Botón de Facebook
+        Button(
+            onClick = { /* TODO: Implementar inicio de sesión con Facebook */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF1877F2)
+            )
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.logo_facebook),
+                    contentDescription = "Facebook",
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Continuar con Facebook",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = Color.White
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Botón de Google
+        OutlinedButton(
+            onClick = { /* TODO: Implementar inicio de sesión con Google */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(8.dp),
+            border = ButtonDefaults.outlinedButtonBorder.copy(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.SolidColor(Color.Gray.copy(alpha = 0.5f))
+            )
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.logo_google),
+                    contentDescription = "Google",
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Continuar con Google",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = Color.Black.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoadingOverlay() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f)),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            color = Color(0xFFE53935),
+            modifier = Modifier.size(64.dp)
+        )
+    }
+}
+
+@Composable
+private fun ErrorDialog(
+    errorMessage: String?,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { 
+            Text(
+                text = "Error",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = Color(0xFFE53935)
+            ) 
+        },
+        text = { 
+            Text(
+                text = errorMessage ?: "",
+                style = MaterialTheme.typography.bodyMedium
+            ) 
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "Aceptar",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = Color(0xFFE53935)
+                )
+            }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(16.dp)
+    )
 }
