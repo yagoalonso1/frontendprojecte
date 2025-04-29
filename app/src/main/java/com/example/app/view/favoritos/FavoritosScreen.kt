@@ -567,10 +567,22 @@ fun EventoCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 
                 // Precio
+                val precios = evento.entradas?.map { it.precio } ?: emptyList()
+                val precioMinimo = precios.minOrNull() ?: 0.0
+                val precioMaximo = precios.maxOrNull() ?: 0.0
+                
                 Text(
-                    text = if (evento.precio <= 0) "Gratuito" else "${evento.precio}€",
+                    text = if (evento.entradas.isNullOrEmpty()) {
+                        "No disponible"
+                    } else if (precioMinimo == 0.0 && precioMaximo == 0.0) {
+                        "Gratuito"
+                    } else if (precioMinimo == precioMaximo) {
+                        "%.2f€".format(precioMinimo)
+                    } else {
+                        "%.2f€ - %.2f€".format(precioMinimo, precioMaximo)
+                    },
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (evento.precio <= 0) successColor else primaryColor,
+                    color = if (evento.entradas.isNullOrEmpty()) textSecondaryColor else if (precioMinimo == 0.0 && precioMaximo == 0.0) successColor else primaryColor,
                     fontWeight = FontWeight.Bold
                 )
             }

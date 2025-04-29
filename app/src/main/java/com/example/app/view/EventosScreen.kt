@@ -136,27 +136,6 @@ fun EventosScreen(
                         modifier = Modifier.padding(start = 8.dp)
                     ) 
                 },
-                actions = {
-                    // Botón de perfil de usuario
-                    IconButton(
-                        onClick = { /* Implementa el clic del botón de perfil */ },
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, primaryColor, CircleShape)
-                            .background(Color.White)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Perfil de usuario",
-                            tint = primaryColor,
-                            modifier = Modifier
-                                .size(24.dp)
-                                .padding(2.dp)
-                        )
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.White,  // Fondo blanco para la barra superior
                     titleContentColor = primaryColor
@@ -441,11 +420,23 @@ fun EventoCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 // Precio
+                val precios = evento.entradas?.map { it.precio } ?: emptyList()
+                val precioMinimo = precios.minOrNull() ?: 0.0
+                val precioMaximo = precios.maxOrNull() ?: 0.0
+                
                 Text(
-                    text = if (evento.precio > 0) "${evento.precio}€" else "Gratuito",
+                    text = if (evento.entradas.isNullOrEmpty()) {
+                        "No disponible"
+                    } else if (precioMinimo == 0.0 && precioMaximo == 0.0) {
+                        "Gratuito"
+                    } else if (precioMinimo == precioMaximo) {
+                        "%.2f€".format(precioMinimo)
+                    } else {
+                        "%.2f€ - %.2f€".format(precioMinimo, precioMaximo)
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
-                    color = if (evento.precio > 0) primaryColor else successColor
+                    color = if (evento.entradas.isNullOrEmpty()) textSecondaryColor else if (precioMinimo == 0.0 && precioMaximo == 0.0) successColor else primaryColor
                 )
             }
         }
