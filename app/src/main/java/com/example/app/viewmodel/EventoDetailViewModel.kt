@@ -252,10 +252,14 @@ class EventoDetailViewModel : ViewModel() {
             try {
                 _compraProcesando.value = true
                 
-                // Obtener token
+                // Verificar y obtener token
                 val token = SessionManager.getToken()
-                if (token == null) {
+                Log.d("EventoDetailViewModel", "Token para compra: ${token?.take(10) ?: "NULL"}...")
+                
+                if (token.isNullOrBlank()) {
+                    Log.e("EventoDetailViewModel", "Error: No hay token disponible para la compra")
                     _mensajeCompra.value = "Debes iniciar sesión para comprar entradas"
+                    _compraProcesando.value = false
                     return@launch
                 }
                 
@@ -274,49 +278,108 @@ class EventoDetailViewModel : ViewModel() {
                 
                 if (entradas.isEmpty()) {
                     _mensajeCompra.value = "No has seleccionado ninguna entrada"
+                    _compraProcesando.value = false
+                    return@launch
+                }
+                
+                val eventoId = evento?.id
+                if (eventoId == null) {
+                    Log.e("EventoDetailViewModel", "Error: ID del evento es nulo")
+                    _mensajeCompra.value = "Error al identificar el evento"
+                    _compraProcesando.value = false
                     return@launch
                 }
                 
                 val compraRequest = CompraRequest(
-                    idEvento = evento?.id ?: return@launch,
+                    idEvento = eventoId,
                     entradas = entradas
                 )
                 
-                // Realizar petición
-                val response = withContext(Dispatchers.IO) {
-                    RetrofitClient.apiService.comprarEntradas("Bearer $token", compraRequest)
-                }
+                Log.d("EventoDetailViewModel", "Enviando solicitud de compra: $compraRequest")
                 
-                if (response.isSuccessful) {
-                    // Compra exitosa
-                    _compraExitosa.value = true
-                    _mensajeCompra.value = "¡Compra realizada con éxito!"
-                    
-                    // Reiniciar cantidades
-                    cantidadesSeleccionadas = tiposEntrada.associate { it.id to 0 }
-                } else {
-                    // Error en la compra
-                    val errorBody = response.errorBody()?.string()
-                    Log.e("EventoDetailViewModel", "Error al realizar compra: $errorBody")
-                    _mensajeCompra.value = when (response.code()) {
-                        422 -> "Error: Datos de compra inválidos o entradas agotadas"
-                        401, 403 -> "Error: No tienes permisos para realizar esta compra"
-                        404 -> "Error: Evento no encontrado"
-                        else -> "Error al realizar la compra: ${errorBody ?: "Error desconocido"}"
+                // Realizar petición
+                try {
+                    val response = withContext(Dispatchers.IO) {
+                        RetrofitClient.apiService.comprarEntradas("Bearer $token", compraRequest)
                     }
+                    
+                    Log.d("EventoDetailViewModel", "Respuesta de compra: ${response.code()}")
+                    
+                    if (response.isSuccessful) {
+                        // Compra exitosa
+                        val compraResponse = response.body()
+                        Log.d("EventoDetailViewModel", "Compra exitosa: $compraResponse")
+                        
+                        _compraExitosa.value = true
+                        _mensajeCompra.value = "¡Compra realizada con éxito!"
+                        
+                        // Reiniciar cantidades
+                        cantidadesSeleccionadas = tiposEntrada.associate { it.id to 0 }
+                    } else {
+                        // Error en la compra
+                        val errorBody = response.errorBody()?.string()
+                        Log.e("EventoDetailViewModel", "Error en compra: $errorBody")
+                        
+                        // Intentar extraer mensaje específico del error
+                        try {
+                            val gson = com.google.gson.Gson()
+                            val type = object : com.google.gson.reflect.TypeToken<Map<String, String>>() {}.type
+                            val errorMap = gson.fromJson<Map<String, String>>(errorBody, type)
+                            Log.d("EventoDetailViewModel", "Error parseado: $errorMap")
+                            
+                            val errorMessage = errorMap["message"] ?: errorMap["error"]
+                            Log.d("EventoDetailViewModel", "Mensaje de error extraído: $errorMessage")
+                            
+                            if (errorMessage?.contains("perfil de participante") == true || 
+                                errorMessage?.contains("asociado a su cuenta") == true) {
+                                Log.e("EventoDetailViewModel", "Error de perfil de participante")
+                                _mensajeCompra.value = "Para realizar compras, complete su perfil de participante en la sección Mi Perfil"
+                                
+                                // Asegurarse de que el token sea válido
+                                if (SessionManager.hasValidToken()) {
+                                    Log.d("EventoDetailViewModel", "Token válido detectado, problema es solo de perfil")
+                                } else {
+                                    Log.e("EventoDetailViewModel", "Token inválido, renovando sesión")
+                                    SessionManager.clearSession()
+                                }
+                            } else if (!errorMessage.isNullOrBlank()) {
+                                _mensajeCompra.value = errorMessage
+                            } else {
+                                when (response.code()) {
+                                    401 -> {
+                                        _mensajeCompra.value = "Tu sesión ha expirado. Por favor, inicia sesión de nuevo."
+                                        // Limpiar el token y forzar nueva autenticación
+                                        SessionManager.clearSession()
+                                    }
+                                    404 -> _mensajeCompra.value = "Evento no encontrado. Por favor, refresca la página."
+                                    500 -> _mensajeCompra.value = "Error en el servidor. Inténtalo de nuevo más tarde."
+                                    else -> _mensajeCompra.value = "Error al realizar la compra: ${response.code()}"
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("EventoDetailViewModel", "Error al parsear mensaje de error: ${e.message}")
+                            
+                            when (response.code()) {
+                                401 -> {
+                                    _mensajeCompra.value = "Tu sesión ha expirado. Por favor, inicia sesión de nuevo."
+                                    // Limpiar el token y forzar nueva autenticación
+                                    SessionManager.clearSession()
+                                }
+                                404 -> _mensajeCompra.value = "Evento no encontrado. Por favor, refresca la página."
+                                500 -> _mensajeCompra.value = "Error en el servidor. Inténtalo de nuevo más tarde."
+                                else -> _mensajeCompra.value = "Error al realizar la compra: ${response.code()}"
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("EventoDetailViewModel", "Excepción al realizar la compra: ${e.message}", e)
+                    _mensajeCompra.value = "Error de conexión: ${e.message}"
                 }
             } catch (e: Exception) {
-                // Excepción
-                Log.e("EventoDetailViewModel", "Excepción al realizar compra", e)
-                _mensajeCompra.value = "Error de conexión: ${e.localizedMessage}"
+                Log.e("EventoDetailViewModel", "Excepción general en compra: ${e.message}", e)
+                _mensajeCompra.value = "Error inesperado: ${e.message}"
             } finally {
                 _compraProcesando.value = false
-                // Cerrar diálogo después de 3 segundos si fue exitoso
-                if (_compraExitosa.value) {
-                    kotlinx.coroutines.delay(3000)
-                    _showPaymentDialog.value = false
-                    _compraExitosa.value = false
-                }
             }
         }
     }

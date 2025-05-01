@@ -5,6 +5,7 @@ import com.example.app.model.evento.EventoRequest
 import com.example.app.model.evento.detail.EventoDetailResponse
 import com.example.app.model.login.LoginRequest
 import com.example.app.model.login.LoginResponse
+import com.example.app.model.login.GoogleAuthRequest
 import com.example.app.model.logout.LogoutResponse
 import com.example.app.model.register.RegisterRequest
 import com.example.app.model.register.RegisterResponse
@@ -254,6 +255,15 @@ interface ApiService {
 
     @GET("api/eventos/categoria/{categoria}")
     suspend fun getEventosByCategoria(@Path("categoria") categoria: String): Response<EventosResponse>
+
+    @POST("api/auth/google")
+    suspend fun loginWithGoogle(@Query("email") email: String): Response<LoginResponse>
+
+    @POST("api/auth/google/mobile")
+    suspend fun loginWithGoogleMobile(@Body request: GoogleAuthRequest): Response<LoginResponse>
+
+    @POST("api/auth/google/mobile/register")
+    suspend fun registerWithGoogleMobile(@Body request: GoogleAuthRequest): Response<LoginResponse>
 }
 
 data class FavoritosResponse(

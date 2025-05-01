@@ -10,37 +10,37 @@ data class User(
     @PrimaryKey
     @SerializedName("id")
     @ColumnInfo(name = "id")
-    val id: Int,
+    val id: String? = null,
     
     @SerializedName("nombre")
     @ColumnInfo(name = "nombre")
-    val nombre: String,
+    val nombre: String? = null,
     
     @SerializedName("apellido1")
     @ColumnInfo(name = "apellido1")
-    val apellido1: String,
+    val apellido1: String? = null,
     
     @SerializedName("apellido2")
     @ColumnInfo(name = "apellido2")
-    val apellido2: String?,
+    val apellido2: String? = null,
     
     @SerializedName("email")
     @ColumnInfo(name = "email")
-    val email: String,
+    val email: String? = null,
     
     @SerializedName("role")
     @ColumnInfo(name = "role")
-    val role: String,
+    val role: String? = null,
     
     @SerializedName("created_at")
     @ColumnInfo(name = "created_at")
-    val createdAt: String?,
+    val createdAt: String? = null,
     
     @SerializedName("updated_at")
     @ColumnInfo(name = "updated_at")
-    val updatedAt: String?,
+    val updatedAt: String? = null,
     
     @SerializedName("avatar_url")
     @ColumnInfo(name = "avatar_url")
-    val avatarUrl: String?
+    val avatarUrl: String? = null
 )
