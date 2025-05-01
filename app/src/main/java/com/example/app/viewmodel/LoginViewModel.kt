@@ -38,6 +38,10 @@ class LoginViewModel : ViewModel() {
     private val _isLoginSuccessful = MutableStateFlow(false)
     val isLoginSuccessful = _isLoginSuccessful.asStateFlow()
     
+    // Estado para la redirección a registro de participante después de autenticación con Google
+    private val _shouldNavigateToParticipanteRegister = MutableStateFlow(false)
+    val shouldNavigateToParticipanteRegister = _shouldNavigateToParticipanteRegister.asStateFlow()
+    
     // Datos de sesión
     var token by mutableStateOf<String?>(null)
     var user by mutableStateOf<com.example.app.model.User?>(null)
@@ -185,6 +189,7 @@ class LoginViewModel : ViewModel() {
     fun resetState() {
         _isLoginSuccessful.value = false
         _isLogoutSuccessful.value = false
+        _shouldNavigateToParticipanteRegister.value = false
         clearError()
         // No limpiar email/password para facilitar reautenticación
     }
@@ -314,6 +319,9 @@ class LoginViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 isLoading = true
+                Log.d("GOOGLE_AUTH_DEBUG", "======= INICIO PROCESO GOOGLE AUTH =======")
+                Log.d("GOOGLE_AUTH_DEBUG", "Cuenta recibida: Email=${account.email}, Nombre=${account.nombre}")
+                
                 val request = GoogleAuthRequest(
                     email = account.email,
                     nombre = account.nombre,
@@ -325,27 +333,31 @@ class LoginViewModel : ViewModel() {
                     googleId = account.email // Usamos el email como googleId temporal
                 )
                 
-                Log.d("LoginViewModel", "Enviando solicitud de login con Google: $request")
+                Log.d("GOOGLE_AUTH_DEBUG", "Contraseña generada para Google Auth: ${request.password.take(10)}...")
+                Log.d("GOOGLE_AUTH_DEBUG", "Enviando solicitud de registro con Google: ${Gson().toJson(request)}")
                 
                 // Intentar primero con el endpoint /api/auth/google/mobile/register
                 try {
+                    Log.d("GOOGLE_AUTH_DEBUG", "Intentando endpoint registerWithGoogleMobile")
                     val response: Response<LoginResponse> = withContext(Dispatchers.IO) {
                         RetrofitClient.apiService.registerWithGoogleMobile(request)
                     }
 
                     withContext(Dispatchers.Main) {
                         isLoading = false
+                        Log.d("GOOGLE_AUTH_DEBUG", "Respuesta del servidor: Código=${response.code()}")
+                        
                         if (response.isSuccessful) {
                             val loginResponse = response.body()
-                            Log.d("LoginViewModel", "Respuesta exitosa de login con Google: $loginResponse")
+                            Log.d("GOOGLE_AUTH_DEBUG", "Respuesta exitosa de registro con Google: ${Gson().toJson(loginResponse)}")
                             
                             if (loginResponse != null) {
                                 // Obtener token, puede estar en diferentes campos según el backend
                                 val accessToken = loginResponse.token ?: loginResponse.accessToken
                                 
                                 if (accessToken.isNullOrBlank()) {
+                                    Log.e("GOOGLE_AUTH_DEBUG", "ERROR: Token nulo o vacío en respuesta de Google")
                                     setError("No se recibió un token válido del servidor")
-                                    Log.e("LoginViewModel", "Token nulo o vacío en respuesta de Google")
                                     return@withContext
                                 }
                                 
@@ -353,8 +365,8 @@ class LoginViewModel : ViewModel() {
                                 token = accessToken
                                 user = loginResponse.user
                                 
-                                Log.d("LoginViewModel", "Token guardado: $token")
-                                Log.d("LoginViewModel", "Usuario: ${user?.email}, Rol: ${user?.role}")
+                                Log.d("GOOGLE_AUTH_DEBUG", "Token guardado: ${token?.take(10)}...")
+                                Log.d("GOOGLE_AUTH_DEBUG", "Detalles del usuario: ${Gson().toJson(user)}")
                                 
                                 // Guardar en SessionManager
                                 try {
@@ -371,37 +383,70 @@ class LoginViewModel : ViewModel() {
                                         }
                                         
                                         userRole?.let { SessionManager.saveUserRole(it) }
-                                        Log.d("LoginViewModel", "Rol guardado en SessionManager: ${SessionManager.getUserRole()}")
+                                Log.d("GOOGLE_AUTH_DEBUG", "Rol guardado en SessionManager: ${SessionManager.getUserRole()}")
+                                    } else {
+                                        Log.e("GOOGLE_AUTH_DEBUG", "ERROR: SessionManager no inicializado")
                                     }
                                 } catch (e: Exception) {
-                                    Log.e("LoginViewModel", "Error al guardar sesión: ${e.message}")
+                                    Log.e("GOOGLE_AUTH_DEBUG", "ERROR al guardar sesión: ${e.message}", e)
                                 }
                                 
-                                // Señalizar login exitoso
+                                // En lugar de señalizar login exitoso, indicamos que debe ir a la pantalla de registro
                                 clearFields()
-                                _isLoginSuccessful.value = true
+                                Log.d("GOOGLE_AUTH_DEBUG", "Redirigiendo a pantalla de registro de participante...")
+                                _shouldNavigateToParticipanteRegister.value = true
                             } else {
+                                Log.e("GOOGLE_AUTH_DEBUG", "ERROR: Respuesta vacía del servidor")
                                 setError("Error: respuesta vacía del servidor")
                             }
                         } else {
                             try {
                                 val errorBody = response.errorBody()?.string()
-                                Log.e("LoginViewModel", "Error en login con Google: $errorBody")
+                                Log.e("GOOGLE_AUTH_DEBUG", "ERROR en registro con Google: Código=${response.code()}, Error=$errorBody")
+                                
+                                // Detectar diferentes tipos de error
+                                val isPasswordError = errorBody?.contains("null value in column \"password\"") == true || 
+                                                     errorBody?.contains("violates not-null constraint") == true
+                                                     
+                                if (isPasswordError) {
+                                    Log.d("GOOGLE_AUTH_DEBUG", "Error de contraseña detectado, redirigiendo a registro manual...")
+                                    
+                                    // Guardar datos del usuario para pre-llenar el formulario
+                                    saveGoogleUserDataForRegistration(
+                                        email = request.email,
+                                        nombre = request.nombre,
+                                        apellido1 = request.apellido1,
+                                        googleToken = request.token
+                                    )
+                                    
+                                    // Mostrar un mensaje específico
+                                    setError("Se requiere completar tu registro como participante")
+                                    
+                                    // Redirigir a registro
+                                    _shouldNavigateToParticipanteRegister.value = true
+                                    return@withContext
+                                }
+                                
+                                // Para otros tipos de errores
                                 if (errorBody != null) {
                                     val type: Type = object : TypeToken<Map<String, String>>() {}.type
                                     val errorResponse = Gson().fromJson<Map<String, String>>(errorBody, type)
                                     val message = errorResponse["message"] ?: "Error en la comunicación con el servidor"
+                                    Log.e("GOOGLE_AUTH_DEBUG", "Mensaje de error: $message")
                                     setError(message)
                                 } else {
+                                    Log.e("GOOGLE_AUTH_DEBUG", "ERROR: Body de error nulo")
                                     setError("Error en la comunicación con el servidor: ${response.code()}")
                                 }
                             } catch (e: Exception) {
+                                Log.e("GOOGLE_AUTH_DEBUG", "ERROR al procesar respuesta de error: ${e.message}", e)
                                 setError("Error en la comunicación con el servidor: ${response.code()}")
                             }
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e("LoginViewModel", "Error con registerWithGoogleMobile, intentando loginWithGoogleMobile", e)
+                    Log.e("GOOGLE_AUTH_DEBUG", "EXCEPCIÓN en registerWithGoogleMobile: ${e.message}", e)
+                    Log.d("GOOGLE_AUTH_DEBUG", "Intentando método alternativo loginWithGoogleMobile")
                     
                     // Si falla, intentar con el endpoint alternativo
                     try {
@@ -411,9 +456,11 @@ class LoginViewModel : ViewModel() {
                         
                         withContext(Dispatchers.Main) {
                             isLoading = false
+                            Log.d("GOOGLE_AUTH_DEBUG", "Respuesta del método alternativo: Código=${response.code()}")
+                            
                             if (response.isSuccessful) {
                                 val loginResponse = response.body()
-                                Log.d("LoginViewModel", "Respuesta exitosa de login con Google (alternativo): $loginResponse")
+                                Log.d("GOOGLE_AUTH_DEBUG", "Respuesta exitosa de login con Google (alternativo): ${Gson().toJson(loginResponse)}")
                                 
                                 // Mismo procesamiento que antes...
                                 if (loginResponse != null) {
@@ -421,8 +468,8 @@ class LoginViewModel : ViewModel() {
                                     val accessToken = loginResponse.token ?: loginResponse.accessToken
                                     
                                     if (accessToken.isNullOrBlank()) {
+                                        Log.e("GOOGLE_AUTH_DEBUG", "ERROR: Token nulo o vacío en respuesta de Google (alt)")
                                         setError("No se recibió un token válido del servidor")
-                                        Log.e("LoginViewModel", "Token nulo o vacío en respuesta de Google")
                                         return@withContext
                                     }
                                     
@@ -430,8 +477,8 @@ class LoginViewModel : ViewModel() {
                                     token = accessToken
                                     user = loginResponse.user
                                     
-                                    Log.d("LoginViewModel", "Token guardado: $token")
-                                    Log.d("LoginViewModel", "Usuario: ${user?.email}, Rol: ${user?.role}")
+                                    Log.d("GOOGLE_AUTH_DEBUG", "Token guardado (alt): ${token?.take(10)}...")
+                                    Log.d("GOOGLE_AUTH_DEBUG", "Detalles del usuario (alt): ${Gson().toJson(user)}")
                                     
                                     // Guardar en SessionManager
                                     try {
@@ -448,37 +495,44 @@ class LoginViewModel : ViewModel() {
                                             }
                                             
                                             userRole?.let { SessionManager.saveUserRole(it) }
-                                            Log.d("LoginViewModel", "Rol guardado en SessionManager: ${SessionManager.getUserRole()}")
+                                            Log.d("GOOGLE_AUTH_DEBUG", "Rol guardado en SessionManager (alt): ${SessionManager.getUserRole()}")
+                                        } else {
+                                            Log.e("GOOGLE_AUTH_DEBUG", "ERROR: SessionManager no inicializado (alt)")
                                         }
                                     } catch (e: Exception) {
-                                        Log.e("LoginViewModel", "Error al guardar sesión: ${e.message}")
+                                        Log.e("GOOGLE_AUTH_DEBUG", "ERROR al guardar sesión (alt): ${e.message}", e)
                                     }
                                     
-                                    // Señalizar login exitoso
+                                    // En lugar de señalizar login exitoso, indicamos que debe ir a la pantalla de registro
                                     clearFields()
-                                    _isLoginSuccessful.value = true
+                                    Log.d("GOOGLE_AUTH_DEBUG", "Redirigiendo a pantalla de registro de participante (alt)...")
+                                    _shouldNavigateToParticipanteRegister.value = true
                                 } else {
+                                    Log.e("GOOGLE_AUTH_DEBUG", "ERROR: Respuesta vacía del servidor (alt)")
                                     setError("Error: respuesta vacía del servidor")
                                 }
                             } else {
                                 try {
                                     val errorBody = response.errorBody()?.string()
-                                    Log.e("LoginViewModel", "Error en login con Google: $errorBody")
+                                    Log.e("GOOGLE_AUTH_DEBUG", "ERROR en login con Google (alt): Código=${response.code()}, Error=$errorBody")
                                     if (errorBody != null) {
                                         val type: Type = object : TypeToken<Map<String, String>>() {}.type
                                         val errorResponse = Gson().fromJson<Map<String, String>>(errorBody, type)
                                         val message = errorResponse["message"] ?: "Error en la comunicación con el servidor"
+                                        Log.e("GOOGLE_AUTH_DEBUG", "Mensaje de error (alt): $message")
                                         setError(message)
                                     } else {
+                                        Log.e("GOOGLE_AUTH_DEBUG", "ERROR: Body de error nulo (alt)")
                                         setError("Error en la comunicación con el servidor: ${response.code()}")
                                     }
                                 } catch (e: Exception) {
+                                    Log.e("GOOGLE_AUTH_DEBUG", "ERROR al procesar respuesta de error (alt): ${e.message}", e)
                                     setError("Error en la comunicación con el servidor: ${response.code()}")
                                 }
                             }
                         }
                     } catch (e: Exception) {
-                        Log.e("LoginViewModel", "Excepción durante login con Google en método alternativo", e)
+                        Log.e("GOOGLE_AUTH_DEBUG", "EXCEPCIÓN durante login con Google en método alternativo: ${e.message}", e)
                         withContext(Dispatchers.Main) {
                             isLoading = false
                             setError("Error de conexión: ${e.message ?: "Error desconocido"}")
@@ -486,11 +540,13 @@ class LoginViewModel : ViewModel() {
                     }
                 }
             } catch (e: Exception) {
-                Log.e("LoginViewModel", "Excepción general en login con Google", e)
+                Log.e("GOOGLE_AUTH_DEBUG", "EXCEPCIÓN general en login con Google: ${e.message}", e)
                 withContext(Dispatchers.Main) {
                     isLoading = false
                     setError("Error de conexión: ${e.message ?: "Error desconocido"}")
                 }
+            } finally {
+                Log.d("GOOGLE_AUTH_DEBUG", "======= FINALIZADO PROCESO GOOGLE AUTH =======")
             }
         }
     }
@@ -533,6 +589,35 @@ class LoginViewModel : ViewModel() {
                     Log.e("LoginViewModel", "Excepción al completar perfil: ${e.message}")
                 }
             }
+        }
+    }
+
+    // Método para guardar temporalmente los datos de Google para el registro
+    private fun saveGoogleUserDataForRegistration(
+        email: String,
+        nombre: String,
+        apellido1: String,
+        googleToken: String?
+    ) {
+        try {
+            // Guardar en preferencias compartidas para pasar a la pantalla de registro
+            val sharedPrefs = com.example.app.MyApplication.appContext.getSharedPreferences(
+                "GoogleAuthData",
+                android.content.Context.MODE_PRIVATE
+            )
+            
+            with(sharedPrefs.edit()) {
+                putString("google_email", email)
+                putString("google_nombre", nombre)
+                putString("google_apellido1", apellido1)
+                putString("google_token", googleToken)
+                putBoolean("is_from_google", true)
+                apply()
+            }
+            
+            Log.d("GOOGLE_AUTH_DEBUG", "Datos de Google guardados en preferencias para registro")
+        } catch (e: Exception) {
+            Log.e("GOOGLE_AUTH_DEBUG", "Error al guardar datos de Google: ${e.message}")
         }
     }
 }

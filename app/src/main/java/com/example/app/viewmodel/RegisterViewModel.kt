@@ -38,6 +38,10 @@ class RegisterViewModel : ViewModel() {
     var dni by mutableStateOf("")
     var telefono by mutableStateOf("")
 
+    // Datos de Google Auth
+    var isFromGoogleAuth by mutableStateOf(false)
+    var googleToken by mutableStateOf<String?>(null)
+
     // Estados de error básicos
     var isNameError by mutableStateOf(false)
     var isApellido1Error by mutableStateOf(false)
@@ -45,6 +49,7 @@ class RegisterViewModel : ViewModel() {
     var isEmailError by mutableStateOf(false)
     var isPasswordError by mutableStateOf(false)
     var isConfirmPasswordError by mutableStateOf(false)
+
 
     // Estados de error organizador
     var isNombreOrganizacionError by mutableStateOf(false)
@@ -471,7 +476,7 @@ class RegisterViewModel : ViewModel() {
                             
                             // Si tenemos un token, guardarlo
                             if (tokenToSave != null) {
-                                mostrarMensaje("Guardando token: ${tokenToSave.take(10)}...")
+                                mostrarMensaje("Guardando token: ${tokenToSave?.safeSubstring()}")
                                 com.example.app.util.SessionManager.saveToken(tokenToSave)
                                 
                                 // Guardar rol de usuario
@@ -560,105 +565,147 @@ class RegisterViewModel : ViewModel() {
 
     fun registerParticipante() {
         viewModelScope.launch {
+            isLoading = true
+            mostrarMensaje("==== INICIANDO REGISTRO DE PARTICIPANTE ====")
+            Log.d("REGISTRO_DEBUG", "==== INICIANDO REGISTRO DE PARTICIPANTE ====")
+            Log.d("REGISTRO_DEBUG", "Email: $email, Nombre: $name, Apellido1: $apellido1")
+            Log.d("REGISTRO_DEBUG", "DNI: $dni, Teléfono: $telefono")
+            Log.d("REGISTRO_DEBUG", "¿Es de Google Auth? $isFromGoogleAuth, Token Google: ${googleToken?.safeSubstring()}")
+            
+            // Validar todos los campos antes del registro
+            val camposBasicosValidos = validarCamposBasicos()
+            
+            // Validar campos específicos de participante
+            if (!validateParticipanteFields()) {
+                Log.e("REGISTRO_DEBUG", "ERROR: La validación de campos de participante falló")
+                Log.e("REGISTRO_DEBUG", "isDniError: $isDniError, isTelefonoError: $isTelefonoError")
+                isLoading = false
+                return@launch
+            }
+            
+            if (!camposBasicosValidos) {
+                Log.e("REGISTRO_DEBUG", "ERROR: La validación de campos básicos falló")
+                isLoading = false
+                return@launch
+            }
+            
             try {
-                // Verificar que los campos básicos estén presentes
-                if (name.isBlank() || apellido1.isBlank() || email.isBlank() || password.isBlank()) {
-                    mostrarMensaje("ERROR: Faltan campos básicos para el registro")
-                    mostrarMensaje("Nombre: $name, Apellido1: $apellido1, Email: $email, Password: ${if (password.isBlank()) "vacío" else "tiene ${password.length} caracteres"}")
-                    setError("Faltan datos básicos. Asegúrate de completar toda la información.")
-                    return@launch
-                }
+                // Preparar datos de registro
+                val request: RegisterRequest
                 
-                if (!validateParticipanteFields()) {
-                    mostrarMensaje("ERROR: La validación de campos de participante falló")
-                    return@launch
-                }
-                
-                isLoading = true
-                clearError()
-
-                // Asegurar que el rol está en minúsculas
-                role = "participante"
-                
-                val registerRequest = RegisterRequest.createParticipante(
-                    nombre = name,
-                    apellido1 = apellido1,
-                    apellido2 = apellido2 ?: "",
-                    email = email,
-                    password = password,
-                    dni = dni,
-                    telefono = telefono
-                )
-
-                // Convertir la solicitud a JSON para verificar exactamente qué se está enviando
-                val requestJson = Gson().toJson(registerRequest)
-                mostrarMensaje("JSON ENVIADO AL SERVIDOR: $requestJson")
-                
-                // Mostrar los valores exactos que se están enviando
-                mostrarMensaje("Enviando solicitud de registro con role: ${registerRequest.role}")
-                mostrarMensaje("nombreOrganizacion: '${registerRequest.nombreOrganizacion}' (longitud: ${registerRequest.nombreOrganizacion.length}, tipo: ${registerRequest.nombreOrganizacion::class.java.simpleName})")
-                mostrarMensaje("telefonoContacto: '${registerRequest.telefonoContacto}' (longitud: ${registerRequest.telefonoContacto.length}, tipo: ${registerRequest.telefonoContacto::class.java.simpleName})")
-
-                val response = RetrofitClient.apiService.registerUser(registerRequest)
-
-                if (response.isSuccessful) {
-                    val registerResponse = response.body()
-                    mostrarMensaje("Registro exitoso: ${registerResponse}")
+                if (isFromGoogleAuth && googleToken != null) {
+                    // Crear solicitud con información de Google Auth
+                    Log.d("REGISTRO_DEBUG", "Registrando con datos de Google")
                     
-                    // Guardar token y datos de usuario en SessionManager
-                    if (registerResponse != null) {
-                        // Determinar qué token usar (puede ser token o accessToken)
-                        val tokenToSave = when {
-                            registerResponse.token != null -> {
-                                mostrarMensaje("Usando 'token' de la respuesta")
-                                registerResponse.token
-                            }
-                            registerResponse.accessToken != null -> {
-                                mostrarMensaje("Usando 'access_token' de la respuesta")
-                                registerResponse.accessToken
-                            }
-                            else -> {
-                                mostrarMensaje("No se encontró token en la respuesta, intentando iniciar sesión")
-                                // Si no hay token, intentamos hacer login automáticamente
-                                loginAfterRegistration()
-                                null
-                            }
-                        }
-                        
-                        // Si tenemos un token, guardarlo
-                        if (tokenToSave != null) {
-                            mostrarMensaje("Guardando token: ${tokenToSave.take(10)}...")
-                            com.example.app.util.SessionManager.saveToken(tokenToSave)
-                            
-                            // Guardar rol de usuario
-                            mostrarMensaje("Guardando rol: $role")
-                            com.example.app.util.SessionManager.saveUserRole(role.lowercase())
-                        }
-                        
-                        // Guardar user_id si está disponible
-                        if (registerResponse.user != null) {
-                            mostrarMensaje("Usuario registrado con ID: ${registerResponse.user.id}")
-                        }
-                    } else {
-                        mostrarMensaje("Respuesta vacía del servidor")
+                    // Verificar que tengamos todos los datos necesarios
+                    if (name.isBlank() || apellido1.isBlank() || email.isBlank()) {
+                        Log.e("REGISTRO_DEBUG", "ERROR: Faltan datos básicos de usuario para registro con Google")
+                        setError("Faltan datos básicos del usuario. Por favor, inicie sesión con Google nuevamente.")
+                        isLoading = false
+                        return@launch
                     }
                     
-                    _isRegisterSuccessful.value = true
-                    clearFields()
+                    request = RegisterRequest.createWithGoogleAuth(
+                        nombre = name,
+                        apellido1 = apellido1,
+                        apellido2 = apellido2,
+                        email = email,
+                        googleToken = googleToken,
+                        dni = dni,
+                        telefono = telefono,
+                        role = "participante"
+                    )
+                    Log.d("REGISTRO_DEBUG", "Request con Google creada correctamente")
+                    Log.d("REGISTRO_DEBUG", "Detalles de request con Google: ${Gson().toJson(request)}")
                 } else {
-                    val errorCode = response.code()
-                    val errorBody = response.errorBody()?.string()
-                    mostrarMensaje("ERROR EN EL REGISTRO: Código $errorCode")
-                    mostrarMensaje("CUERPO DE RESPUESTA COMPLETO: $errorBody")
+                    // Si es registro normal pero está faltando algún campo obligatorio
+                    if (name.isBlank() || apellido1.isBlank() || email.isBlank() || password.isBlank()) {
+                        Log.e("REGISTRO_DEBUG", "ERROR: Campos obligatorios vacíos en registro normal")
+                        mostrarMensaje("Faltan datos obligatorios para el registro. Por favor complete todos los campos.")
+                        setError("Faltan datos obligatorios: Nombre, Apellido, Email y Contraseña son requeridos")
+                        isLoading = false
+                        return@launch
+                    }
                     
-                    when (errorCode) {
-                        422 -> {
-                            // Unprocessable Content - Validación fallida
-                            try {
+                    // Registro normal
+                    Log.d("REGISTRO_DEBUG", "Registrando con formulario normal")
+                    request = RegisterRequest.createParticipante(
+                        nombre = name,
+                        apellido1 = apellido1,
+                        apellido2 = apellido2,
+                        email = email,
+                        password = password,
+                        dni = dni,
+                        telefono = telefono
+                    )
+                    Log.d("REGISTRO_DEBUG", "Request normal creada correctamente")
+                    Log.d("REGISTRO_DEBUG", "Detalles de request normal: ${Gson().toJson(request)}")
+                }
+                
+                // Verificar que los campos obligatorios tengan valor
+                val camposFaltantes = mutableListOf<String>()
+                if (request.nombre.isBlank()) camposFaltantes.add("Nombre")
+                if (request.apellido1.isBlank()) camposFaltantes.add("Apellido")
+                if (request.email.isBlank()) camposFaltantes.add("Email")
+                if (request.password.isNullOrBlank() && (request.googleToken.isNullOrBlank() || !isFromGoogleAuth)) camposFaltantes.add("Contraseña")
+                
+                if (camposFaltantes.isNotEmpty()) {
+                    Log.e("REGISTRO_DEBUG", "ERROR: Faltan campos obligatorios en la petición: $camposFaltantes")
+                    mostrarMensaje("Faltan campos obligatorios: ${camposFaltantes.joinToString(", ")}")
+                    setError("Por favor complete los siguientes campos: ${camposFaltantes.joinToString(", ")}")
+                    isLoading = false
+                    return@launch
+                }
+                
+                // Realizar la solicitud al servidor
+                Log.d("REGISTRO_DEBUG", "Enviando solicitud al servidor: ${Gson().toJson(request)}")
+                
+                val response = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    try {
+                        Log.d("REGISTRO_DEBUG", "Ejecutando llamada a registerUser...")
+                        val resp = RetrofitClient.apiService.registerUser(request)
+                        Log.d("REGISTRO_DEBUG", "Llamada completada, código: ${resp.code()}")
+                        resp
+                    } catch (e: Exception) {
+                        Log.e("REGISTRO_DEBUG", "EXCEPCIÓN en llamada a registerUser: ${e.message}")
+                        e.printStackTrace()
+                        throw e
+                    }
+                }
+                
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    isLoading = false
+                    
+                    if (response.isSuccessful) {
+                        val registrationResponse = response.body()
+                        Log.d("REGISTRO_DEBUG", "Registro EXITOSO: ${Gson().toJson(registrationResponse)}")
+                        mostrarMensaje("Registro exitoso: ${Gson().toJson(registrationResponse)}")
+                        
+                        // Si hay un token en la respuesta, guardarlo (para cualquier tipo de registro)
+                        if (registrationResponse?.token != null) {
+                            Log.d("REGISTRO_DEBUG", "Guardando token de respuesta: ${registrationResponse.token?.safeSubstring()}")
+                            com.example.app.util.SessionManager.saveToken(registrationResponse.token)
+                            com.example.app.util.SessionManager.saveUserRole("participante")
+                        } else if (isFromGoogleAuth && googleToken != null) {
+                            // Si no hay token en la respuesta pero estamos usando Google Auth, usar ese token
+                            Log.d("REGISTRO_DEBUG", "Usando token de Google: ${googleToken?.safeSubstring()}")
+                            com.example.app.util.SessionManager.saveToken(googleToken!!)
+                            com.example.app.util.SessionManager.saveUserRole("participante")
+                        }
+                        
+                        Log.d("REGISTRO_DEBUG", "Estableciendo isRegisterSuccessful a true")
+                        _isRegisterSuccessful.value = true
+                    } else {
+                        val errorBody = response.errorBody()?.string()
+                        Log.e("REGISTRO_DEBUG", "ERROR en el registro: ${response.code()} - $errorBody")
+                        mostrarMensaje("Error en el registro: $errorBody")
+                        
+                        try {
+                            if (errorBody != null) {
                                 val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                                mostrarMensaje("Error response parseada: $errorResponse")
-                                
-                                val mensajeError = when {
+                                val errorMsg = when {
+                                    errorResponse.message != null -> errorResponse.message
+                                    errorResponse.error != null -> errorResponse.error
                                     !errorResponse.messages.isNullOrEmpty() -> {
                                         val errores = mutableListOf<String>()
                                         errorResponse.messages.forEach { (campo, msgs) ->
@@ -666,31 +713,89 @@ class RegisterViewModel : ViewModel() {
                                         }
                                         errores.joinToString("\n")
                                     }
-                                    errorResponse.message != null -> errorResponse.message
-                                    errorResponse.error != null -> errorResponse.error
-                                    else -> "Error de validación. Revisa tus datos."
+                                    else -> "Error en el registro"
                                 }
-                                
-                                setError(mensajeError)
-                            } catch (e: Exception) {
-                                setError("Error de validación: ${e.message ?: "Error desconocido"}")
-                                mostrarMensaje("Error al procesar respuesta de error: ${e.message}")
-                                mostrarMensaje("Error body original: $errorBody")
+                                Log.e("REGISTRO_DEBUG", "Mensaje de error: $errorMsg")
+                                setError(errorMsg)
+                            } else {
+                                Log.e("REGISTRO_DEBUG", "Error sin cuerpo: ${response.code()}")
+                                setError("Error en el registro: ${response.code()}")
                             }
+                        } catch (e: Exception) {
+                            Log.e("REGISTRO_DEBUG", "Error al procesar respuesta de error: ${e.message}")
+                            setError("Error en el registro: ${response.code()}")
                         }
-                        409 -> setError("El correo electrónico ya está registrado")
-                        400 -> setError("Datos de registro incorrectos. Revisa la información proporcionada.")
-                        500 -> setError("Error en el servidor. Inténtalo más tarde")
-                        else -> setError("Error en el registro (código $errorCode): ${response.message()}")
                     }
                 }
             } catch (e: Exception) {
-                mostrarMensaje("Error de conexión en registerParticipante: ${e.message}")
-                setError("Error de conexión: ${e.localizedMessage ?: e.message ?: "Error desconocido"}")
+                Log.e("REGISTRO_DEBUG", "EXCEPCIÓN durante el registro: ${e.message}")
+                e.printStackTrace()
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    isLoading = false
+                    setError("Error de conexión: ${e.message ?: "Error desconocido"}")
+                    mostrarMensaje("Excepción durante el registro: ${e.message}")
+                }
             } finally {
-                isLoading = false
+                Log.d("REGISTRO_DEBUG", "==== FINALIZANDO REGISTRO DE PARTICIPANTE ====")
             }
         }
+    }
+
+    // Método adicional para validar campos básicos
+    private fun validarCamposBasicos(): Boolean {
+        val camposFaltantes = mutableListOf<String>()
+        
+        // En registro con Google, no validamos password
+        if (!isFromGoogleAuth) {
+            if (password.isBlank()) {
+                camposFaltantes.add("Contraseña")
+                isPasswordError = true
+                passwordErrorMessage = "La contraseña es obligatoria"
+            } else {
+                isPasswordError = false
+                passwordErrorMessage = ""
+            }
+        }
+        
+        // Validar resto de campos básicos
+        if (name.isBlank()) {
+            camposFaltantes.add("Nombre")
+            isNameError = true
+            nameErrorMessage = "El nombre es obligatorio"
+        } else {
+            isNameError = false
+            nameErrorMessage = ""
+        }
+        
+        if (apellido1.isBlank()) {
+            camposFaltantes.add("Primer apellido")
+            isApellido1Error = true
+            apellido1ErrorMessage = "El primer apellido es obligatorio"
+        } else {
+            isApellido1Error = false
+            apellido1ErrorMessage = ""
+        }
+        
+        if (email.isBlank()) {
+            camposFaltantes.add("Email")
+            isEmailError = true
+            emailErrorMessage = "El email es obligatorio"
+        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            camposFaltantes.add("Email válido")
+            isEmailError = true
+            emailErrorMessage = "Email inválido"
+        } else {
+            isEmailError = false
+            emailErrorMessage = ""
+        }
+        
+        if (camposFaltantes.isNotEmpty()) {
+            Log.e("REGISTRO_DEBUG", "ERROR: Faltan campos básicos: ${camposFaltantes.joinToString(", ")}")
+            setError("Por favor complete los siguientes campos: ${camposFaltantes.joinToString(", ")}")
+            return false
+        }
+        
+        return true
     }
 
     private fun loginAfterRegistration() {
@@ -719,7 +824,7 @@ class RegisterViewModel : ViewModel() {
                         val token = loginResponse.accessToken ?: loginResponse.token
                         
                         if (token != null) {
-                            mostrarMensaje("Guardando token del login: ${token.take(10)}...")
+                            mostrarMensaje("Guardando token del login: ${token?.safeSubstring()}")
                             com.example.app.util.SessionManager.saveToken(token)
                             
                             // Guardar rol
@@ -739,5 +844,70 @@ class RegisterViewModel : ViewModel() {
                 isLoading = false
             }
         }
+    }
+
+    fun setGoogleAuthData(
+        email: String, 
+        name: String, 
+        apellido1: String, 
+        apellido2: String?, 
+        token: String?
+    ) {
+        Log.d("REGISTRO_DEBUG", "==== SETTING GOOGLE AUTH DATA ====")
+        Log.d("REGISTRO_DEBUG", "Email: $email")
+        Log.d("REGISTRO_DEBUG", "Nombre: $name")
+        Log.d("REGISTRO_DEBUG", "Apellido1: $apellido1")
+        Log.d("REGISTRO_DEBUG", "Apellido2: ${apellido2 ?: "null"}")
+        Log.d("REGISTRO_DEBUG", "Token: ${token?.safeSubstring()}")
+        
+        if (email.isBlank() || name.isBlank() || apellido1.isBlank()) {
+            Log.e("REGISTRO_DEBUG", "ERROR: Datos incompletos de Google Auth")
+            setError("No se recibieron todos los datos necesarios del login con Google")
+            return
+        }
+        
+        // Guardar los datos del usuario de Google
+        this.email = email
+        this.name = name
+        this.apellido1 = apellido1
+        this.apellido2 = apellido2 ?: ""
+        this.googleToken = token
+        this.isFromGoogleAuth = true
+
+        // Generar una contraseña segura para Google Auth
+        this.password = generateRandomPassword()
+        this.confirmPassword = this.password
+        Log.d("REGISTRO_DEBUG", "Generada contraseña aleatoria para Google Auth: ${this.password.safeSubstring()}")
+        
+        // Verificar si el token está en SessionManager o si necesitamos guardarlo
+        if (token != null && token.isNotEmpty()) {
+            try {
+                Log.d("REGISTRO_DEBUG", "Guardando token de Google en SessionManager")
+                com.example.app.util.SessionManager.saveToken(token)
+            } catch (e: Exception) {
+                Log.e("REGISTRO_DEBUG", "Error al guardar el token en SessionManager: ${e.message}")
+            }
+        } else {
+            Log.w("REGISTRO_DEBUG", "No hay token para guardar en SessionManager")
+        }
+        
+        // Indicar que estamos usando datos de Google
+        mostrarMensaje("Datos de Google cargados: $email, $name, $apellido1")
+        Log.d("REGISTRO_DEBUG", "Datos de Google establecidos correctamente en el ViewModel")
+    }
+
+    // Método para generar contraseña aleatoria segura
+    private fun generateRandomPassword(): String {
+        val chars = ('a'..'z') + ('A'..'Z') + ('0'..'9') + "!@#$%^&*()-_=+[]{}|;:,.<>?".toList()
+        val passwordLength = 12
+        return List(passwordLength) { chars.random() }.joinToString("")
+    }
+
+    // Función de utilidad para tomar de forma segura los primeros caracteres de un string posiblemente nulo
+    private fun String?.safeSubstring(length: Int = 10): String {
+        if (this == null) return "null"
+        if (this.isEmpty()) return "vacío"
+        if (this.length <= length) return this
+        return this.substring(0, length) + "..."
     }
 } 

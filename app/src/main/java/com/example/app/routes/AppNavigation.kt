@@ -32,7 +32,10 @@ import com.example.app.view.ForgotPasswordScreen
 import com.example.app.view.MisEventosScreen
 import com.example.app.util.SessionManager
 import android.util.Log
+import androidx.compose.runtime.collectAsState
 import com.example.app.view.CrearEventoScreen
+import com.example.app.viewmodel.RegisterViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 // Variable global para rastrear si el usuario está autenticado
 private var isUserAuthenticated = false
@@ -47,6 +50,9 @@ fun AppNavigation(
         mutableStateOf(SessionManager.getUserRole() ?: "participante") 
     }
     
+    // Estado para controlar la navegación
+    var navigateToEventos by remember { mutableStateOf(false) }
+    
     // Efecto para actualizar el rol cuando la composición se inicie
     LaunchedEffect(Unit) {
         val role = SessionManager.getUserRole()
@@ -57,12 +63,51 @@ fun AppNavigation(
         }
     }
     
+    // Observar y ejecutar navegaciones
+    LaunchedEffect(navigateToEventos) {
+        if (navigateToEventos) {
+            navController.navigate(Routes.Eventos.route) {
+                popUpTo(Routes.Login.route) { inclusive = true }
+            }
+            navigateToEventos = false
+        }
+    }
+    
     NavHost(
         navController = navController,
         startDestination = if (isUserAuthenticated) Routes.Eventos.route else Routes.Login.route
     ) {
         // Pantalla de login
         composable(Routes.Login.route) {
+            // Estado para controlar si el login fue exitoso
+            val loginSuccess = remember { mutableStateOf(false) }
+            
+            // Efecto para manejar el login exitoso
+            LaunchedEffect(Unit) {
+                navController.currentBackStackEntry?.savedStateHandle?.get<Boolean>("login_successful")?.let { success ->
+                    if (success) {
+                        loginSuccess.value = true
+                        isUserAuthenticated = true
+                        val role = SessionManager.getUserRole() ?: ""
+                        Log.d("AppNavigation", "Login exitoso - Rol obtenido: $role")
+                        currentRole = role
+                        Log.d("AppNavigation", "Login exitoso - currentRole actualizado a: $currentRole")
+                        
+                        navController.currentBackStackEntry?.savedStateHandle?.remove<Boolean>("login_successful")
+                    }
+                }
+            }
+            
+            // Efecto para la navegación después del login exitoso
+            LaunchedEffect(loginSuccess.value) {
+                if (loginSuccess.value) {
+                    navController.navigate(Routes.Eventos.route) {
+                        popUpTo(Routes.Login.route) { inclusive = true }
+                    }
+                    loginSuccess.value = false
+                }
+            }
+            
             LoginScreen(
                 navController = navController,
                 onNavigateToRegister = { navController.navigate(Routes.Register.route) },
@@ -70,24 +115,160 @@ fun AppNavigation(
                     navController.navigate(Routes.ForgotPassword.route)
                 }
             )
+        }
+        
+        // Pantallas de registro
+        composable(Routes.Register.route) {
+            com.example.app.view.register.RegisterScreen(
+                navController = navController
+            )
+        }
+        
+        composable(Routes.RegisterOrganizador.route) {
+            val registerViewModel = viewModel<RegisterViewModel>()
             
-            // Interceptar el evento de inicio de sesión exitoso
-            navController.currentBackStackEntry?.savedStateHandle?.get<Boolean>("login_successful")?.let { success ->
-                if (success) {
-                    isUserAuthenticated = true
-                    val role = SessionManager.getUserRole() ?: ""
-                    Log.d("AppNavigation", "Login exitoso - Rol obtenido: $role")
-                    currentRole = role
-                    Log.d("AppNavigation", "Login exitoso - currentRole actualizado a: $currentRole")
-                    
-                    // Navegar a la pantalla de eventos
-                    navController.navigate(Routes.Eventos.route) {
-                        popUpTo(Routes.Login.route) { inclusive = true }
-                    }
-                    
-                    navController.currentBackStackEntry?.savedStateHandle?.remove<Boolean>("login_successful")
+            // Obtener datos guardados desde la pantalla anterior
+            val savedEmail = navController.previousBackStackEntry?.savedStateHandle?.get<String>("user_email") ?: ""
+            val savedName = navController.previousBackStackEntry?.savedStateHandle?.get<String>("user_name") ?: ""
+            val savedLastName = navController.previousBackStackEntry?.savedStateHandle?.get<String>("user_lastname") ?: ""
+            val savedLastName2 = navController.previousBackStackEntry?.savedStateHandle?.get<String>("user_lastname2") ?: ""
+            
+            // Si vienen datos de un login con Google, actualizamos el viewModel
+            LaunchedEffect(savedEmail) {
+                if (savedEmail.isNotEmpty()) {
+                    registerViewModel.email = savedEmail
+                    registerViewModel.name = savedName
+                    registerViewModel.apellido1 = savedLastName
+                    registerViewModel.apellido2 = savedLastName2
                 }
             }
+            
+            // Estado para controlar la navegación después del registro exitoso
+            val registerSuccess = remember { mutableStateOf(false) }
+            
+            // Observar si el registro fue exitoso
+            LaunchedEffect(registerViewModel.isRegisterSuccessful.collectAsState().value) {
+                if (registerViewModel.isRegisterSuccessful.value) {
+                    registerSuccess.value = true
+                }
+            }
+            
+            // Efecto para la navegación después del registro exitoso
+            LaunchedEffect(registerSuccess.value) {
+                if (registerSuccess.value) {
+                    navController.navigate(Routes.Login.route) {
+                        popUpTo(Routes.Register.route) { inclusive = true }
+                    }
+                    registerSuccess.value = false
+                }
+            }
+            
+            com.example.app.view.register.OrganizadorScreen(
+                viewModel = registerViewModel
+            )
+        }
+        
+        composable(Routes.RegisterParticipante.route) {
+            val registerViewModel = viewModel<RegisterViewModel>()
+            
+            // Obtener datos guardados desde la pantalla anterior
+            val savedEmail = navController.previousBackStackEntry?.savedStateHandle?.get<String>("user_email") ?: ""
+            val savedName = navController.previousBackStackEntry?.savedStateHandle?.get<String>("user_name") ?: ""
+            val savedLastName = navController.previousBackStackEntry?.savedStateHandle?.get<String>("user_lastname") ?: ""
+            val savedLastName2 = navController.previousBackStackEntry?.savedStateHandle?.get<String>("user_lastname2") ?: ""
+            val isFromGoogleLogin = navController.previousBackStackEntry?.savedStateHandle?.get<Boolean>("google_login") ?: false
+            val token = navController.previousBackStackEntry?.savedStateHandle?.get<String>("token") ?: ""
+            
+            Log.d("REGISTRO_DEBUG", "======= PANTALLA PARTICIPANTE =======")
+            Log.d("REGISTRO_DEBUG", "Datos recibidos: Email=$savedEmail, Nombre=$savedName")
+            Log.d("REGISTRO_DEBUG", "¿Viene de Google? $isFromGoogleLogin, Token recibido: ${token.safeTokenDisplay()}")
+            
+            // Si vienen datos de un login con Google, actualizamos el viewModel
+            LaunchedEffect(Unit) {
+                if (savedEmail.isNotEmpty() && isFromGoogleLogin) {
+                    Log.d("REGISTRO_DEBUG", "Cargando datos de Google en RegisterViewModel")
+                    
+                    // Usar el nuevo método para establecer los datos de Google
+                    registerViewModel.setGoogleAuthData(
+                        email = savedEmail,
+                        name = savedName,
+                        apellido1 = savedLastName,
+                        apellido2 = savedLastName2,
+                        token = token
+                    )
+                    
+                    // Verificar que los datos se establecieron correctamente
+                    Log.d("REGISTRO_DEBUG", "Verificando datos establecidos:")
+                    Log.d("REGISTRO_DEBUG", "Email: ${registerViewModel.email}")
+                    Log.d("REGISTRO_DEBUG", "Nombre: ${registerViewModel.name}")
+                    Log.d("REGISTRO_DEBUG", "Apellido1: ${registerViewModel.apellido1}")
+                    Log.d("REGISTRO_DEBUG", "Datos de Google cargados en RegisterViewModel")
+                } else if (isFromGoogleLogin) {
+                    // Si falta información importante
+                    Log.e("REGISTRO_DEBUG", "ERROR: Faltan datos importantes para Google Auth")
+                    registerViewModel.setError("No se recibieron todos los datos necesarios del login con Google")
+                }
+            }
+            
+            // Estado para controlar la navegación después del registro exitoso
+            val registerSuccess = remember { mutableStateOf(false) }
+            val destinationRoute = remember { mutableStateOf("") }
+            
+            // Observar si el registro fue exitoso
+            LaunchedEffect(registerViewModel.isRegisterSuccessful.collectAsState().value) {
+                if (registerViewModel.isRegisterSuccessful.value) {
+                    Log.d("REGISTRO_DEBUG", "Registro participante EXITOSO")
+                    
+                    // Decidir la ruta de destino
+                    destinationRoute.value = if (isFromGoogleLogin) Routes.Eventos.route else Routes.Login.route
+                    Log.d("REGISTRO_DEBUG", "Ruta de destino: ${destinationRoute.value}")
+                    
+                    if (isFromGoogleLogin) {
+                        // Si viene de Google Login, establecer isUserAuthenticated
+                        isUserAuthenticated = true
+                        
+                        // Asegurar que el token esté guardado en SessionManager
+                        val savedToken = SessionManager.getToken()
+                        if (savedToken.isNullOrEmpty() && token.isNotEmpty()) {
+                            Log.d("REGISTRO_DEBUG", "Token no encontrado en SessionManager, guardando token recibido")
+                            SessionManager.saveToken(token)
+                            SessionManager.saveUserRole("participante")
+                        }
+                        Log.d("REGISTRO_DEBUG", "Token guardado para navegación: ${SessionManager.getToken().safeTokenDisplay()}")
+                    }
+                    
+                    registerSuccess.value = true
+                    Log.d("REGISTRO_DEBUG", "registerSuccess establecido a true, preparando navegación")
+                }
+            }
+            
+            // Efecto para la navegación después del registro exitoso
+            LaunchedEffect(registerSuccess.value) {
+                if (registerSuccess.value && destinationRoute.value.isNotEmpty()) {
+                    Log.d("REGISTRO_DEBUG", "Iniciando navegación a ${destinationRoute.value}")
+                    navController.navigate(destinationRoute.value) {
+                        // Limpiar toda la pila de navegación hasta la raíz
+                        popUpTo(0) { inclusive = true }
+                    }
+                    registerSuccess.value = false
+                    Log.d("REGISTRO_DEBUG", "Navegación completada, resetenado estado")
+                }
+            }
+            
+            com.example.app.view.register.ParticipanteScreen(
+                viewModel = registerViewModel
+            )
+        }
+        
+        // Pantalla de recuperación de contraseña
+        composable(Routes.ForgotPassword.route) {
+            ForgotPasswordScreen(
+                onNavigateToLogin = { 
+                    navController.navigate(Routes.Login.route) {
+                        popUpTo(Routes.ForgotPassword.route) { inclusive = true }
+                    }
+                }
+            )
         }
         
         // Pantalla principal con menú de navegación
@@ -136,4 +317,10 @@ fun HomeScreenWithBottomNav(
             )
         }
     }
+}
+
+// Función de utilidad para manejar tokens de forma segura
+private fun String?.safeTokenDisplay(maxLength: Int = 10): String {
+    if (this.isNullOrEmpty()) return "vacío"
+    return this.substring(0, minOf(maxLength, this.length)) + "..."
 }

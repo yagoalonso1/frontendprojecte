@@ -56,6 +56,7 @@ fun LoginScreen(
     val errorMessage = viewModel.errorMessage
     val isError = errorMessage != null
     val isLoginSuccessful = viewModel.isLoginSuccessful.collectAsState().value
+    val shouldNavigateToParticipanteRegister = viewModel.shouldNavigateToParticipanteRegister.collectAsState().value
     
     // Configuración para Google Auth
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -95,6 +96,43 @@ fun LoginScreen(
             navController.navigate("eventos") {
                 popUpTo("login") { inclusive = true }
             }
+        }
+    }
+    
+    // Navegar a la pantalla de registro de participante después de la autenticación con Google
+    LaunchedEffect(shouldNavigateToParticipanteRegister) {
+        if (shouldNavigateToParticipanteRegister) {
+            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: shouldNavigateToParticipanteRegister = true, redirigiendo a pantalla participante")
+            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: User info: Email=${viewModel.user?.email}, Nombre=${viewModel.user?.nombre}")
+            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Token recibido: ${viewModel.token?.take(10)}...")
+            
+            // Guardamos datos relevantes en el RegisterViewModel a través de la navegación
+            navController.currentBackStackEntry?.savedStateHandle?.set("google_login", true)
+            val userEmail = viewModel.user?.email ?: ""
+            val userName = viewModel.user?.nombre ?: ""
+            val userLastName = viewModel.user?.apellido1 ?: ""
+            val userLastName2 = viewModel.user?.apellido2 ?: ""
+            val token = viewModel.token ?: ""
+            
+            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Pasando datos a pantalla de registro: Email=$userEmail, Nombre=$userName")
+            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Pasando token: ${token.take(10)}...")
+            
+            navController.currentBackStackEntry?.savedStateHandle?.set("user_email", userEmail)
+            navController.currentBackStackEntry?.savedStateHandle?.set("user_name", userName)
+            navController.currentBackStackEntry?.savedStateHandle?.set("user_lastname", userLastName)
+            navController.currentBackStackEntry?.savedStateHandle?.set("user_lastname2", userLastName2)
+            navController.currentBackStackEntry?.savedStateHandle?.set("token", token)
+            
+            // Navegamos al registro/pantalla de participante
+            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Iniciando navegación a register/participante")
+            navController.navigate("register/participante") {
+                // Mantén el login en la pila para poder volver si es necesario
+                popUpTo("login") { inclusive = false }
+            }
+            
+            // Reseteamos el flag para evitar navegaciones no deseadas
+            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Resetenado estado para evitar navegaciones duplicadas")
+            viewModel.resetState()
         }
     }
     

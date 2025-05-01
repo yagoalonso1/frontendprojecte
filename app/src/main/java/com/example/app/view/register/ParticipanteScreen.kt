@@ -35,11 +35,52 @@ import com.example.app.R
 import com.example.app.viewmodel.RegisterViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import android.util.Log
 
 @Composable
 fun ParticipanteScreen(
     viewModel: RegisterViewModel
 ) {
+    // Cargar datos de Google Auth si existen
+    LaunchedEffect(Unit) {
+        val sharedPrefs = com.example.app.MyApplication.appContext.getSharedPreferences(
+            "GoogleAuthData",
+            android.content.Context.MODE_PRIVATE
+        )
+        
+        val isFromGoogle = sharedPrefs.getBoolean("is_from_google", false)
+        if (isFromGoogle) {
+            val email = sharedPrefs.getString("google_email", "") ?: ""
+            val nombre = sharedPrefs.getString("google_nombre", "") ?: ""
+            val apellido1 = sharedPrefs.getString("google_apellido1", "") ?: ""
+            val token = sharedPrefs.getString("google_token", null)
+            
+            Log.d("PARTICIPANTE_SCREEN", "Datos detectados de Google Auth: Email=$email, Nombre=$nombre")
+            
+            // Establecer datos de Google en el ViewModel
+            viewModel.setGoogleAuthData(
+                email = email,
+                name = nombre,
+                apellido1 = apellido1,
+                apellido2 = null,
+                token = token
+            )
+            
+            // Limpiar preferencias después de usarlas
+            with(sharedPrefs.edit()) {
+                clear()
+                apply()
+            }
+        }
+    }
+    
+    // Mostramos logs para depuración
+    val isFromGoogleAuth = viewModel.isFromGoogleAuth
+    Log.d("PARTICIPANTE_SCREEN", "==== INICIANDO PANTALLA PARTICIPANTE ====")
+    Log.d("PARTICIPANTE_SCREEN", "Datos precargados: Email=${viewModel.email}, Nombre=${viewModel.name}")
+    Log.d("PARTICIPANTE_SCREEN", "¿Es de Google Auth? $isFromGoogleAuth")
+    Log.d("PARTICIPANTE_SCREEN", "Token Google: ${viewModel.googleToken?.take(10) ?: "null"}...")
+    
     // Mostrar requisitos de contraseña
     var showPasswordRequirements by remember { mutableStateOf(false) }
     
@@ -51,7 +92,20 @@ fun ParticipanteScreen(
     val allFieldsFilled = viewModel.dni.isNotEmpty() && viewModel.telefono.isNotEmpty()
     val allFieldsValid = !viewModel.isDniError && !viewModel.isTelefonoError
     val buttonEnabled = allFieldsFilled && allFieldsValid
+    
+    Log.d("PARTICIPANTE_SCREEN", "Estado botón: allFieldsFilled=$allFieldsFilled, allFieldsValid=$allFieldsValid")
+    Log.d("PARTICIPANTE_SCREEN", "DNI=${viewModel.dni}, Teléfono=${viewModel.telefono}")
+    Log.d("PARTICIPANTE_SCREEN", "DNI válido=$dniValid, Teléfono válido=$telefonoValid")
 
+    // Monitorear registro exitoso
+    val isRegistrationSuccessful by viewModel.isRegisterSuccessful.collectAsState()
+    
+    LaunchedEffect(isRegistrationSuccessful) {
+        if (isRegistrationSuccessful) {
+            Log.d("PARTICIPANTE_SCREEN", "==== REGISTRO EXITOSO DETECTADO ====")
+        }
+    }
+    
     // Pantalla principal
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -144,6 +198,7 @@ fun ParticipanteScreen(
                             
                             if (formattedInput.isNotEmpty()) {
                                 viewModel.validateField("dni", formattedInput)
+                                Log.d("PARTICIPANTE_SCREEN", "DNI cambiado: $formattedInput, válido=${!viewModel.isDniError}")
                             } else {
                                 viewModel.isDniError = false
                             }
@@ -183,6 +238,7 @@ fun ParticipanteScreen(
                             
                             if (digitsOnly.isNotEmpty()) {
                                 viewModel.validateField("telefono", digitsOnly)
+                                Log.d("PARTICIPANTE_SCREEN", "Teléfono cambiado: $digitsOnly, válido=${!viewModel.isTelefonoError}")
                             } else {
                                 viewModel.isTelefonoError = false
                             }
@@ -221,6 +277,11 @@ fun ParticipanteScreen(
                     onClick = {
                         // Asegurarse de que la validación sea correcta
                         if (allFieldsFilled && allFieldsValid) {
+                            Log.d("PARTICIPANTE_SCREEN", "==== INICIANDO REGISTRO ====")
+                            Log.d("PARTICIPANTE_SCREEN", "DNI: ${viewModel.dni}")
+                            Log.d("PARTICIPANTE_SCREEN", "Teléfono: ${viewModel.telefono}")
+                            Log.d("PARTICIPANTE_SCREEN", "isFromGoogleAuth: ${viewModel.isFromGoogleAuth}")
+                            
                             viewModel.mostrarMensaje("VALIDACIÓN EXITOSA EN PARTICIPANTE SCREEN")
                             viewModel.mostrarMensaje("DNI: ${viewModel.dni}")
                             viewModel.mostrarMensaje("Teléfono: ${viewModel.telefono}")
@@ -228,6 +289,10 @@ fun ParticipanteScreen(
                             // Llamar a registerParticipante que ya maneja el rol
                             viewModel.registerParticipante()
                         } else {
+                            Log.e("PARTICIPANTE_SCREEN", "==== VALIDACIÓN FALLIDA ====")
+                            Log.e("PARTICIPANTE_SCREEN", "Campos llenos: $allFieldsFilled, Campos válidos: $allFieldsValid")
+                            Log.e("PARTICIPANTE_SCREEN", "DNI error: ${viewModel.isDniError}, Teléfono error: ${viewModel.isTelefonoError}")
+                            
                             viewModel.mostrarMensaje("VALIDACIÓN FALLIDA EN PARTICIPANTE SCREEN")
                             if (!allFieldsFilled) {
                                 viewModel.mostrarMensaje("Faltan campos: DNI=${viewModel.dni.isEmpty()}, Teléfono=${viewModel.telefono.isEmpty()}")
@@ -275,8 +340,12 @@ fun ParticipanteScreen(
     // Mensaje de error
     if (viewModel.isError) {
         val errorMessageState by viewModel.errorMessage.collectAsState()
+        Log.e("PARTICIPANTE_SCREEN", "Mostrando error: $errorMessageState")
         AlertDialog(
-            onDismissRequest = { viewModel.clearError() },
+            onDismissRequest = { 
+                viewModel.clearError() 
+                Log.d("PARTICIPANTE_SCREEN", "Error cerrado por usuario")
+            },
             title = { 
                 androidx.compose.material3.Text(
                     text = "Error",
@@ -292,7 +361,10 @@ fun ParticipanteScreen(
                 ) 
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.clearError() }) {
+                TextButton(onClick = { 
+                    viewModel.clearError() 
+                    Log.d("PARTICIPANTE_SCREEN", "Error confirmado por usuario")
+                }) {
                     androidx.compose.material3.Text(
                         text = "Aceptar",
                         style = MaterialTheme.typography.labelLarge,
@@ -309,6 +381,7 @@ fun ParticipanteScreen(
     // Mensaje de éxito
     val isRegisterSuccessful by viewModel.isRegisterSuccessful.collectAsState()
     if (isRegisterSuccessful) {
+        Log.d("PARTICIPANTE_SCREEN", "Mostrando diálogo de éxito")
         AlertDialog(
             onDismissRequest = { /* No hacer nada, la navegación se maneja en AppNavHost */ },
             title = { 
@@ -328,7 +401,10 @@ fun ParticipanteScreen(
             },
             confirmButton = {
                 // Quitamos la acción del botón para evitar interferencias con la navegación automática
-                TextButton(onClick = { /* No hacer nada, la navegación se maneja en AppNavHost */ }) {
+                TextButton(onClick = { 
+                    /* No hacer nada, la navegación se maneja en AppNavHost */ 
+                    Log.d("PARTICIPANTE_SCREEN", "Confirmado diálogo de éxito")
+                }) {
                     Text(
                         text = "Hecho",
                         style = MaterialTheme.typography.labelLarge.copy(
@@ -345,6 +421,7 @@ fun ParticipanteScreen(
     
     // Indicador de carga
     if (viewModel.isLoading) {
+        Log.d("PARTICIPANTE_SCREEN", "Mostrando indicador de carga")
         Box(
             modifier = Modifier
                 .fillMaxSize()
