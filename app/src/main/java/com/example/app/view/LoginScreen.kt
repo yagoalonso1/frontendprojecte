@@ -56,6 +56,7 @@ fun LoginScreen(
     val errorMessage = viewModel.errorMessage
     val isError = errorMessage != null
     val isLoginSuccessful = viewModel.isLoginSuccessful.collectAsState().value
+    val needsProfileCompletion = viewModel.needsProfileCompletion.collectAsState().value
     
     // Configuración para Google Auth
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -77,23 +78,31 @@ fun LoginScreen(
         viewModel.resetState()
     }
     
-    // Navegar cuando el login es exitoso
-    LaunchedEffect(isLoginSuccessful) {
-        if (isLoginSuccessful) {
-            val userRole = viewModel.user?.role ?: ""
-            Log.d("LoginScreen", "Rol del usuario en login: $userRole")
-            
-            SessionManager.saveUserRole(userRole)
-            Log.d("LoginScreen", "Rol guardado en SessionManager: ${SessionManager.getUserRole()}")
-            
-            navController.currentBackStackEntry?.savedStateHandle?.set("login_successful", true)
-            
-            viewModel.googleAccount?.let { account ->
-                ticketsViewModel.googleAccount = account
+    // Manejar navegación según el estado
+    LaunchedEffect(isLoginSuccessful, needsProfileCompletion) {
+        when {
+            needsProfileCompletion -> {
+                // Si necesita completar perfil, navegar a la pantalla correspondiente
+                Log.d("LoginScreen", "Redirigiendo a completar perfil")
+                navController.navigate("register/complete_profile") {
+                    popUpTo("login") { inclusive = true }
+                }
             }
-            
-            navController.navigate("eventos") {
-                popUpTo("login") { inclusive = true }
+            isLoginSuccessful -> {
+                // Si el login es exitoso y no necesita completar perfil, navegar a eventos
+                Log.d("LoginScreen", "Login exitoso, navegando a eventos")
+                
+                // Guardar el estado del login exitoso
+                navController.currentBackStackEntry?.savedStateHandle?.set("login_successful", true)
+                
+                // Guardar la cuenta de Google si está disponible
+                viewModel.googleAccount?.let { account ->
+                    ticketsViewModel.googleAccount = account
+                }
+                
+                navController.navigate("eventos") {
+                    popUpTo("login") { inclusive = true }
+                }
             }
         }
     }

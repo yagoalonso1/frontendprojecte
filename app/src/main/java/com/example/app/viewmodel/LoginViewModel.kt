@@ -47,6 +47,14 @@ class LoginViewModel : ViewModel() {
     private val _isLogoutSuccessful = MutableStateFlow(false)
     val isLogoutSuccessful = _isLogoutSuccessful.asStateFlow()
 
+    // Nuevo estado para controlar si necesita completar perfil
+    private val _needsProfileCompletion = MutableStateFlow(false)
+    val needsProfileCompletion = _needsProfileCompletion.asStateFlow()
+    
+    // Datos temporales del usuario de Google para pasar a la pantalla de completar perfil
+    private var _tempGoogleUserData: GoogleUserInfo? = null
+    val tempGoogleUserData get() = _tempGoogleUserData
+
     fun onLoginClick() {
         // Validar campos
         if (!validateFields()) {
@@ -314,183 +322,131 @@ class LoginViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 isLoading = true
+                _tempGoogleUserData = account // Guardamos los datos temporalmente
                 val request = GoogleAuthRequest(
                     email = account.email,
                     nombre = account.nombre,
                     apellido1 = account.apellido1,
                     apellido2 = account.apellido2,
                     photoUrl = account.photoUrl,
-                    token = account.email, // Usamos el email como identificador temporal
-                    id = account.email.split("@")[0], // Usamos la parte local del email como ID
-                    googleId = account.email // Usamos el email como googleId temporal
+                    token = account.email,
+                    id = account.email.split("@")[0],
+                    googleId = account.email
                 )
                 
-                Log.d("LoginViewModel", "Enviando solicitud de login con Google: $request")
+                Log.d("LoginViewModel", "Iniciando proceso de autenticación con Google: $request")
                 
-                // Intentar primero con el endpoint /api/auth/google/mobile/register
                 try {
-                    val response: Response<LoginResponse> = withContext(Dispatchers.IO) {
-                        RetrofitClient.apiService.registerWithGoogleMobile(request)
+                    val loginResponse = withContext(Dispatchers.IO) {
+                        RetrofitClient.apiService.loginWithGoogleMobile(request)
                     }
 
-                    withContext(Dispatchers.Main) {
-                        isLoading = false
-                        if (response.isSuccessful) {
-                            val loginResponse = response.body()
-                            Log.d("LoginViewModel", "Respuesta exitosa de login con Google: $loginResponse")
-                            
-                            if (loginResponse != null) {
-                                // Obtener token, puede estar en diferentes campos según el backend
-                                val accessToken = loginResponse.token ?: loginResponse.accessToken
-                                
-                                if (accessToken.isNullOrBlank()) {
-                                    setError("No se recibió un token válido del servidor")
-                                    Log.e("LoginViewModel", "Token nulo o vacío en respuesta de Google")
-                                    return@withContext
-                                }
-                                
-                                // Guardar los datos en memoria
-                                token = accessToken
-                                user = loginResponse.user
-                                
-                                Log.d("LoginViewModel", "Token guardado: $token")
-                                Log.d("LoginViewModel", "Usuario: ${user?.email}, Rol: ${user?.role}")
-                                
-                                // Guardar en SessionManager
-                                try {
-                                    if (SessionManager.isInitialized()) {
-                                        SessionManager.saveToken(accessToken)
-                                        
-                                        // Determinar y guardar el rol
-                                        val userRole = when {
-                                            loginResponse.role?.isNotBlank() == true -> loginResponse.role
-                                            loginResponse.userRole?.isNotBlank() == true -> loginResponse.userRole
-                                            loginResponse.userRoleAlt?.isNotBlank() == true -> loginResponse.userRoleAlt
-                                            user?.role?.isNotBlank() == true -> user?.role
-                                            else -> "participante" // valor por defecto
-                                        }
-                                        
-                                        userRole?.let { SessionManager.saveUserRole(it) }
-                                        Log.d("LoginViewModel", "Rol guardado en SessionManager: ${SessionManager.getUserRole()}")
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e("LoginViewModel", "Error al guardar sesión: ${e.message}")
-                                }
-                                
-                                // Señalizar login exitoso
-                                clearFields()
-                                _isLoginSuccessful.value = true
-                            } else {
-                                setError("Error: respuesta vacía del servidor")
-                            }
-                        } else {
-                            try {
-                                val errorBody = response.errorBody()?.string()
-                                Log.e("LoginViewModel", "Error en login con Google: $errorBody")
-                                if (errorBody != null) {
-                                    val type: Type = object : TypeToken<Map<String, String>>() {}.type
-                                    val errorResponse = Gson().fromJson<Map<String, String>>(errorBody, type)
-                                    val message = errorResponse["message"] ?: "Error en la comunicación con el servidor"
-                                    setError(message)
-                                } else {
-                                    setError("Error en la comunicación con el servidor: ${response.code()}")
-                                }
-                            } catch (e: Exception) {
-                                setError("Error en la comunicación con el servidor: ${response.code()}")
-                            }
-                        }
+                    if (loginResponse.isSuccessful) {
+                        // Si el login es exitoso, el usuario ya existe
+                        processGoogleAuthResponse(loginResponse.body(), false)
+                        return@launch
                     }
-                } catch (e: Exception) {
-                    Log.e("LoginViewModel", "Error con registerWithGoogleMobile, intentando loginWithGoogleMobile", e)
                     
-                    // Si falla, intentar con el endpoint alternativo
-                    try {
-                        val response: Response<LoginResponse> = withContext(Dispatchers.IO) {
-                            RetrofitClient.apiService.loginWithGoogleMobile(request)
+                    if (loginResponse.code() == 404) {
+                        Log.d("LoginViewModel", "Usuario no encontrado, intentando registro")
+                        val registerResponse = withContext(Dispatchers.IO) {
+                            RetrofitClient.apiService.registerWithGoogleMobile(request)
                         }
                         
-                        withContext(Dispatchers.Main) {
-                            isLoading = false
-                            if (response.isSuccessful) {
-                                val loginResponse = response.body()
-                                Log.d("LoginViewModel", "Respuesta exitosa de login con Google (alternativo): $loginResponse")
-                                
-                                // Mismo procesamiento que antes...
-                                if (loginResponse != null) {
-                                    // Obtener token, puede estar en diferentes campos según el backend
-                                    val accessToken = loginResponse.token ?: loginResponse.accessToken
-                                    
-                                    if (accessToken.isNullOrBlank()) {
-                                        setError("No se recibió un token válido del servidor")
-                                        Log.e("LoginViewModel", "Token nulo o vacío en respuesta de Google")
-                                        return@withContext
-                                    }
-                                    
-                                    // Guardar los datos en memoria
-                                    token = accessToken
-                                    user = loginResponse.user
-                                    
-                                    Log.d("LoginViewModel", "Token guardado: $token")
-                                    Log.d("LoginViewModel", "Usuario: ${user?.email}, Rol: ${user?.role}")
-                                    
-                                    // Guardar en SessionManager
-                                    try {
-                                        if (SessionManager.isInitialized()) {
-                                            SessionManager.saveToken(accessToken)
-                                            
-                                            // Determinar y guardar el rol
-                                            val userRole = when {
-                                                loginResponse.role?.isNotBlank() == true -> loginResponse.role
-                                                loginResponse.userRole?.isNotBlank() == true -> loginResponse.userRole
-                                                loginResponse.userRoleAlt?.isNotBlank() == true -> loginResponse.userRoleAlt
-                                                user?.role?.isNotBlank() == true -> user?.role
-                                                else -> "participante" // valor por defecto
-                                            }
-                                            
-                                            userRole?.let { SessionManager.saveUserRole(it) }
-                                            Log.d("LoginViewModel", "Rol guardado en SessionManager: ${SessionManager.getUserRole()}")
-                                        }
-                                    } catch (e: Exception) {
-                                        Log.e("LoginViewModel", "Error al guardar sesión: ${e.message}")
-                                    }
-                                    
-                                    // Señalizar login exitoso
-                                    clearFields()
-                                    _isLoginSuccessful.value = true
-                                } else {
-                                    setError("Error: respuesta vacía del servidor")
-                                }
-                            } else {
-                                try {
-                                    val errorBody = response.errorBody()?.string()
-                                    Log.e("LoginViewModel", "Error en login con Google: $errorBody")
-                                    if (errorBody != null) {
-                                        val type: Type = object : TypeToken<Map<String, String>>() {}.type
-                                        val errorResponse = Gson().fromJson<Map<String, String>>(errorBody, type)
-                                        val message = errorResponse["message"] ?: "Error en la comunicación con el servidor"
-                                        setError(message)
-                                    } else {
-                                        setError("Error en la comunicación con el servidor: ${response.code()}")
-                                    }
-                                } catch (e: Exception) {
-                                    setError("Error en la comunicación con el servidor: ${response.code()}")
-                                }
-                            }
+                        if (registerResponse.isSuccessful) {
+                            // Si el registro es exitoso, necesitamos completar el perfil
+                            processGoogleAuthResponse(registerResponse.body(), true)
+                            return@launch
+                        } else {
+                            handleErrorResponse(registerResponse)
                         }
-                    } catch (e: Exception) {
-                        Log.e("LoginViewModel", "Excepción durante login con Google en método alternativo", e)
-                        withContext(Dispatchers.Main) {
-                            isLoading = false
-                            setError("Error de conexión: ${e.message ?: "Error desconocido"}")
-                        }
+                    } else {
+                        handleErrorResponse(loginResponse)
                     }
+                } catch (e: Exception) {
+                    Log.e("LoginViewModel", "Error en autenticación con Google", e)
+                    setError("Error de conexión: ${e.message ?: "Error desconocido"}")
+                } finally {
+                    isLoading = false
                 }
             } catch (e: Exception) {
-                Log.e("LoginViewModel", "Excepción general en login con Google", e)
+                Log.e("LoginViewModel", "Error general en proceso de autenticación", e)
                 withContext(Dispatchers.Main) {
                     isLoading = false
                     setError("Error de conexión: ${e.message ?: "Error desconocido"}")
                 }
+            }
+        }
+    }
+
+    private suspend fun processGoogleAuthResponse(loginResponse: LoginResponse?, isNewUser: Boolean) {
+        withContext(Dispatchers.Main) {
+            if (loginResponse != null) {
+                val accessToken = loginResponse.token ?: loginResponse.accessToken
+                
+                if (accessToken.isNullOrBlank()) {
+                    setError("No se recibió un token válido del servidor")
+                    Log.e("LoginViewModel", "Token nulo o vacío en respuesta de Google")
+                    return@withContext
+                }
+                
+                // Guardar los datos en memoria
+                token = accessToken
+                user = loginResponse.user
+                
+                Log.d("LoginViewModel", "Token guardado: $token")
+                Log.d("LoginViewModel", "Usuario: ${user?.email}, Rol: ${user?.role}")
+                
+                // Guardar en SessionManager
+                try {
+                    if (SessionManager.isInitialized()) {
+                        SessionManager.saveToken(accessToken)
+                        
+                        val userRole = when {
+                            loginResponse.role?.isNotBlank() == true -> loginResponse.role
+                            loginResponse.userRole?.isNotBlank() == true -> loginResponse.userRole
+                            loginResponse.userRoleAlt?.isNotBlank() == true -> loginResponse.userRoleAlt
+                            user?.role?.isNotBlank() == true -> user?.role
+                            else -> "participante"
+                        }
+                        
+                        userRole?.let { SessionManager.saveUserRole(it) }
+                        Log.d("LoginViewModel", "Rol guardado en SessionManager: ${SessionManager.getUserRole()}")
+                    }
+                } catch (e: Exception) {
+                    Log.e("LoginViewModel", "Error al guardar sesión: ${e.message}")
+                }
+                
+                if (isNewUser) {
+                    // Si es un nuevo usuario, indicamos que necesita completar el perfil
+                    _needsProfileCompletion.value = true
+                    Log.d("LoginViewModel", "Nuevo usuario: necesita completar perfil")
+                } else {
+                    // Si es un usuario existente, procedemos normalmente
+                    clearFields()
+                    _isLoginSuccessful.value = true
+                }
+            } else {
+                setError("Error: respuesta vacía del servidor")
+            }
+        }
+    }
+
+    private suspend fun handleErrorResponse(response: retrofit2.Response<LoginResponse>) {
+        withContext(Dispatchers.Main) {
+            try {
+                val errorBody = response.errorBody()?.string()
+                Log.e("LoginViewModel", "Error en autenticación con Google: $errorBody")
+                if (errorBody != null) {
+                    val type: Type = object : TypeToken<Map<String, String>>() {}.type
+                    val errorResponse = Gson().fromJson<Map<String, String>>(errorBody, type)
+                    val message = errorResponse["message"] ?: "Error en la comunicación con el servidor"
+                    setError(message)
+                } else {
+                    setError("Error en la comunicación con el servidor: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                setError("Error en la comunicación con el servidor: ${response.code()}")
             }
         }
     }
@@ -534,5 +490,11 @@ class LoginViewModel : ViewModel() {
                 }
             }
         }
+    }
+
+    // Función para limpiar los datos temporales después de completar el perfil
+    fun clearTempGoogleData() {
+        _tempGoogleUserData = null
+        _needsProfileCompletion.value = false
     }
 }
