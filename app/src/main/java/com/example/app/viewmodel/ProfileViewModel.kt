@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 import android.content.Context
 import com.example.app.api.DeleteAccountRequest
 import com.google.gson.Gson
+import retrofit2.Response
 
 class ProfileViewModel : ViewModel() {
     private val TAG = "ProfileViewModel"
@@ -121,7 +122,7 @@ class ProfileViewModel : ViewModel() {
                         if (user != null) {
                             // Crear un ProfileData a partir del User
                             profileData = ProfileData(
-                                id = user.id,
+                                id = user.id as Int?,
                                 nombre = user.nombre,
                                 apellido1 = user.apellido1,
                                 apellido2 = user.apellido2,

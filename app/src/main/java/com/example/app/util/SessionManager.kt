@@ -30,36 +30,58 @@ object SessionManager {
     }
     
     fun saveToken(token: String) {
-        Log.d("SessionManager", "Guardando token: ${token.take(10)}")
         try {
             if (!initialized || prefs == null) {
                 Log.e("SessionManager", "No inicializado, no se puede guardar el token")
                 return
             }
+            
+            if (token.isBlank()) {
+                Log.e("SessionManager", "Intento de guardar token vacío ignorado")
+                return
+            }
+            
+            Log.d("SessionManager", "Guardando token: ${token.take(10)}...")
+            
             // Actualizar caché inmediatamente
             cachedToken = token
+            
             // Guardar en disco
             prefs?.edit()?.putString(KEY_TOKEN, token)?.apply()
+            
+            // Verificar que se guardó correctamente
+            val savedToken = prefs?.getString(KEY_TOKEN, null)
+            if (savedToken != token) {
+                Log.e("SessionManager", "Verificación fallida: token no se guardó correctamente")
+            } else {
+                Log.d("SessionManager", "Token guardado y verificado correctamente")
+            }
         } catch (e: Exception) {
             Log.e("SessionManager", "Error al guardar token: ${e.message}")
         }
     }
     
     fun getToken(): String? {
-        // Si tenemos el token en caché, lo devolvemos directamente sin acceder a disco
-        if (cachedToken != null) {
-            return cachedToken
-        }
-        
         try {
             if (!initialized || prefs == null) {
                 Log.e("SessionManager", "No inicializado, no se puede recuperar el token")
                 return null
             }
+            
+            // Si hay token en caché, devolverlo primero
+            if (!cachedToken.isNullOrBlank()) {
+                Log.d("SessionManager", "Recuperando token de cache: ${cachedToken?.take(10)}...")
+                return cachedToken
+            }
+            
+            // Si no hay en caché, leer de disco
             val token = prefs?.getString(KEY_TOKEN, null)
+            
             Log.d("SessionManager", "Recuperando token de disco: ${token?.take(10)}")
-            // Actualizar caché
+            
+            // Actualizar la caché
             cachedToken = token
+            
             return token
         } catch (e: Exception) {
             Log.e("SessionManager", "Error al recuperar token: ${e.message}")

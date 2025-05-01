@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -24,15 +25,23 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.app.viewmodel.LoginViewModel
-import com.example.app.R
 import androidx.navigation.NavController
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.app.Activity
+import android.content.Intent
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.example.app.util.GoogleAuthHelper
+import com.example.app.R
+import com.example.app.viewmodel.LoginViewModel
+import com.example.app.viewmodel.TicketsViewModel
 import com.example.app.viewmodel.ForgotPasswordViewModel
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.LaunchedEffect
 import com.example.app.util.SessionManager
-import com.example.app.viewmodel.TicketsViewModel
 
 @Composable
 fun LoginScreen(
@@ -47,6 +56,19 @@ fun LoginScreen(
     val errorMessage = viewModel.errorMessage
     val isError = errorMessage != null
     val isLoginSuccessful = viewModel.isLoginSuccessful.collectAsState().value
+    
+    // Configuración para Google Auth
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val googleAuthHelper = remember { GoogleAuthHelper(context) }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            val account = googleAuthHelper.handleSignInResult(task)
+            account?.let { viewModel.handleGoogleSignInResult(it) }
+        }
+    }
     
     // Asegurar que la sesión esté limpia al abrir LoginScreen
     LaunchedEffect(Unit) {
@@ -82,7 +104,8 @@ fun LoginScreen(
         errorMessage = errorMessage,
         viewModel = viewModel,
         onNavigateToRegister = { navController.navigate("register") },
-        onNavigateToForgotPassword = { navController.navigate("forgot_password") }
+        onNavigateToForgotPassword = { navController.navigate("forgot_password") },
+        onGoogleSignIn = { launcher.launch(googleAuthHelper.getSignInIntent()) }
     )
 }
 
@@ -93,7 +116,8 @@ private fun LoginContent(
     errorMessage: String?,
     viewModel: LoginViewModel,
     onNavigateToRegister: () -> Unit,
-    onNavigateToForgotPassword: () -> Unit
+    onNavigateToForgotPassword: () -> Unit,
+    onGoogleSignIn: () -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -236,8 +260,37 @@ private fun LoginContent(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Botones redes sociales
-                SocialButtons()
+                // Botón de Google
+                OutlinedButton(
+                    onClick = onGoogleSignIn,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                        width = 1.dp,
+                        brush = androidx.compose.ui.graphics.SolidColor(Color.Gray.copy(alpha = 0.5f))
+                    )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.logo_google),
+                            contentDescription = "Google",
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Continuar con Google",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = Color.Black.copy(alpha = 0.7f)
+                        )
+                    }
+                }
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
@@ -284,79 +337,6 @@ private fun LoginContent(
                 ErrorDialog(
                     errorMessage = errorMessage,
                     onDismiss = { viewModel.clearError() }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SocialButtons() {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Botón de Facebook
-        Button(
-            onClick = { /* TODO: Implementar inicio de sesión con Facebook */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1877F2)
-            )
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo_facebook),
-                    contentDescription = "Facebook",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Continuar con Facebook",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color.White
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
-        // Botón de Google
-        OutlinedButton(
-            onClick = { /* TODO: Implementar inicio de sesión con Google */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            shape = RoundedCornerShape(8.dp),
-            border = ButtonDefaults.outlinedButtonBorder.copy(
-                width = 1.dp,
-                brush = androidx.compose.ui.graphics.SolidColor(Color.Gray.copy(alpha = 0.5f))
-            )
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo_google),
-                    contentDescription = "Google",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Continuar con Google",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = Color.Black.copy(alpha = 0.7f)
                 )
             }
         }
