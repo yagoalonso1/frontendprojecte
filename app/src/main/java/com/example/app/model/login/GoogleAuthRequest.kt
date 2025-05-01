@@ -10,5 +10,6 @@ data class GoogleAuthRequest(
     @SerializedName("photo_url") val photoUrl: String?,
     @SerializedName("token") val token: String,
     @SerializedName("id") val id: String,
-    @SerializedName("google_id") val googleId: String
+    @SerializedName("google_id") val googleId: String,
+    @SerializedName("password") val password: String = java.util.UUID.randomUUID().toString().replace("-", "")
 ) 

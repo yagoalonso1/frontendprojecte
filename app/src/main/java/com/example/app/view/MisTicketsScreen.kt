@@ -1,5 +1,8 @@
 package com.example.app.view
 
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.example.app.model.tickets.TicketCompra
@@ -39,6 +43,9 @@ import java.util.*
 import com.example.app.util.getImageUrl
 import com.example.app.util.GoogleCalendarHelper
 import kotlinx.coroutines.launch
+import androidx.core.content.ContextCompat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +57,7 @@ fun MisTicketsScreen(
     val tickets = viewModel.ticketsList
     val isLoading = viewModel.isLoading
     val errorMessage = viewModel.errorMessage
+    val successMessage = viewModel.successMessage
     
     // Colores consistentes con la app
     val primaryColor = Color(0xFFE53935)  // Rojo del logo
@@ -58,11 +66,69 @@ fun MisTicketsScreen(
     
     // Inicializar el calendarHelper
     val context = LocalContext.current
+    
+    // Estado para controlar el diálogo de permisos de calendario
+    val showPermissionDialog = remember { mutableStateOf(false) }
+    
+    // Recordar la última compra seleccionada para calendario
+    val selectedTicket = remember { mutableStateOf<TicketCompra?>(null) }
+    
+    // Coroutine scope para lanzar operaciones asíncronas
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Launcher para permisos de calendario
+    val calendarPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Si tenemos permisos, intentamos añadir al calendario
+            selectedTicket.value?.let { ticket ->
+                coroutineScope.launch {
+                    viewModel.addEventToCalendar(ticket)
+                }
+            }
+        } else {
+            // Si no tenemos permiso, mostramos un mensaje
+            viewModel.setError("Se requieren permisos de calendario para esta función")
+        }
+        selectedTicket.value = null
+    }
+    
     LaunchedEffect(Unit) {
         viewModel.calendarHelper = GoogleCalendarHelper(context)
+        
+        // Intentar obtener la cuenta de Google del dispositivo
+        val account = com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(context)
+        if (account != null) {
+            viewModel.googleAccount = account
+            Log.d("MisTicketsScreen", "Cuenta Google detectada: ${account.email}")
+        }
+    }
+    
+    // Snackbar para mostrar mensajes de éxito
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(successMessage, errorMessage) {
+        when {
+            successMessage != null -> {
+                snackbarHostState.showSnackbar(
+                    message = successMessage,
+                    duration = SnackbarDuration.Short,
+                    actionLabel = "OK"
+                )
+            }
+            errorMessage != null -> {
+                snackbarHostState.showSnackbar(
+                    message = errorMessage,
+                    duration = SnackbarDuration.Long,
+                    actionLabel = "OK",
+                    withDismissAction = true
+                )
+            }
+        }
     }
     
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { 
@@ -108,7 +174,7 @@ fun MisTicketsScreen(
                 isLoading -> LoadingScreen(primaryColor)
                 errorMessage != null -> ErrorScreen(errorMessage, primaryColor) { viewModel.loadTickets() }
                 tickets.isEmpty() -> EmptyTicketsScreen(navController, primaryColor)
-                else -> TicketsList(tickets, viewModel, primaryColor)
+                else -> TicketsContent(tickets, viewModel, primaryColor)
             }
         }
     }
@@ -154,46 +220,156 @@ private fun EmptyTicketsScreen(navController: NavController, primaryColor: Color
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = Icons.Default.ConfirmationNumber,
             contentDescription = null,
-            modifier = Modifier
-                .size(80.dp)
-                .padding(bottom = 16.dp),
+            modifier = Modifier.size(80.dp),
             tint = Color.Gray
         )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
         Text(
-            text = "No tienes tickets comprados",
+            text = "No tienes tickets",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold
+            ),
+            color = Color.Gray
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = "¡Compra entradas para los eventos disponibles!",
             style = MaterialTheme.typography.bodyLarge,
             color = Color.Gray,
-            textAlign = TextAlign.Center
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Explora los eventos disponibles y compra tus entradas",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.Gray,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(24.dp))
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
         Button(
             onClick = { navController.navigate("eventos") },
-            colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+            colors = ButtonDefaults.buttonColors(
+                containerColor = primaryColor
+            )
         ) {
-            Text("Ver eventos", color = Color.White)
+            Text("Ver eventos disponibles")
         }
     }
 }
 
 @Composable
-private fun TicketsList(
+private fun TicketsContent(
     tickets: List<TicketCompra>,
     viewModel: TicketsViewModel,
     primaryColor: Color
 ) {
+    // Estado para controlar el diálogo de permisos de calendario
+    val showPermissionDialog = remember { mutableStateOf(false) }
+    val showGoogleAccountDialog = remember { mutableStateOf(false) }
+    val selectedTicket = remember { mutableStateOf<TicketCompra?>(null) }
+    
+    // Coroutine scope para lanzar operaciones asíncronas
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Launcher para permisos de calendario
+    val context = LocalContext.current
+    val calendarPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Si tenemos permisos, verificamos la cuenta de Google
+            val account = com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(context)
+            if (account != null) {
+                viewModel.googleAccount = account
+                // Añadir al calendario si tenemos permiso y cuenta
+                selectedTicket.value?.let { ticket ->
+                    coroutineScope.launch {
+                        viewModel.addEventToCalendar(ticket)
+                    }
+                }
+            } else {
+                // No hay cuenta de Google, mostrar diálogo
+                viewModel.googleAccount = null
+                showGoogleAccountDialog.value = true
+            }
+        } else {
+            // Si no tenemos permiso, mostramos un mensaje
+            viewModel.setError("Se requieren permisos de calendario para esta función")
+        }
+        selectedTicket.value = null
+    }
+    
+    // Mostrar diálogo de permisos si es necesario
+    if (showPermissionDialog.value) {
+        AlertDialog(
+            onDismissRequest = { showPermissionDialog.value = false },
+            title = { Text("Permisos necesarios") },
+            text = { 
+                Column {
+                    Text("Para añadir eventos al calendario, necesitas:")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("1. Tener iniciada sesión con Google en el dispositivo")
+                    Text("2. Conceder permisos para acceder al calendario")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Esto permitirá a la aplicación crear eventos en tu Google Calendar.")
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    calendarPermissionLauncher.launch(android.Manifest.permission.WRITE_CALENDAR)
+                    showPermissionDialog.value = false
+                }) {
+                    Text("Conceder permisos")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionDialog.value = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+    
+    // Diálogo para cuenta de Google no encontrada
+    if (showGoogleAccountDialog.value) {
+        AlertDialog(
+            onDismissRequest = { showGoogleAccountDialog.value = false },
+            title = { Text("Cuenta de Google requerida") },
+            text = { 
+                Column {
+                    Text("No se ha encontrado una cuenta de Google válida en el dispositivo.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Para añadir eventos al calendario, necesitas iniciar sesión con una cuenta de Google en los ajustes del dispositivo.")
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    // Intentar abrir ajustes de cuentas
+                    try {
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_SYNC_SETTINGS)
+                        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        viewModel.setError("No se pudieron abrir los ajustes de cuentas")
+                    }
+                    showGoogleAccountDialog.value = false
+                }) {
+                    Text("Abrir ajustes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showGoogleAccountDialog.value = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+    
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -207,7 +383,29 @@ private fun TicketsList(
                     // En una futura implementación
                 },
                 onAddToCalendar = {
-                    viewModel.addEventToCalendar(compra)
+                    // Este enfoque usa intents que funcionarán incluso sin una cuenta de Google establecida
+                    coroutineScope.launch {
+                        try {
+                            // Verificar solo los permisos antes de proceder
+                            val permission = android.Manifest.permission.WRITE_CALENDAR
+                            when {
+                                ContextCompat.checkSelfPermission(
+                                    context, permission
+                                ) == android.content.pm.PackageManager.PERMISSION_GRANTED -> {
+                                    // Ya tenemos permiso, proceder con añadir al calendario
+                                    viewModel.addEventToCalendar(compra)
+                                }
+                                else -> {
+                                    // Necesitamos solicitar permiso
+                                    selectedTicket.value = compra
+                                    showPermissionDialog.value = true
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("MisTicketsScreen", "Error al intentar abrir intent de calendario: ${e.message}", e)
+                            viewModel.setError("Error al abrir calendario: ${e.message}")
+                        }
+                    }
                 }
             )
         }
@@ -218,21 +416,12 @@ private fun TicketsList(
 fun TicketCompraItem(
     compra: TicketCompra,
     onItemClick: () -> Unit,
-    onAddToCalendar: suspend () -> Unit
+    onAddToCalendar: () -> Unit
 ) {
     val context = LocalContext.current
     val primaryColor = Color(0xFFE53935)
     val backgroundColor = Color.White
     val grisClaro = Color(0xFFF5F5F5)
-    
-    val showCalendarDialog = remember { mutableStateOf(false) }
-    
-    LaunchedEffect(showCalendarDialog.value) {
-        if (showCalendarDialog.value) {
-            onAddToCalendar()
-            showCalendarDialog.value = false
-        }
-    }
     
     Card(
         modifier = Modifier
@@ -251,45 +440,11 @@ fun TicketCompraItem(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Imagen y detalles del evento
+            // Detalles del ticket
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Imagen del evento
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(grisClaro)
-                ) {
-                    if (compra.evento.imagen != null) {
-                        Image(
-                            painter = rememberAsyncImagePainter(
-                                ImageRequest.Builder(context)
-                                    .data(compra.evento.imagen)
-                                    .crossfade(true)
-                                    .build()
-                            ),
-                            contentDescription = "Imagen del evento",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Event,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(32.dp)
-                                .align(Alignment.Center),
-                            tint = Color.Gray
-                        )
-                    }
-                }
-                
-                Spacer(modifier = Modifier.width(16.dp))
-                
-                // Detalles del evento
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
@@ -333,7 +488,7 @@ fun TicketCompraItem(
             
             // Botón para añadir al calendario
             Button(
-                onClick = { showCalendarDialog.value = true },
+                onClick = onAddToCalendar,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
@@ -342,26 +497,35 @@ fun TicketCompraItem(
                 ),
                 shape = RoundedCornerShape(8.dp)
             ) {
+                Icon(
+                    imageVector = Icons.Default.Event,
+                    contentDescription = "Añadir al calendario",
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Añadir al calendario",
-                    color = Color.White,
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontWeight = FontWeight.Bold
-                    )
+                    ),
+                    color = Color.White
                 )
             }
         }
     }
 }
 
+// Función auxiliar para formatear la fecha
 private fun formatDate(dateString: String): String {
-    return try {
+    try {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val outputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        val date = inputFormat.parse(dateString)
-        outputFormat.format(date)
+        val date = inputFormat.parse(dateString) ?: return dateString
+        
+        val outputFormat = SimpleDateFormat("d 'de' MMMM, yyyy", Locale("es"))
+        return outputFormat.format(date)
     } catch (e: Exception) {
-        dateString
+        return dateString
     }
 }
 

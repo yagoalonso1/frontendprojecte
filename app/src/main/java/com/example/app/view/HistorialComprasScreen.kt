@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,7 +52,9 @@ private val warningColor = Color(0xFFFFA000)  // Ámbar para estados pendientes
 @Composable
 fun HistorialComprasScreen(
     navController: NavController,
-    viewModel: HistorialComprasViewModel = viewModel()
+    viewModel: HistorialComprasViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        factory = HistorialComprasViewModelFactory(LocalContext.current.applicationContext as android.app.Application)
+    )
 ) {
     val compras by viewModel.compras.collectAsState()
     val isLoading = viewModel.isLoading
@@ -200,7 +203,8 @@ fun HistorialComprasScreen(
                     items(compras) { compra ->
                         CompraCard(
                             compra = compra,
-                            onCompraClick = { /* TODO: Implementar detalle de compra */ }
+                            onCompraClick = { /* TODO: Implementar detalle de compra */ },
+                            viewModel = viewModel
                         )
                     }
                 }
@@ -212,8 +216,12 @@ fun HistorialComprasScreen(
 @Composable
 fun CompraCard(
     compra: CompraItem,
-    onCompraClick: (CompraItem) -> Unit
+    onCompraClick: (CompraItem) -> Unit,
+    viewModel: HistorialComprasViewModel = viewModel()
 ) {
+    val isDownloading by viewModel.isDownloadingPdf.collectAsState()
+    val downloadMessage by viewModel.downloadMessage.collectAsState()
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -388,6 +396,73 @@ fun CompraCard(
                     )
                 }
             }
+
+            // Añadir botón de descarga de factura
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Button(
+                onClick = { viewModel.downloadFactura(compra.id_compra) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF4CAF50),
+                    disabledContainerColor = Color(0xFFE0E0E0)
+                ),
+                shape = RoundedCornerShape(8.dp),
+                enabled = !isDownloading && downloadMessage != "Factura descargada correctamente"
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isDownloading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "DESCARGANDO...",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                    } else if (downloadMessage == "Factura descargada correctamente") {
+                        Icon(
+                            imageVector = Icons.Default.ReceiptLong,
+                            contentDescription = null,
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "FACTURA DESCARGADA",
+                            color = Color(0xFF4CAF50),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.ReceiptLong,
+                            contentDescription = "Descargar factura",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "DESCARGAR FACTURA",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -409,5 +484,17 @@ private fun formatFechaSinYear(dateString: String): String {
     } catch (e: Exception) {
         Log.e("HistorialComprasScreen", "Error al formatear fecha: $e")
         dateString
+    }
+}
+
+class HistorialComprasViewModelFactory(
+    private val application: android.app.Application
+) : androidx.lifecycle.ViewModelProvider.Factory {
+    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(HistorialComprasViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return HistorialComprasViewModel(application) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 } 
