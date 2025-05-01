@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,6 +31,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImagePainter
@@ -44,6 +47,7 @@ import com.example.app.util.getImageUrl
 import com.example.app.util.GoogleCalendarHelper
 import kotlinx.coroutines.launch
 import androidx.core.content.ContextCompat
+import com.example.app.model.tickets.Ticket
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -51,18 +55,21 @@ import kotlinx.coroutines.withContext
 @Composable
 fun MisTicketsScreen(
     navController: NavController,
-    viewModel: TicketsViewModel = viewModel()
+    viewModel: TicketsViewModel = viewModel(
+        factory = TicketsViewModelFactory(LocalContext.current.applicationContext as android.app.Application)
+    )
 ) {
     // Estados
-    val tickets = viewModel.ticketsList
-    val isLoading = viewModel.isLoading
-    val errorMessage = viewModel.errorMessage
-    val successMessage = viewModel.successMessage
+    val tickets by viewModel.tickets.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
+    val downloadMessage by viewModel.downloadMessage.collectAsState()
     
     // Colores consistentes con la app
     val primaryColor = Color(0xFFE53935)  // Rojo del logo
     val backgroundColor = Color.White
     val grisClaro = Color(0xFFF5F5F5)
+    val successColor = Color(0xFF4CAF50)  // Verde para mensajes de éxito
     
     // Inicializar el calendarHelper
     val context = LocalContext.current
@@ -76,59 +83,73 @@ fun MisTicketsScreen(
     // Coroutine scope para lanzar operaciones asíncronas
     val coroutineScope = rememberCoroutineScope()
     
-    // Launcher para permisos de calendario
-    val calendarPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            // Si tenemos permisos, intentamos añadir al calendario
-            selectedTicket.value?.let { ticket ->
-                coroutineScope.launch {
-                    viewModel.addEventToCalendar(ticket)
-                }
-            }
-        } else {
-            // Si no tenemos permiso, mostramos un mensaje
-            viewModel.setError("Se requieren permisos de calendario para esta función")
-        }
-        selectedTicket.value = null
-    }
-    
-    LaunchedEffect(Unit) {
-        viewModel.calendarHelper = GoogleCalendarHelper(context)
-        
-        // Intentar obtener la cuenta de Google del dispositivo
-        val account = com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(context)
-        if (account != null) {
-            viewModel.googleAccount = account
-            Log.d("MisTicketsScreen", "Cuenta Google detectada: ${account.email}")
-        }
-    }
-    
-    // Snackbar para mostrar mensajes de éxito
+    // Snackbar para mostrar mensajes
     val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(successMessage, errorMessage) {
-        when {
-            successMessage != null -> {
-                snackbarHostState.showSnackbar(
-                    message = successMessage,
-                    duration = SnackbarDuration.Short,
-                    actionLabel = "OK"
-                )
-            }
-            errorMessage != null -> {
-                snackbarHostState.showSnackbar(
-                    message = errorMessage,
-                    duration = SnackbarDuration.Long,
-                    actionLabel = "OK",
-                    withDismissAction = true
-                )
-            }
+    
+    // Efecto para mostrar Snackbar cuando se complete la descarga
+    LaunchedEffect(downloadMessage) {
+        if (downloadMessage == "¡Entrada descargada correctamente!") {
+            snackbarHostState.showSnackbar(
+                message = "¡Entrada descargada con éxito!",
+                actionLabel = "Ver",
+                duration = SnackbarDuration.Long,
+                withDismissAction = true
+            )
+        } else if (downloadMessage?.startsWith("Error") == true) {
+            snackbarHostState.showSnackbar(
+                message = downloadMessage ?: "Error al descargar",
+                actionLabel = "OK",
+                duration = SnackbarDuration.Long,
+                withDismissAction = true
+            )
+        }
+    }
+    
+    // Efecto para mostrar mensajes de error
+    LaunchedEffect(error) {
+        error?.let { errorMessage ->
+            snackbarHostState.showSnackbar(
+                message = errorMessage,
+                duration = SnackbarDuration.Long,
+                actionLabel = "OK",
+                withDismissAction = true
+            )
         }
     }
     
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        snackbarHost = { 
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    modifier = Modifier.padding(16.dp),
+                    action = {
+                        TextButton(
+                            onClick = { data.dismiss() }
+                        ) {
+                            Text(
+                                text = data.visuals.actionLabel ?: "OK",
+                                color = Color.White
+                            )
+                        }
+                    },
+                    containerColor = if (data.visuals.message.startsWith("¡")) successColor else primaryColor,
+                    contentColor = Color.White,
+                    dismissAction = if (data.visuals.withDismissAction) {
+                        {
+                            IconButton(onClick = { data.dismiss() }) {
+                                Icon(
+                                    Icons.Default.KeyboardArrowRight,
+                                    contentDescription = "Cerrar",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                    } else null
+                ) {
+                    Text(data.visuals.message)
+                }
+            }
+        },
         topBar = {
             TopAppBar(
                 title = { 
@@ -172,7 +193,7 @@ fun MisTicketsScreen(
         ) {
             when {
                 isLoading -> LoadingScreen(primaryColor)
-                errorMessage != null -> ErrorScreen(errorMessage, primaryColor) { viewModel.loadTickets() }
+                error != null -> ErrorScreen(error!!, primaryColor) { viewModel.loadTickets() }
                 tickets.isEmpty() -> EmptyTicketsScreen(navController, primaryColor)
                 else -> TicketsContent(tickets, viewModel, primaryColor)
             }
@@ -406,7 +427,8 @@ private fun TicketsContent(
                             viewModel.setError("Error al abrir calendario: ${e.message}")
                         }
                     }
-                }
+                },
+                viewModel = viewModel
             )
         }
     }
@@ -416,12 +438,17 @@ private fun TicketsContent(
 fun TicketCompraItem(
     compra: TicketCompra,
     onItemClick: () -> Unit,
-    onAddToCalendar: () -> Unit
+    onAddToCalendar: () -> Unit,
+    viewModel: TicketsViewModel
 ) {
     val context = LocalContext.current
     val primaryColor = Color(0xFFE53935)
     val backgroundColor = Color.White
     val grisClaro = Color(0xFFF5F5F5)
+    
+    // Estados para la descarga
+    val isDownloading by viewModel.isDownloadingPdf.collectAsState()
+    val downloadMessage by viewModel.downloadMessage.collectAsState()
     
     Card(
         modifier = Modifier
@@ -486,31 +513,108 @@ fun TicketCompraItem(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Botón para añadir al calendario
-            Button(
-                onClick = onAddToCalendar,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = primaryColor
-                ),
-                shape = RoundedCornerShape(8.dp)
+            // Botones
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Event,
-                    contentDescription = "Añadir al calendario",
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Añadir al calendario",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Bold
+                // Botón para añadir al calendario
+                Button(
+                    onClick = onAddToCalendar,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryColor
                     ),
-                    color = Color.White
-                )
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Event,
+                        contentDescription = "Añadir al calendario",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Calendario",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White
+                    )
+                }
+                
+                // Botón para descargar entrada
+                Button(
+                    onClick = { 
+                        compra.tickets.firstOrNull()?.let { ticket ->
+                            viewModel.downloadEntrada(ticket.id)
+                        }
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isDownloading) Color(0xFFE0E0E0) else Color(0xFF4CAF50),
+                        contentColor = Color.White,
+                        disabledContainerColor = Color(0xFFE0E0E0),
+                        disabledContentColor = Color.White.copy(alpha = 0.7f)
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    enabled = !isDownloading && downloadMessage != "¡Entrada descargada correctamente!"
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (isDownloading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = downloadMessage ?: "Descargando...",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = Color.White
+                            )
+                        } else if (downloadMessage == "¡Entrada descargada correctamente!") {
+                            Icon(
+                                imageVector = Icons.Default.Receipt,
+                                contentDescription = "Entrada descargada",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "¡Descargada!",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = Color.White
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Receipt,
+                                contentDescription = "Descargar entrada",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Descargar",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -544,4 +648,97 @@ fun formatDateShort(dateString: String): String {
 // Función para formatear el precio
 fun formatPrice(price: Double): String {
     return String.format(Locale.getDefault(), "%.2f", price)
+}
+
+@Composable
+fun TicketCard(
+    ticket: Ticket,
+    onTicketClick: (Ticket) -> Unit,
+    viewModel: TicketsViewModel = viewModel(
+        factory = TicketsViewModelFactory(LocalContext.current.applicationContext as android.app.Application)
+    )
+) {
+    val isDownloading by viewModel.isDownloadingPdf.collectAsState()
+    val downloadMessage by viewModel.downloadMessage.collectAsState()
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable { onTicketClick(ticket) },
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // ... resto del código existente ...
+
+            // Botón de descarga de entrada
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Button(
+                onClick = { viewModel.downloadEntrada(ticket.id) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF4CAF50),
+                    disabledContainerColor = Color(0xFFE0E0E0)
+                ),
+                shape = RoundedCornerShape(8.dp),
+                enabled = !isDownloading && downloadMessage != "Entrada descargada correctamente"
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isDownloading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "DESCARGANDO...",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                    } else if (downloadMessage == "Entrada descargada correctamente") {
+                        Icon(
+                            imageVector = Icons.Default.Receipt,
+                            contentDescription = null,
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "ENTRADA DESCARGADA",
+                            color = Color(0xFF4CAF50),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+class TicketsViewModelFactory(
+    private val application: android.app.Application
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(TicketsViewModel::class.java)) {
+            return TicketsViewModel(application) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
 } 

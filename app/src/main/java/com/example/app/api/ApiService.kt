@@ -272,6 +272,13 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("id") idCompra: Int
     ): Response<ResponseBody>
+
+    @GET("api/entrada/{id}/pdf")
+    @Headers("Accept: application/pdf", "Content-Type: application/pdf")
+    suspend fun downloadEntrada(
+        @Header("Authorization") token: String,
+        @Path("id") idEntrada: Int
+    ): Response<ResponseBody>
 }
 
 data class FavoritosResponse(

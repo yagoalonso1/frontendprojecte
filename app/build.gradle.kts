@@ -104,6 +104,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.8.2")
+    implementation("androidx.compose.runtime:runtime")
     implementation("androidx.compose.runtime:runtime-livedata:1.5.4")
 
     // Glide

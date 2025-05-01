@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -24,7 +25,6 @@ import kotlinx.coroutines.delay
 import android.util.Log
 import com.example.app.util.SessionManager
 import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
 import android.content.Context
 import com.example.app.model.Organizador
 import com.example.app.view.organizador.OrganizadorDetailScreen
@@ -317,9 +317,12 @@ fun AppNavHost(
         }
         
         composable(Routes.MisTickets.route) {
+            val context = LocalContext.current
             MisTicketsScreen(
                 navController = navController,
-                viewModel = viewModel()
+                viewModel = viewModel(
+                    factory = TicketsViewModelFactory(context.applicationContext as android.app.Application)
+                )
             )
         }
         
