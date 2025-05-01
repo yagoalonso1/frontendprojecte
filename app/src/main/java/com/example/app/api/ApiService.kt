@@ -47,6 +47,7 @@ import retrofit2.http.FormUrlEncoded
 import retrofit2.http.Field
 import retrofit2.http.Query
 import retrofit2.http.Headers
+import okhttp3.ResponseBody
 
 interface ApiService {
     @POST("api/register")
@@ -264,6 +265,13 @@ interface ApiService {
 
     @POST("api/auth/google/mobile/register")
     suspend fun registerWithGoogleMobile(@Body request: GoogleAuthRequest): Response<LoginResponse>
+
+    @GET("api/factura/{id}/pdf")
+    @Headers("Accept: application/pdf")
+    suspend fun downloadFactura(
+        @Header("Authorization") token: String,
+        @Path("id") idCompra: Int
+    ): Response<ResponseBody>
 }
 
 data class FavoritosResponse(
