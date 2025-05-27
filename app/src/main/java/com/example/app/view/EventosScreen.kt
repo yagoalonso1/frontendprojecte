@@ -37,6 +37,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -49,6 +50,7 @@ import coil.request.ImageRequest
 import com.example.app.R
 import com.example.app.model.Evento
 import com.example.app.util.formatDate
+import com.example.app.util.CategoryTranslator
 import com.example.app.viewmodel.EventoViewModel
 import kotlinx.coroutines.launch
 import com.example.app.routes.BottomNavigationBar
@@ -126,7 +128,7 @@ fun EventosScreen(
             TopAppBar(
                 title = { 
                     Text(
-                        text = "EVENTOS",
+                        text = stringResource(id = R.string.eventos_titulo),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 22.sp,
@@ -178,7 +180,7 @@ fun EventosScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = errorMessage ?: "Error desconocido",
+                        text = errorMessage ?: stringResource(id = R.string.eventos_error_desconocido),
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.Red,
                         textAlign = TextAlign.Center
@@ -208,7 +210,7 @@ fun EventosScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(8.dp),
-                                placeholder = { Text("Buscar eventos") },
+                                placeholder = { Text(stringResource(id = R.string.eventos_buscar)) },
                                 singleLine = true,
                                 trailingIcon = {
                                     if (searchText.isNotEmpty()) {
@@ -217,7 +219,7 @@ fun EventosScreen(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Close,
-                                                contentDescription = "Limpiar búsqueda",
+                                                contentDescription = stringResource(id = R.string.eventos_limpiar_busqueda),
                                                 tint = Color(0xFFE53935) // Color rojo del logo
                                             )
                                         }
@@ -293,7 +295,7 @@ fun EventoCard(
                     .data(imageUrl)
                     .crossfade(true)
                     .build(),
-                contentDescription = "Imagen del evento",
+                contentDescription = stringResource(id = R.string.eventos_imagen),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .width(120.dp)
@@ -307,7 +309,8 @@ fun EventoCard(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                // Categoría
+                // Categoría traducida
+                val categoriaTraducida = CategoryTranslator.translate(evento.categoria)
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
@@ -315,7 +318,7 @@ fun EventoCard(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = evento.categoria,
+                        text = categoriaTraducida,
                         style = MaterialTheme.typography.labelMedium,
                         color = primaryColor,
                         fontWeight = FontWeight.Medium
@@ -348,7 +351,7 @@ fun EventoCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = "Fecha",
+                            contentDescription = stringResource(id = R.string.eventos_fecha),
                             tint = primaryColor,
                             modifier = Modifier.size(16.dp)
                         )
@@ -368,7 +371,7 @@ fun EventoCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Schedule,
-                            contentDescription = "Hora",
+                            contentDescription = stringResource(id = R.string.eventos_hora),
                             tint = primaryColor,
                             modifier = Modifier.size(16.dp)
                         )
@@ -401,7 +404,7 @@ fun EventoCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Ubicación",
+                        contentDescription = stringResource(id = com.example.app.R.string.eventos_ubicacion),
                         tint = primaryColor,
                         modifier = Modifier.size(16.dp)
                     )
@@ -420,15 +423,71 @@ fun EventoCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 // Precio
-                val precios = evento.entradas?.map { it.precio } ?: emptyList()
-                val precioMinimo = precios.minOrNull() ?: 0.0
-                val precioMaximo = precios.maxOrNull() ?: 0.0
+                val entradas = evento.entradas ?: emptyList()
+                
+                // Solo registramos en el log si la lista no es null
+                if (entradas.isNotEmpty()) {
+                    Log.d("EventosCard", "Evento ${evento.titulo} - Entradas: ${entradas.size}")
+                    entradas.forEachIndexed { index, entrada ->
+                        Log.d("EventosCard", "  Entrada[$index]: ${entrada.nombre}, " +
+                              "esIlimitado=${entrada.esIlimitado}, " +
+                              "cantidadDisponible=${entrada.cantidadDisponible}, " +
+                              "entradasVendidas=${entrada.entradasVendidas}")
+                    }
+                } else {
+                    Log.d("EventosCard", "Evento ${evento.titulo} - Sin entradas definidas")
+                }
+                
+                // Verificar disponibilidad real
+                val hayEntradasDisponibles = if (entradas.isEmpty()) {
+                    // Si no hay entradas definidas, el evento no está disponible para compra
+                    false
+                } else {
+                    // Verificamos si hay alguna entrada que cumpla con las condiciones:
+                    // - Es ilimitada, O
+                    // - Tiene cantidad disponible mayor que las vendidas, O
+                    // - Tiene cantidad disponible NULL (lo que implica ilimitada) y no está marcada como ilimitada explícitamente
+                    entradas.any { entrada ->
+                        val esIlimitadaExplicita = entrada.esIlimitado
+                        val esIlimitadaImplicita = entrada.cantidadDisponible == null && !entrada.esIlimitado
+                        val tieneDisponibilidad = (entrada.cantidadDisponible ?: 0) > entrada.entradasVendidas
+                        
+                        val disponible = esIlimitadaExplicita || esIlimitadaImplicita || tieneDisponibilidad
+                        Log.d("EventosCard", "  Entrada ${entrada.nombre}: " +
+                              "esIlimitadaExplicita=$esIlimitadaExplicita, " + 
+                              "esIlimitadaImplicita=$esIlimitadaImplicita, " +
+                              "tieneDisponibilidad=$tieneDisponibilidad, " +
+                              "-> disponible=$disponible")
+                        disponible
+                    }
+                }
+                
+                Log.d("EventosCard", "  ¿Hay entradas disponibles?: $hayEntradasDisponibles")
+                
+                // Usar precio_minimo y precio_maximo del backend si están disponibles
+                val precioMinimo = if (evento.precioMinimo != null) {
+                    evento.precioMinimo
+                } else if (hayEntradasDisponibles && entradas.isNotEmpty()) {
+                    entradas.map { it.precio }.minOrNull() ?: 0.0
+                } else {
+                    0.0
+                }
+                
+                val precioMaximo = if (evento.precioMaximo != null) {
+                    evento.precioMaximo
+                } else if (hayEntradasDisponibles && entradas.isNotEmpty()) {
+                    entradas.map { it.precio }.maxOrNull() ?: 0.0
+                } else {
+                    0.0
+                }
+                
+                Log.d("EventosCard", "Precios: min=${precioMinimo}, max=${precioMaximo}, hayEntradas=${hayEntradasDisponibles}")
                 
                 Text(
-                    text = if (evento.entradas.isNullOrEmpty()) {
-                        "No disponible"
+                    text = if (!hayEntradasDisponibles) {
+                        stringResource(id = com.example.app.R.string.eventos_no_disponible)
                     } else if (precioMinimo == 0.0 && precioMaximo == 0.0) {
-                        "Gratuito"
+                        stringResource(id = com.example.app.R.string.eventos_gratuito)
                     } else if (precioMinimo == precioMaximo) {
                         "%.2f€".format(precioMinimo)
                     } else {
@@ -436,7 +495,12 @@ fun EventoCard(
                     },
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
-                    color = if (evento.entradas.isNullOrEmpty()) textSecondaryColor else if (precioMinimo == 0.0 && precioMaximo == 0.0) successColor else primaryColor
+                    color = if (!hayEntradasDisponibles) 
+                                textSecondaryColor 
+                            else if (precioMinimo == 0.0 && precioMaximo == 0.0) 
+                                successColor 
+                            else 
+                                primaryColor
                 )
             }
         }

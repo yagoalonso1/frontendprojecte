@@ -96,7 +96,7 @@ interface ApiService {
         @Path("idEvento") idEvento: Int
     ): Response<FavoritoCheckResponse>
     
-    @POST("eventos/{eventoId}/favorito")
+    @POST("api/eventos/{eventoId}/favorito")
     suspend fun toggleFavorito(@Path("eventoId") eventoId: Int): Response<Unit>
     
     @GET("api/mis-eventos")
@@ -217,7 +217,7 @@ interface ApiService {
     // Añadir un evento a favoritos
    
     // Eliminar cuenta de usuario
-    @POST("account")
+    @POST("api/account")
     @Headers("X-HTTP-Method-Override: DELETE")
     suspend fun deleteAccount(
         @Header("Authorization") token: String,
@@ -256,9 +256,6 @@ interface ApiService {
 
     @GET("api/eventos/categoria/{categoria}")
     suspend fun getEventosByCategoria(@Path("categoria") categoria: String): Response<EventosResponse>
-
-    @POST("api/auth/google")
-    suspend fun loginWithGoogle(@Query("email") email: String): Response<LoginResponse>
 
     @POST("api/auth/google/mobile")
     suspend fun handleGoogleMobile(@Body request: GoogleAuthRequest): Response<LoginResponse>

@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,6 +51,9 @@ import androidx.core.content.ContextCompat
 import com.example.app.model.tickets.Ticket
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.activity.ComponentActivity
+import com.example.app.R
+import com.example.app.util.SessionManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,9 +92,9 @@ fun MisTicketsScreen(
     
     // Efecto para mostrar Snackbar cuando se complete la descarga
     LaunchedEffect(downloadMessage) {
-        if (downloadMessage == "¡Entrada descargada correctamente!") {
+        if (downloadMessage == "Entrada descargada correctamente") {
             snackbarHostState.showSnackbar(
-                message = "¡Entrada descargada con éxito!",
+                message = "¡Entrada descargada correctamente!",
                 actionLabel = "Ver",
                 duration = SnackbarDuration.Long,
                 withDismissAction = true
@@ -139,7 +143,7 @@ fun MisTicketsScreen(
                             IconButton(onClick = { data.dismiss() }) {
                                 Icon(
                                     Icons.Default.KeyboardArrowRight,
-                                    contentDescription = "Cerrar",
+                                    contentDescription = "Cerrar", 
                                     tint = Color.White
                                 )
                             }
@@ -154,7 +158,7 @@ fun MisTicketsScreen(
             TopAppBar(
                 title = { 
                     Text(
-                        text = "MIS TICKETS",
+                        text = stringResource(id = R.string.mis_tickets_titulo),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 22.sp,
@@ -230,7 +234,7 @@ private fun ErrorScreen(errorMessage: String, primaryColor: Color, onRetry: () -
             onClick = onRetry,
             colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
         ) {
-            Text("Reintentar", color = Color.White)
+            Text(stringResource(id = R.string.mis_tickets_reintentar), color = Color.White)
         }
     }
 }
@@ -254,7 +258,7 @@ private fun EmptyTicketsScreen(navController: NavController, primaryColor: Color
         Spacer(modifier = Modifier.height(16.dp))
         
         Text(
-            text = "No tienes tickets",
+            text = stringResource(id = R.string.mis_tickets_no_tickets),
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold
             ),
@@ -264,7 +268,7 @@ private fun EmptyTicketsScreen(navController: NavController, primaryColor: Color
         Spacer(modifier = Modifier.height(8.dp))
         
         Text(
-            text = "¡Compra entradas para los eventos disponibles!",
+            text = stringResource(id = R.string.mis_tickets_compra_entradas),
             style = MaterialTheme.typography.bodyLarge,
             color = Color.Gray,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -278,7 +282,7 @@ private fun EmptyTicketsScreen(navController: NavController, primaryColor: Color
                 containerColor = primaryColor
             )
         ) {
-            Text("Ver eventos disponibles")
+            Text(stringResource(id = R.string.mis_tickets_ver_eventos_disponibles))
         }
     }
 }
@@ -320,7 +324,7 @@ private fun TicketsContent(
             }
         } else {
             // Si no tenemos permiso, mostramos un mensaje
-            viewModel.setError("Se requieren permisos de calendario para esta función")
+            viewModel.setError("¡Permiso de calendario requerido!")
         }
         selectedTicket.value = null
     }
@@ -329,15 +333,14 @@ private fun TicketsContent(
     if (showPermissionDialog.value) {
         AlertDialog(
             onDismissRequest = { showPermissionDialog.value = false },
-            title = { Text("Permisos necesarios") },
+            title = { Text("¡Permisos necesarios!") },
             text = { 
                 Column {
-                    Text("Para añadir eventos al calendario, necesitas:")
+                    Text("¡Permiso de calendario desc!")
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("1. Tener iniciada sesión con Google en el dispositivo")
-                    Text("2. Conceder permisos para acceder al calendario")
+                    Text("¡Permiso de calendario req!")
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Esto permitirá a la aplicación crear eventos en tu Google Calendar.")
+                    Text("¡Permiso de calendario perm!")
                 }
             },
             confirmButton = {
@@ -345,12 +348,12 @@ private fun TicketsContent(
                     calendarPermissionLauncher.launch(android.Manifest.permission.WRITE_CALENDAR)
                     showPermissionDialog.value = false
                 }) {
-                    Text("Conceder permisos")
+                    Text("¡Conceder permisos!")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showPermissionDialog.value = false }) {
-                    Text("Cancelar")
+                    Text("¡Cancelar!")
                 }
             }
         )
@@ -360,12 +363,12 @@ private fun TicketsContent(
     if (showGoogleAccountDialog.value) {
         AlertDialog(
             onDismissRequest = { showGoogleAccountDialog.value = false },
-            title = { Text("Cuenta de Google requerida") },
+            title = { Text("¡Cuenta de Google requerida!") },
             text = { 
                 Column {
-                    Text("No se ha encontrado una cuenta de Google válida en el dispositivo.")
+                    Text("¡Cuenta de Google no encontrada!")
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Para añadir eventos al calendario, necesitas iniciar sesión con una cuenta de Google en los ajustes del dispositivo.")
+                    Text("¡Permiso de Google perm!")
                 }
             },
             confirmButton = {
@@ -376,16 +379,16 @@ private fun TicketsContent(
                         intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                         context.startActivity(intent)
                     } catch (e: Exception) {
-                        viewModel.setError("No se pudieron abrir los ajustes de cuentas")
+                        viewModel.setError("¡Error al abrir ajustes de cuentas!")
                     }
                     showGoogleAccountDialog.value = false
                 }) {
-                    Text("Abrir ajustes")
+                    Text("¡Abrir ajustes!")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showGoogleAccountDialog.value = false }) {
-                    Text("Cancelar")
+                    Text("¡Cancelar!")
                 }
             }
         )
@@ -414,7 +417,14 @@ private fun TicketsContent(
                                     context, permission
                                 ) == android.content.pm.PackageManager.PERMISSION_GRANTED -> {
                                     // Ya tenemos permiso, proceder con añadir al calendario
-                                    viewModel.addEventToCalendar(compra)
+                                    // Intentar obtener la Activity
+                                    val activity = context as? androidx.activity.ComponentActivity
+                                    if (activity != null) {
+                                        viewModel.addEventToCalendar(compra, activity)
+                                    } else {
+                                        // Usar el método alternativo si no es una FragmentActivity
+                                        viewModel.addEventToCalendar(compra)
+                                    }
                                 }
                                 else -> {
                                     // Necesitamos solicitar permiso
@@ -424,7 +434,7 @@ private fun TicketsContent(
                             }
                         } catch (e: Exception) {
                             Log.e("MisTicketsScreen", "Error al intentar abrir intent de calendario: ${e.message}", e)
-                            viewModel.setError("Error al abrir calendario: ${e.message}")
+                            viewModel.setError("¡Error al intentar abrir intent de calendario!")
                         }
                     }
                 },
@@ -537,7 +547,7 @@ fun TicketCompraItem(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Calendario",
+                        text = stringResource(id = R.string.mis_tickets_calendario),
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -576,7 +586,7 @@ fun TicketCompraItem(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = downloadMessage ?: "Descargando...",
+                                text = downloadMessage ?: "¡Descargando entrada!",
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
@@ -585,13 +595,13 @@ fun TicketCompraItem(
                         } else if (downloadMessage == "¡Entrada descargada correctamente!") {
                             Icon(
                                 imageVector = Icons.Default.Receipt,
-                                contentDescription = "Entrada descargada",
+                                contentDescription = "¡Entrada descargada!",
                                 tint = Color.White,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "¡Descargada!",
+                                text = "¡Entrada descargada!",
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
@@ -600,13 +610,13 @@ fun TicketCompraItem(
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Receipt,
-                                contentDescription = "Descargar entrada",
+                                contentDescription = "¡Descargar entrada!",
                                 tint = Color.White,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Descargar",
+                                text = "¡Descargar entrada!",
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
@@ -626,7 +636,25 @@ private fun formatDate(dateString: String): String {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val date = inputFormat.parse(dateString) ?: return dateString
         
-        val outputFormat = SimpleDateFormat("d 'de' MMMM, yyyy", Locale("es"))
+        // Obtener el idioma actual del usuario
+        val userLanguage = SessionManager.getUserLanguage() ?: "es"
+        
+        // Definir el patrón según el idioma
+        val pattern = when (userLanguage) {
+            "en" -> "MMMM d, yyyy"
+            "ca", "es" -> "d 'de' MMMM, yyyy"
+            else -> "d 'de' MMMM, yyyy" // Por defecto, español
+        }
+        
+        // Obtener el Locale correspondiente
+        val locale = when (userLanguage) {
+            "en" -> Locale.ENGLISH
+            "ca" -> Locale("ca", "ES")
+            "es" -> Locale("es", "ES")
+            else -> Locale("es", "ES") // Español por defecto
+        }
+        
+        val outputFormat = SimpleDateFormat(pattern, locale)
         return outputFormat.format(date)
     } catch (e: Exception) {
         return dateString
@@ -637,7 +665,19 @@ private fun formatDate(dateString: String): String {
 fun formatDateShort(dateString: String): String {
     return try {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        val outputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        
+        // Obtener el idioma actual del usuario
+        val userLanguage = SessionManager.getUserLanguage() ?: "es"
+        
+        // Obtener el Locale correspondiente
+        val locale = when (userLanguage) {
+            "en" -> Locale.ENGLISH
+            "ca" -> Locale("ca", "ES")
+            "es" -> Locale("es", "ES")
+            else -> Locale("es", "ES") // Español por defecto
+        }
+        
+        val outputFormat = SimpleDateFormat("dd/MM/yyyy", locale)
         val date = inputFormat.parse(dateString)
         date?.let { outputFormat.format(it) } ?: dateString
     } catch (e: Exception) {
@@ -647,7 +687,18 @@ fun formatDateShort(dateString: String): String {
 
 // Función para formatear el precio
 fun formatPrice(price: Double): String {
-    return String.format(Locale.getDefault(), "%.2f", price)
+    // Obtener el idioma actual del usuario
+    val userLanguage = SessionManager.getUserLanguage() ?: "es"
+    
+    // Obtener el Locale correspondiente
+    val locale = when (userLanguage) {
+        "en" -> Locale.US
+        "ca" -> Locale("ca", "ES")
+        "es" -> Locale("es", "ES")
+        else -> Locale("es", "ES") // Español por defecto
+    }
+    
+    return String.format(locale, "%.2f", price)
 }
 
 @Composable
@@ -689,7 +740,7 @@ fun TicketCard(
                     disabledContainerColor = Color(0xFFE0E0E0)
                 ),
                 shape = RoundedCornerShape(8.dp),
-                enabled = !isDownloading && downloadMessage != "Entrada descargada correctamente"
+                enabled = !isDownloading && downloadMessage != "¡Entrada descargada correctamente!"
             ) {
                 Row(
                     horizontalArrangement = Arrangement.Center,
@@ -703,13 +754,13 @@ fun TicketCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "DESCARGANDO...",
+                            text = "¡Descargando entrada!",
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
                         )
-                    } else if (downloadMessage == "Entrada descargada correctamente") {
+                    } else if (downloadMessage == "¡Entrada descargada correctamente!") {
                         Icon(
                             imageVector = Icons.Default.Receipt,
                             contentDescription = null,
@@ -718,7 +769,7 @@ fun TicketCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "ENTRADA DESCARGADA",
+                            text = "¡Entrada descargada!",
                             color = Color(0xFF4CAF50),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,

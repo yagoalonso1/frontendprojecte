@@ -32,6 +32,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.text.TextStyle
+import com.example.app.ui.components.LanguageAwareText
+import com.example.app.util.LocaleHelper
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun OrganizadorScreen(
@@ -41,6 +45,15 @@ fun OrganizadorScreen(
     LaunchedEffect(Unit) {
         viewModel.role = "Organizador"
     }
+
+    // Validación de campos
+    val nombreOrganizacionValid = viewModel.nombreOrganizacion.isNotEmpty() && !viewModel.isNombreOrganizacionError
+    val telefonoContactoValid = viewModel.telefonoContacto.length == 9 && !viewModel.isTelefonoContactoError
+    
+    // Verificar si se puede activar el botón
+    val allFieldsFilled = viewModel.nombreOrganizacion.isNotEmpty() && viewModel.telefonoContacto.isNotEmpty()
+    val allFieldsValid = nombreOrganizacionValid && telefonoContactoValid
+    val registrationEnabled = allFieldsFilled && allFieldsValid
     
     // Pantalla principal
     Surface(
@@ -58,22 +71,21 @@ fun OrganizadorScreen(
                 // Logo de la app
                 Image(
                     painter = painterResource(id = R.drawable.logo),
-                    contentDescription = "EventFlix Logo",
+                    contentDescription = stringResource(R.string.app_logo),
                     modifier = Modifier
                         .size(150.dp)
                         .padding(vertical = 16.dp),
                     contentScale = ContentScale.Fit
                 )
                 
-                // Título de la pantalla
-                Text(
-                    text = "Datos de Organizador",
+                // Título
+                LanguageAwareText(
+                    textId = R.string.organizer_title,
                     style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFE53935)
+                        fontWeight = FontWeight.Bold
                     ),
-                    modifier = Modifier.padding(bottom = 24.dp),
-                    textAlign = TextAlign.Center
+                    color = Color(0xFFE53935),
+                    modifier = Modifier.padding(bottom = 32.dp)
                 )
                 
                 // Resumen de datos personales
@@ -91,8 +103,8 @@ fun OrganizadorScreen(
                             .fillMaxWidth()
                             .padding(16.dp)
                     ) {
-                        Text(
-                            text = "Resumen de Registro",
+                        LanguageAwareText(
+                            textId = R.string.organizer_summary,
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             ),
@@ -100,104 +112,157 @@ fun OrganizadorScreen(
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                         
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            LanguageAwareText(
+                                textId = R.string.register_name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.DarkGray
+                            )
                         Text(
-                            text = "Nombre: ${viewModel.name} ${viewModel.apellido1} ${viewModel.apellido2}",
+                                text = ": ${viewModel.name} ${viewModel.apellido1} ${viewModel.apellido2}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.DarkGray
                         )
+                        }
                         
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            LanguageAwareText(
+                                textId = R.string.register_email,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.DarkGray
+                            )
                         Text(
-                            text = "Email: ${viewModel.email}",
+                                text = ": ${viewModel.email}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.DarkGray
                         )
+                        }
                     }
                 }
                 
-                // Campo para nombre de la organización
-                OutlinedTextField(
-                    value = viewModel.nombreOrganizacion,
-                    onValueChange = { viewModel.nombreOrganizacion = it },
-                    label = { Text("Nombre de la Organización") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFFE53935),
-                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
-                        focusedLabelColor = Color(0xFFE53935),
-                        unfocusedLabelColor = Color.Gray
-                    )
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Campo para teléfono
-                OutlinedTextField(
-                    value = viewModel.telefonoContacto,
-                    onValueChange = { 
-                        // Solo permitir dígitos y limitar a 9 caracteres
-                        if (it.all { char -> char.isDigit() } && it.length <= 9) {
-                            viewModel.telefonoContacto = it
-                        }
-                    },
-                    label = { Text("Teléfono de Contacto") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Phone,
-                        imeAction = ImeAction.Done
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFFE53935),
-                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
-                        focusedLabelColor = Color(0xFFE53935),
-                        unfocusedLabelColor = Color.Gray
-                    )
-                )
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Botón para completar registro
-                Button(
-                    onClick = {
-                        // Validar que los campos estén completos y con formato correcto
-                        if (viewModel.nombreOrganizacion.isNotEmpty() && viewModel.telefonoContacto.length == 9) {
-                            viewModel.mostrarMensaje("Enviando registro de organizador con: " +
-                                "nombreOrg='${viewModel.nombreOrganizacion}', " +
-                                "telefonoContacto='${viewModel.telefonoContacto}'")
-                                
-                            viewModel.onRegisterClick()
-                        } else {
-                            if (viewModel.nombreOrganizacion.isEmpty()) {
-                                viewModel.nombreOrganizacionErrorMessage = "El nombre de la organización es requerido"
-                                viewModel.isNombreOrganizacionError = true
-                            }
-                            
-                            if (viewModel.telefonoContacto.isEmpty()) {
-                                viewModel.telefonoContactoErrorMessage = "El teléfono de contacto es requerido"
-                                viewModel.isTelefonoContactoError = true
-                            } else if (viewModel.telefonoContacto.length != 9) {
-                                viewModel.telefonoContactoErrorMessage = "El teléfono debe tener 9 dígitos"
-                                viewModel.isTelefonoContactoError = true
-                            }
-                        }
-                    },
+                // Sección de información de la organización
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF333333)
-                    )
+                        .padding(horizontal = 16.dp)
                 ) {
-                    Text(
-                        text = "Completar Registro",
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = Color.White
+                    // Campo para el nombre de la organización
+                    OutlinedTextField(
+                        value = viewModel.nombreOrganizacion,
+                        onValueChange = { 
+                            viewModel.nombreOrganizacion = it
+                            if (it.isNotEmpty()) {
+                                viewModel.validateField("nombreOrganizacion", it)
+                            } else {
+                                viewModel.isNombreOrganizacionError = false
+                            }
+                        },
+                        label = { LanguageAwareText(textId = R.string.organizer_org_name) },
+                        isError = viewModel.isNombreOrganizacionError,
+                        supportingText = {
+                            if (viewModel.isNombreOrganizacionError) {
+                                LanguageAwareText(
+                                    textId = R.string.organizer_error_org_name,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFE53935),
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
+                            focusedLabelColor = Color(0xFFE53935),
+                            unfocusedLabelColor = Color.Gray
+                        )
                     )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Campo para el teléfono de contacto
+                    OutlinedTextField(
+                        value = viewModel.telefonoContacto,
+                        onValueChange = { 
+                            // Solo permitir dígitos y limitar a 9
+                            if (it.all { c -> c.isDigit() } && it.length <= 9) {
+                                viewModel.telefonoContacto = it
+                                if (it.isNotEmpty()) {
+                                    viewModel.validateField("telefonoContacto", it)
+                                } else {
+                                    viewModel.isTelefonoContactoError = false
+                                }
+                            }
+                        },
+                        label = { LanguageAwareText(textId = R.string.organizer_contact_phone) },
+                        isError = viewModel.isTelefonoContactoError,
+                        supportingText = {
+                            if (viewModel.isTelefonoContactoError) {
+                                if (viewModel.telefonoContacto.isEmpty()) {
+                                    LanguageAwareText(
+                                        textId = R.string.organizer_error_phone_required,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                } else {
+                                    LanguageAwareText(
+                                        textId = R.string.organizer_error_phone_digits,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            } else if (viewModel.telefonoContacto.isNotEmpty() && viewModel.telefonoContacto.length < 9) {
+                                val remaining = 9 - viewModel.telefonoContacto.length
+                                LanguageAwareText(
+                                    textId = R.string.participant_phone_digits,
+                                    formatArgs = arrayOf(remaining)
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Phone,
+                            imeAction = ImeAction.Done
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFE53935),
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
+                            focusedLabelColor = Color(0xFFE53935),
+                            unfocusedLabelColor = Color.Gray
+                        )
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Botón de completar registro
+                    Button(
+                        onClick = { 
+                            viewModel.onRegisterClick()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .padding(top = 16.dp),
+                        enabled = registrationEnabled,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFE53935),
+                            disabledContainerColor = Color.LightGray
+                        )
+                    ) {
+                        LanguageAwareText(
+                            textId = R.string.organizer_complete,
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = Color.White
+                        )
+                    }
                 }
             }
             
@@ -206,11 +271,11 @@ fun OrganizadorScreen(
             if (viewModel.isError) {
                 AlertDialog(
                     onDismissRequest = { viewModel.clearError() },
-                    title = { Text("Error") },
+                    title = { LanguageAwareText(textId = R.string.register_error_title) },
                     text = { Text(errorMessage ?: "") },
                     confirmButton = {
                         TextButton(onClick = { viewModel.clearError() }) {
-                            Text("Aceptar")
+                            LanguageAwareText(textId = R.string.ok_button)
                         }
                     }
                 )
@@ -220,30 +285,31 @@ fun OrganizadorScreen(
             val isRegisterSuccessful by viewModel.isRegisterSuccessful.collectAsState()
             if (isRegisterSuccessful) {
                 AlertDialog(
-                    onDismissRequest = { /* No hacer nada */ },
+                    onDismissRequest = { /* No hacer nada, forzar al usuario a hacer clic en el botón */ },
                     title = { 
-                        Text(
-                            text = "Registro Exitoso",
-                            style = MaterialTheme.typography.headlineSmall.copy(
+                        LanguageAwareText(
+                            textId = R.string.organizer_success,
+                            style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold
                             ),
                             color = Color(0xFF4CAF50)
-                        ) 
+                        )
                     },
                     text = { 
-                        Text(
-                            text = "Tu cuenta de organizador ha sido creada correctamente.",
-                            style = MaterialTheme.typography.bodyMedium
-                        ) 
+                        LanguageAwareText(
+                            textId = R.string.organizer_success_message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.DarkGray
+                        )
                     },
                     confirmButton = {
-                        TextButton(onClick = { /* Navegar al login */ }) {
-                            Text(
-                                text = "Aceptar",
+                        TextButton(onClick = { /* No hacer nada */ }) {
+                            LanguageAwareText(
+                                textId = R.string.participant_done,
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = Color(0xFFE53935)
+                                color = Color(0xFF4CAF50)
                             )
                         }
                     },

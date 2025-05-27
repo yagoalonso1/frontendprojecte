@@ -11,24 +11,24 @@ data class OrganizadorDetalle(
     @SerializedName("cif") val cif: String? = null,
     @SerializedName("nombre_usuario") val nombreUsuario: String? = null,
     @SerializedName("user") val user: com.example.app.model.UserInfo?,
-    @SerializedName("avatar_url") val avatarUrl: String? = null,
+    @SerializedName("avatar") val avatar: String? = null,
     @SerializedName("is_favorite") val isFavorite: Boolean = false
 ) {
     // Función para obtener la URL del avatar de forma segura
     fun obtenerAvatarUrl(): String {
         return when {
-            !avatarUrl.isNullOrEmpty() -> {
-                if (avatarUrl.startsWith("http")) {
-                    avatarUrl
+            !avatar.isNullOrEmpty() -> {
+                if (avatar.startsWith("http")) {
+                    avatar
                 } else {
-                    "https://api.example.com/storage/$avatarUrl"
+                    "https://api.example.com/storage/$avatar"
                 }
             }
-            user?.avatarUrl != null -> {
-                if (user.avatarUrl.startsWith("http")) {
-                    user.avatarUrl
+            user?.avatar != null -> {
+                if (user.avatar.startsWith("http")) {
+                    user.avatar
                 } else {
-                    "https://api.example.com/storage/${user.avatarUrl}"
+                    "https://api.example.com/storage/${user.avatar}"
                 }
             }
             else -> "https://ui-avatars.com/api/?name=${nombre.take(2)}&background=0D8ABC&color=fff&size=256"

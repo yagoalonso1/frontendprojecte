@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,6 +45,9 @@ import androidx.compose.runtime.LaunchedEffect
 import com.example.app.routes.Routes
 import com.example.app.util.SessionManager
 import com.example.app.routes.safeTokenDisplay
+import com.example.app.ui.components.LanguageMenuButton
+import com.example.app.ui.components.LanguageAwareText
+import java.util.*
 
 @Composable
 fun LoginScreen(
@@ -55,6 +59,22 @@ fun LoginScreen(
         factory = TicketsViewModelFactory(LocalContext.current.applicationContext as android.app.Application)
     )
 ) {
+    // Contexto para manejar idiomas
+    val context = LocalContext.current
+    
+    // Establecer el contexto en el ViewModel para acceder a los recursos
+    LaunchedEffect(context) {
+        viewModel.setContext(context)
+    }
+    
+    // Cargar el idioma guardado (si existe)
+    LaunchedEffect(Unit) {
+        val savedLanguage = SessionManager.getUserLanguage()
+        if (savedLanguage != null) {
+            com.example.app.util.LocaleHelper.setLocale(context, savedLanguage)
+        }
+    }
+    
     // Estados básicos
     val isLoading = viewModel.isLoading
     val errorMessage = viewModel.errorMessage
@@ -62,8 +82,10 @@ fun LoginScreen(
     val isLoginSuccessful = viewModel.isLoginSuccessful.collectAsState().value
     val shouldNavigateToParticipanteRegister = viewModel.shouldNavigateToParticipanteRegister.collectAsState().value
     
+    // Estado para actualizar la UI cuando cambia el idioma
+    val currentLanguageCode = remember { mutableStateOf(SessionManager.getUserLanguage() ?: "es") }
+    
     // Configuración para Google Auth
-    val context = androidx.compose.ui.platform.LocalContext.current
     val googleAuthHelper = remember { GoogleAuthHelper(context) }
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -78,78 +100,29 @@ fun LoginScreen(
     // Asegurar que la sesión esté limpia al abrir LoginScreen
     LaunchedEffect(Unit) {
         Log.d("LoginScreen", "Comprobando y limpiando el estado de sesión")
+        // Modificado para no eliminar preferencias de idioma
         SessionManager.clearSession()
         viewModel.resetState()
     }
     
-    // Navegar cuando el login es exitoso
+    // Navegar cuando el login es exitoso o se debe crear un perfil de participante
     LaunchedEffect(isLoginSuccessful) {
         if (isLoginSuccessful) {
-            val userRole = viewModel.user?.role ?: ""
-            Log.d("LoginScreen", "Rol del usuario en login: $userRole")
-            
-            SessionManager.saveUserRole(userRole)
-            Log.d("LoginScreen", "Rol guardado en SessionManager: ${SessionManager.getUserRole()}")
-            
-            navController.currentBackStackEntry?.savedStateHandle?.set("login_successful", true)
-            
-            viewModel.googleAccount?.let { account ->
-                ticketsViewModel.googleAccount = account
+            Log.d("LoginScreen", "Login exitoso, navegando a eventos")
+            navController.navigate(Routes.Eventos.route) {
+                popUpTo(Routes.Login.route) { inclusive = true }
             }
-            
-            navController.navigate("eventos") {
-                popUpTo("login") { inclusive = true }
-            }
+            viewModel.resetLoginState()
         }
     }
     
-    // Navegar a la pantalla de registro de participante después de la autenticación con Google
     LaunchedEffect(shouldNavigateToParticipanteRegister) {
         if (shouldNavigateToParticipanteRegister) {
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: shouldNavigateToParticipanteRegister = true, redirigiendo a pantalla participante")
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: User info: Email=${viewModel.user?.email}, Nombre=${viewModel.user?.nombre}")
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Token recibido: ${viewModel.token?.take(10)}...")
-            
-            // Guardamos datos relevantes en el RegisterViewModel a través de la navegación
-            val userEmail = viewModel.user?.email ?: ""
-            val userName = viewModel.user?.nombre ?: ""
-            val userLastName = viewModel.user?.apellido1 ?: ""
-            val userLastName2 = viewModel.user?.apellido2 ?: ""
-            val token = viewModel.token ?: ""
-            
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Datos a guardar:")
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Email=$userEmail")
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Nombre=$userName")
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Apellido1=$userLastName")
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Apellido2=$userLastName2")
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Token=${token.take(10)}...")
-            
-            // Guardar datos en el savedStateHandle antes de navegar
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Guardando datos en savedStateHandle")
-            navController.getBackStackEntry("register/participante").savedStateHandle.set("google_login", true)
-            navController.getBackStackEntry("register/participante").savedStateHandle.set("user_email", userEmail)
-            navController.getBackStackEntry("register/participante").savedStateHandle.set("user_name", userName)
-            navController.getBackStackEntry("register/participante").savedStateHandle.set("user_lastname", userLastName)
-            navController.getBackStackEntry("register/participante").savedStateHandle.set("user_lastname2", userLastName2)
-            navController.getBackStackEntry("register/participante").savedStateHandle.set("token", token)
-            
-            // Verificar que los datos se guardaron correctamente
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Verificación de datos guardados:")
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Email guardado: ${navController.getBackStackEntry("register/participante").savedStateHandle.get<String>("user_email")}")
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Nombre guardado: ${navController.getBackStackEntry("register/participante").savedStateHandle.get<String>("user_name")}")
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Google login guardado: ${navController.getBackStackEntry("register/participante").savedStateHandle.get<Boolean>("google_login")}")
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Token guardado: ${navController.getBackStackEntry("register/participante").savedStateHandle.get<String>("token")?.safeTokenDisplay()}")
-            
-            // Navegar a la pantalla de registro
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Iniciando navegación a register/participante")
+            Log.d("LoginScreen", "Navegando a registro de participante")
             navController.navigate(Routes.RegisterParticipante.route) {
-                // Mantener la pantalla de login en la pila para poder volver
-                popUpTo(Routes.Login.route) { inclusive = false }
+                popUpTo(Routes.Login.route) { inclusive = true }
             }
-            
-            // Reseteamos el flag para evitar navegaciones no deseadas
-            Log.d("LOGIN_DEBUG", "=== FLUJO GOOGLE ===: Resetenado estado para evitar navegaciones duplicadas")
-            viewModel.resetState()
+            viewModel.resetNavigationState()
         }
     }
     
@@ -158,9 +131,25 @@ fun LoginScreen(
         isError = isError,
         errorMessage = errorMessage,
         viewModel = viewModel,
-        onNavigateToRegister = { navController.navigate("register") },
-        onNavigateToForgotPassword = { navController.navigate("forgot_password") },
-        onGoogleSignIn = { launcher.launch(googleAuthHelper.getSignInIntent()) }
+        onNavigateToRegister = onNavigateToRegister,
+        onNavigateToForgotPassword = onNavigateToForgotPassword,
+        onGoogleSignIn = { launcher.launch(googleAuthHelper.getSignInIntent()) },
+        onSelectLanguage = { langCode ->
+            Log.d("LoginScreen", "Cambiando idioma a: $langCode")
+            try {
+                // Obtener la actividad actual
+                val activity = context as? android.app.Activity
+                if (activity != null) {
+                    // Aplicar cambio de idioma y forzar actualización
+                    com.example.app.util.LocaleHelper.forceLocaleUpdate(
+                        activity,
+                        langCode
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("LoginScreen", "Error al cambiar idioma: ${e.message}")
+            }
+        }
     )
 }
 
@@ -172,7 +161,8 @@ private fun LoginContent(
     viewModel: LoginViewModel,
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit,
-    onGoogleSignIn: () -> Unit
+    onGoogleSignIn: () -> Unit,
+    onSelectLanguage: (String) -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -185,10 +175,33 @@ private fun LoginContent(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Selector de idioma en la parte superior centrado
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, bottom = 16.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    // Texto explicativo
+                    LanguageAwareText(
+                        textId = R.string.language_selector_title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .align(Alignment.CenterVertically)
+                    )
+                    
+                    // Botón de selector de idioma
+                    LanguageMenuButton(
+                        onSelectLanguage = onSelectLanguage
+                    )
+                }
+                
                 // Logo de la app
                 Image(
                     painter = painterResource(id = R.drawable.logo),
-                    contentDescription = "EventFlix Logo",
+                    contentDescription = stringResource(id = R.string.app_name),
                     modifier = Modifier
                         .size(180.dp)
                         .padding(vertical = 16.dp),
@@ -196,8 +209,8 @@ private fun LoginContent(
                 )
                 
                 // Título de login
-                Text(
-                    text = "Iniciar Sesión",
+                LanguageAwareText(
+                    textId = R.string.login_title,
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFE53935)
@@ -210,7 +223,7 @@ private fun LoginContent(
                 OutlinedTextField(
                     value = viewModel.email,
                     onValueChange = { viewModel.email = it },
-                    label = { Text("Email") },
+                    label = { LanguageAwareText(textId = R.string.login_email_hint) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
@@ -227,23 +240,25 @@ private fun LoginContent(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
+                // Campo de contraseña
+                var passwordVisible by remember { mutableStateOf(false) }
                 OutlinedTextField(
                     value = viewModel.password,
                     onValueChange = { viewModel.password = it },
-                    label = { Text("Contraseña") },
+                    label = { LanguageAwareText(textId = R.string.login_password_hint) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    visualTransformation = if (viewModel.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
                     ),
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
-                        IconButton(onClick = { viewModel.passwordVisible = !viewModel.passwordVisible }) {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
-                                imageVector = if (viewModel.passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                contentDescription = if (viewModel.passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
-                                tint = Color(0xFFE53935)
+                                imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                                tint = Color.Gray
                             )
                         }
                     },
@@ -255,22 +270,24 @@ private fun LoginContent(
                     )
                 )
                 
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Enlace olvidé contraseña
-                TextButton(
-                    onClick = onNavigateToForgotPassword,
-                    modifier = Modifier.align(Alignment.End)
+                // Enlace para recuperar contraseña
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.CenterEnd
                 ) {
-                    Text(
-                        text = "¿Olvidaste tu contraseña?",
-                        color = Color(0xFFE53935)
+                    LanguageAwareText(
+                        textId = R.string.login_forgot_password,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFE53935),
+                        modifier = Modifier.clickable { onNavigateToForgotPassword() }
                     )
                 }
                 
-                // Botón iniciar sesión
+                // Botón de login
                 Button(
-                    onClick = { viewModel.onLoginClick() },
+                    onClick = { viewModel.login() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
@@ -279,8 +296,8 @@ private fun LoginContent(
                         containerColor = Color(0xFFE53935)
                     )
                 ) {
-                    Text(
-                        text = "Iniciar Sesión",
+                    LanguageAwareText(
+                        textId = R.string.login_button,
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -288,32 +305,29 @@ private fun LoginContent(
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Separador
+                // Separador "o"
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     HorizontalDivider(
                         modifier = Modifier.weight(1f),
                         thickness = 1.dp,
-                        color = Color.LightGray
+                        color = Color.Gray.copy(alpha = 0.3f)
                     )
-                    Text(
-                        text = "O",
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                        style = MaterialTheme.typography.bodyMedium,
+                    LanguageAwareText(
+                        textId = R.string.login_or_divider,
+                        modifier = Modifier.padding(horizontal = 16.dp),
                         color = Color.Gray
                     )
                     HorizontalDivider(
                         modifier = Modifier.weight(1f),
                         thickness = 1.dp,
-                        color = Color.LightGray
+                        color = Color.Gray.copy(alpha = 0.3f)
                     )
                 }
-                
-                Spacer(modifier = Modifier.height(16.dp))
                 
                 // Botón de Google
                 OutlinedButton(
@@ -325,31 +339,41 @@ private fun LoginContent(
                     border = ButtonDefaults.outlinedButtonBorder.copy(
                         width = 1.dp,
                         brush = androidx.compose.ui.graphics.SolidColor(Color.Gray.copy(alpha = 0.5f))
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFF4285F4)
                     )
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Image(
+                        Icon(
                             painter = painterResource(id = R.drawable.logo_google),
-                            contentDescription = "Google",
+                            contentDescription = "Google Icon",
+                            tint = Color.Unspecified,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Continuar con Google",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = Color.Black.copy(alpha = 0.7f)
+                        LanguageAwareText(
+                            textId = R.string.login_with_google,
+                            style = MaterialTheme.typography.labelLarge
                         )
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
                 
-                // Botón crear cuenta
+                // Enlace para crear cuenta
+                LanguageAwareText(
+                    textId = R.string.login_no_account,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Botón para crear cuenta
                 OutlinedButton(
                     onClick = onNavigateToRegister,
                     modifier = Modifier
@@ -364,8 +388,8 @@ private fun LoginContent(
                         contentColor = Color(0xFFE53935)
                     )
                 ) {
-                    Text(
-                        text = "Crear Cuenta",
+                    LanguageAwareText(
+                        textId = R.string.login_create_account,
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold
                         )
@@ -375,8 +399,8 @@ private fun LoginContent(
                 Spacer(modifier = Modifier.weight(1f))
                 
                 // Copyright
-                Text(
-                    text = "© 2025 EventFlix. Todos los derechos reservados.",
+                LanguageAwareText(
+                    textId = R.string.login_copyright,
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray,
                     textAlign = TextAlign.Center,
@@ -399,7 +423,7 @@ private fun LoginContent(
 }
 
 @Composable
-private fun LoadingOverlay() {
+fun LoadingOverlay() {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -407,46 +431,37 @@ private fun LoadingOverlay() {
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator(
-            color = Color(0xFFE53935),
-            modifier = Modifier.size(64.dp)
+            color = Color.White,
+            modifier = Modifier.size(60.dp)
         )
     }
 }
 
 @Composable
-private fun ErrorDialog(
+fun ErrorDialog(
     errorMessage: String?,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
-            Text(
-                text = "Error",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = Color(0xFFE53935)
-            ) 
-        },
+        title = { LanguageAwareText(textId = R.string.error_connection) },
         text = { 
-            Text(
-                text = errorMessage ?: "",
-                style = MaterialTheme.typography.bodyMedium
-            ) 
+            if (errorMessage != null) {
+                Text(text = errorMessage)
+            } else {
+                LanguageAwareText(textId = R.string.error_login_failed)
+            }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(
-                    text = "Aceptar",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
+                LanguageAwareText(
+                    textId = R.string.ok_button,
                     color = Color(0xFFE53935)
                 )
             }
         },
         containerColor = Color.White,
-        shape = RoundedCornerShape(16.dp)
+        titleContentColor = Color(0xFFE53935),
+        textContentColor = Color.Black.copy(alpha = 0.7f)
     )
 }

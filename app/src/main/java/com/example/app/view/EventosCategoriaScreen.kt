@@ -10,98 +10,110 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.app.R
+import com.example.app.util.CategoryTranslator
 import com.example.app.viewmodel.EventosCategoriaViewModel
-import com.example.app.routes.Routes
-import com.example.app.view.favoritos.EventoCard
+import com.example.app.model.Evento
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.app.util.formatDate
+import com.example.app.util.getImageUrl
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventosCategoriaScreen(
-    categoria: String,
     navController: NavController,
+    categoria: String,
     viewModel: EventosCategoriaViewModel = viewModel()
 ) {
-    val eventos = viewModel.eventos
-    val isLoading = viewModel.isLoading
-    val errorMessage = viewModel.errorMessage
-
-    // Cargar eventos al entrar
+    // Colores consistentes con el resto de la aplicación
+    val primaryColor = Color(0xFFE53935)
+    val textPrimaryColor = Color.Black
+    val textSecondaryColor = Color.Gray
+    val successColor = Color(0xFF4CAF50)
+    
+    // Obtener la categoría traducida
+    val categoriaTraducida = CategoryTranslator.translate(categoria)
+    
+    // Cargar eventos de esta categoría
     LaunchedEffect(categoria) {
         viewModel.loadEventosByCategoria(categoria)
     }
-
-    val primaryColor = Color(0xFFE53935)
-    val backgroundColor = Color.White
-    val textPrimaryColor = Color.Black
-    val textSecondaryColor = Color.DarkGray
-    val successColor = Color(0xFF4CAF50)
-
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = backgroundColor
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = categoria.uppercase(),
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            color = primaryColor
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = primaryColor)
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = backgroundColor,
-                        titleContentColor = primaryColor,
-                        navigationIconContentColor = primaryColor
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Text(
+                        text = categoriaTraducida.uppercase(),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = primaryColor
                     )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack, 
+                            contentDescription = stringResource(id = com.example.app.R.string.back_button),
+                            tint = primaryColor
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = primaryColor
                 )
-            }
-        ) { paddingValues ->
+            )
+        }
+    ) { paddingValues ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                if (isLoading) {
+                if (viewModel.isLoading) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = primaryColor)
                     }
-                } else if (errorMessage != null) {
+                } else if (viewModel.errorMessage != null) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Error: $errorMessage", color = Color.Red, modifier = Modifier.padding(16.dp))
+                        Text("Error: ${viewModel.errorMessage}", color = Color.Red, modifier = Modifier.padding(16.dp))
                     }
-                } else if (eventos.isEmpty()) {
+                } else if (viewModel.eventos.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = "No hay eventos en esta categoría",
+                            text = stringResource(id = com.example.app.R.string.eventos_no_hay_categoria),
                             style = MaterialTheme.typography.bodyLarge,
                             color = textSecondaryColor
                         )
                     }
                 } else {
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(backgroundColor)
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(eventos) { evento ->
+                        items(viewModel.eventos) { evento ->
                             EventoCard(
                                 evento = evento,
                                 onClick = {
-                                    navController.navigate(Routes.EventoDetalle.createRoute(evento.getEventoId().toString()))
+                                    navController.navigate("evento_detail/${evento.idEvento}")
                                 },
                                 primaryColor = primaryColor,
                                 textPrimaryColor = textPrimaryColor,
@@ -113,5 +125,4 @@ fun EventosCategoriaScreen(
                 }
             }
         }
-    }
 }

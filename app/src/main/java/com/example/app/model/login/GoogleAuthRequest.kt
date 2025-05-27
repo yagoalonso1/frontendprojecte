@@ -8,8 +8,8 @@ data class GoogleAuthRequest(
     @SerializedName("apellido1") val apellido1: String,
     @SerializedName("apellido2") val apellido2: String?,
     @SerializedName("photo_url") val photoUrl: String?,
-    @SerializedName("token") val token: String,
-    @SerializedName("id") val id: String,
-    @SerializedName("google_id") val googleId: String,
-    @SerializedName("password") val password: String = java.util.UUID.randomUUID().toString().replace("-", "")
+    @SerializedName("token") val token: String?,
+    @SerializedName("id") val id: String?,
+    @SerializedName("google_id") val googleId: String?,
+    @SerializedName("register_only") val registerOnly: Boolean = true
 ) 

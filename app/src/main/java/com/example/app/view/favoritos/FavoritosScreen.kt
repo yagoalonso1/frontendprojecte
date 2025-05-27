@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,6 +31,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.app.R
 import com.example.app.model.Evento
 import com.example.app.model.getOrganizadorAvatarUrl
 import com.example.app.routes.BottomNavigationBar
@@ -39,6 +41,7 @@ import com.example.app.util.getImageUrl
 import com.example.app.viewmodel.favoritos.FavoritosViewModel
 import kotlinx.coroutines.launch
 import com.example.app.view.organizador.OrganizadorCard
+import com.example.app.view.EventoCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,7 +73,7 @@ fun FavoritosScreen(
             TopAppBar(
                 title = { 
                     Text(
-                        text = "MIS FAVORITOS",
+                        text = stringResource(id = R.string.favoritos_titulo),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 22.sp,
@@ -94,7 +97,7 @@ fun FavoritosScreen(
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
-                                contentDescription = "Recargar favoritos",
+                                contentDescription = stringResource(id = R.string.favoritos_actualizar),
                                 tint = primaryColor
                             )
                         }
@@ -117,20 +120,25 @@ fun FavoritosScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .background(backgroundColor)
         ) {
-            // Pestañas
+            // Tabs para seleccionar entre eventos y organizadores
             TabRow(
                 selectedTabIndex = selectedTabIndex,
-                containerColor = Color.White,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                containerColor = backgroundColor,
                 contentColor = primaryColor,
                 indicator = { tabPositions ->
-                    TabRowDefaults.Indicator(
-                        Modifier
+                    if (selectedTabIndex < tabPositions.size) {
+                        Box(
+                            modifier = Modifier
                             .tabIndicatorOffset(tabPositions[selectedTabIndex])
-                            .width(tabPositions[selectedTabIndex].width),
-                        color = primaryColor,
-                        height = 3.dp
+                                .height(3.dp)
+                                .background(color = primaryColor)
                     )
+                    }
                 }
             ) {
                 Tab(
@@ -138,7 +146,7 @@ fun FavoritosScreen(
                     onClick = { selectedTabIndex = 0 },
                     text = {
                         Text(
-                            text = "Eventos",
+                            text = stringResource(id = R.string.favoritos_eventos),
                             fontWeight = FontWeight.Bold,
                             color = if (selectedTabIndex == 0) primaryColor else textSecondaryColor
                         )
@@ -157,7 +165,7 @@ fun FavoritosScreen(
                     onClick = { selectedTabIndex = 1 },
                     text = {
                         Text(
-                            text = "Organizadores",
+                            text = stringResource(id = R.string.favoritos_organizadores),
                             fontWeight = FontWeight.Bold,
                             color = if (selectedTabIndex == 1) primaryColor else textSecondaryColor
                         )
@@ -234,23 +242,21 @@ private fun EventosFavoritosContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(
-                        text = errorMessage ?: "Error desconocido",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Red,
-                        textAlign = TextAlign.Center
+                    Icon(
+                        imageVector = Icons.Default.Error,
+                        contentDescription = null,
+                        modifier = Modifier.size(72.dp),
+                        tint = primaryColor
                     )
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    Button(
-                        onClick = { navController.navigate(Routes.Favoritos.route) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = primaryColor
-                        )
-                    ) {
-                        Text("Reintentar")
-                    }
+                    Text(
+                        text = errorMessage ?: stringResource(id = R.string.favoritos_error_login),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = textPrimaryColor,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
             favoritos.isEmpty() -> {
@@ -271,7 +277,7 @@ private fun EventosFavoritosContent(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Text(
-                        text = "No tienes eventos favoritos",
+                        text = stringResource(id = R.string.favoritos_no_eventos),
                         style = MaterialTheme.typography.bodyLarge,
                         color = textSecondaryColor,
                         textAlign = TextAlign.Center
@@ -285,7 +291,7 @@ private fun EventosFavoritosContent(
                             containerColor = primaryColor
                         )
                     ) {
-                        Text("Explorar eventos")
+                        Text(stringResource(id = R.string.favoritos_explorar_eventos))
                     }
                 }
             }
@@ -365,17 +371,8 @@ private fun OrganizadoresFavoritosContent(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Text(
-                        text = "No tienes organizadores favoritos",
+                        text = stringResource(id = R.string.favoritos_no_organizadores),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = textSecondaryColor,
-                        textAlign = TextAlign.Center
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Text(
-                        text = "Explora los eventos para encontrar organizadores que te interesen y márcalos como favoritos.",
-                        style = MaterialTheme.typography.bodyMedium,
                         color = textSecondaryColor,
                         textAlign = TextAlign.Center
                     )
@@ -388,7 +385,7 @@ private fun OrganizadoresFavoritosContent(
                             containerColor = primaryColor
                         )
                     ) {
-                        Text("Explorar eventos")
+                        Text(stringResource(id = R.string.favoritos_explorar_organizadores))
                     }
                 }
             }
@@ -398,31 +395,6 @@ private fun OrganizadoresFavoritosContent(
                         .fillMaxSize()
                         .padding(top = 8.dp)
                 ) {
-                    // Cabecera con botón de recarga
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Organizadores favoritos: ${organizadores.size}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = textSecondaryColor
-                        )
-                        
-                        IconButton(
-                            onClick = { viewModel.loadOrganizadoresFavoritos() }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Recargar favoritos",
-                                tint = primaryColor
-                            )
-                        }
-                    }
-                    
                     // Lista de organizadores
                     LazyColumn(
                         modifier = Modifier
@@ -444,147 +416,8 @@ private fun OrganizadoresFavoritosContent(
                                 textSecondaryColor = textSecondaryColor
                             )
                         }
-                        
-                        // Añadir espacio al final para scroll
-                        item {
-                            Spacer(modifier = Modifier.height(20.dp))
-                            
-                            // Botón para refrescar la lista de favoritos
-                            Button(
-                                onClick = { 
-                                    viewModel.loadOrganizadoresFavoritos() 
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 24.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = primaryColor
-                                )
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "Refrescar",
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = "Actualizar favoritos")
-                            }
-                            
-                            Spacer(modifier = Modifier.height(60.dp))
-                        }
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun EventoCard(
-    evento: Evento,
-    onClick: () -> Unit,
-    primaryColor: Color,
-    textPrimaryColor: Color,
-    textSecondaryColor: Color,
-    successColor: Color
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = 8.dp,
-                shape = RoundedCornerShape(12.dp),
-                spotColor = Color.Black.copy(alpha = 0.2f)
-            )
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        )
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            val imageUrl = evento.getImageUrl()
-            
-            // Imagen del evento
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(imageUrl)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = "Imagen del evento",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .width(120.dp)
-                    .height(120.dp)
-            )
-            
-            // Contenido del evento
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-            ) {
-                // Categoría
-                Text(
-                    text = evento.categoria,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = primaryColor,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                // Título
-                Text(
-                    text = evento.titulo,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = textPrimaryColor,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                // Fecha y hora
-                Text(
-                    text = "${formatDate(evento.fechaEvento)} · ${evento.hora}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = textSecondaryColor
-                )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                // Ubicación
-                Text(
-                    text = evento.ubicacion,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = textSecondaryColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                // Precio
-                val precios = evento.entradas?.map { it.precio } ?: emptyList()
-                val precioMinimo = precios.minOrNull() ?: 0.0
-                val precioMaximo = precios.maxOrNull() ?: 0.0
-                
-                Text(
-                    text = if (evento.entradas.isNullOrEmpty()) {
-                        "No disponible"
-                    } else if (precioMinimo == 0.0 && precioMaximo == 0.0) {
-                        "Gratuito"
-                    } else if (precioMinimo == precioMaximo) {
-                        "%.2f€".format(precioMinimo)
-                    } else {
-                        "%.2f€ - %.2f€".format(precioMinimo, precioMaximo)
-                    },
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (evento.entradas.isNullOrEmpty()) textSecondaryColor else if (precioMinimo == 0.0 && precioMaximo == 0.0) successColor else primaryColor,
-                    fontWeight = FontWeight.Bold
-                )
             }
         }
     }

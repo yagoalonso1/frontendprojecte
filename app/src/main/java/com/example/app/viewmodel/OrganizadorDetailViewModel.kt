@@ -35,7 +35,7 @@ class OrganizadorDetailViewModel : ViewModel() {
         private set
     var errorMessage by mutableStateOf<String?>(null)
         private set
-    var avatarUrl by mutableStateOf<String?>(null)
+    var avatar by mutableStateOf<String?>(null)
         private set
     var organizadorDetalle by mutableStateOf<OrganizadorDetalle?>(null)
         private set
@@ -251,7 +251,7 @@ class OrganizadorDetailViewModel : ViewModel() {
                 cif = it.cif,
                 nombreUsuario = it.nombreUsuario,
                 user = it.user,
-                avatarUrl = it.avatarUrl,
+                avatar = it.avatar,
                 isFavorite = isFavorito
             )
             
@@ -275,8 +275,8 @@ class OrganizadorDetailViewModel : ViewModel() {
                 val response = RetrofitClient.apiService.getOrganizadorById(id.toString(), tokenHeader)
                 if (response.isSuccessful) {
                     organizadorDetalle = response.body()?.organizador
-                    avatarUrl = organizadorDetalle?.avatarUrl
-                    Log.d("OrganizadorVM", "Organizador cargado: ${organizadorDetalle?.nombre}")
+                    avatar = organizadorDetalle?.avatar
+                    Log.d("OrganizadorVM", "Organizador cargado: "+organizadorDetalle?.nombre)
                     
                     // Intentamos primero tomar el valor is_favorite directamente de la respuesta
                     // Usar propiedad correcta del OrganizadorDetalle

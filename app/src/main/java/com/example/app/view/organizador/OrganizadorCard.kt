@@ -1,5 +1,6 @@
 package com.example.app.view.organizador
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -65,12 +66,21 @@ fun OrganizadorCard(
                     )
                 },
                 error = {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = "Avatar por defecto",
-                        tint = Color.White,
-                        modifier = Modifier.size(30.dp)
-                    )
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        shape = CircleShape,
+                        color = primaryColor.copy(alpha = 0.15f),
+                        border = BorderStroke(2.dp, primaryColor.copy(alpha = 0.5f))
+                    ) {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = "Avatar por defecto",
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .size(24.dp),
+                            tint = primaryColor
+                        )
+                    }
                 },
                 modifier = Modifier
                     .size(60.dp)
@@ -84,71 +94,30 @@ fun OrganizadorCard(
                     .weight(1f)
                     .padding(start = 16.dp)
             ) {
+                // Nombre de la organización (arriba, destacado)
                 Text(
                     text = organizador.nombre,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = textPrimaryColor,
+                    color = primaryColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                
-                // Etiqueta de favorito
-                if (organizador.isFavorite) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Start,
-                        modifier = Modifier.padding(vertical = 2.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Favorite,
-                            contentDescription = null,
-                            tint = Color(0xFFFF0000),
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Favorito",
-                            fontSize = 12.sp,
-                            color = Color(0xFFFF0000),
-                            fontWeight = FontWeight.Medium
-                        )
+                // Nombre completo del usuario (abajo, mismo tamaño que el teléfono)
+                organizador.user?.let { user ->
+                    val nombreCompleto = buildString {
+                        append(user.nombre)
+                        if (!user.apellido1.isNullOrBlank()) append(" ").append(user.apellido1)
+                        if (!user.apellido2.isNullOrBlank()) append(" ").append(user.apellido2)
                     }
-                }
-                
-                organizador.nombreUsuario?.let {
                     Text(
-                        text = it,
-                        fontSize = 14.sp,
+                        text = nombreCompleto,
+                        fontSize = 13.sp,
                         color = textSecondaryColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                
-                Text(
-                    text = "Tel: ${organizador.telefonoContacto}",
-                    fontSize = 14.sp,
-                    color = textSecondaryColor
-                )
-            }
-            
-            // Botón de favorito
-            IconButton(
-                onClick = onFavoriteClick,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(
-                        color = if (organizador.isFavorite) Color(0xFFFFEAEA) else Color.Transparent,
-                        shape = CircleShape
-                    )
-            ) {
-                Icon(
-                    imageVector = if (organizador.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (organizador.isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
-                    tint = if (organizador.isFavorite) Color(0xFFFF0000) else textSecondaryColor,
-                    modifier = Modifier.size(28.dp)
-                )
             }
         }
     }

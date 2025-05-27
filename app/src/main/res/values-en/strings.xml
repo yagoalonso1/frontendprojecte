@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EventFlix</string>
+    <string name="app_logo">EventFlix Logo</string>
+    
+    <!-- Strings de la pantalla de Login -->
+    <string name="login_title">Sign In</string>
+    <string name="login_email_hint">Email</string>
+    <string name="login_password_hint">Password</string>
+    <string name="login_forgot_password">Forgot your password?</string>
+    <string name="login_button">Sign In</string>
+    <string name="login_or_divider">or</string>
+    <string name="login_with_google">Continue with Google</string>
+    <string name="login_no_account">Don\'t have an account yet?</string>
+    <string name="login_create_account">Create Account</string>
+    <string name="login_copyright">© 2025 EventFlix. All rights reserved.</string>
+    
+    <!-- Mensajes de error -->
+    <string name="error_invalid_email">Invalid email</string>
+    <string name="error_invalid_password">Password must be at least 6 characters</string>
+    <string name="error_empty_fields">All fields are required</string>
+    <string name="error_login_failed">Incorrect credentials</string>
+    <string name="error_connection">Connection error</string>
+    <string name="error_user_not_found">Response does not contain user information</string>
+    <string name="error_invalid_token">No valid token received from server</string>
+    <string name="error_process_response">Error processing response</string>
+    
+    <!-- Opciones de idioma -->
+    <string name="language_selector_title">Select language</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_catalan">Català</string>
+    <string name="language_english">English</string>
+    <string name="language_changed">Language changed to English</string>
+    <string name="language_changed_to_spanish">Language changed to Spanish</string>
+    <string name="language_changed_to_catalan">Language changed to Catalan</string>
+    <string name="language_changed_to_english">Language changed to English</string>
+    
+    <!-- Botones comunes -->
+    <string name="ok_button">OK</string>
+    
+    <!-- Strings de la pantalla de Recuperación de Contraseña -->
+    <string name="forgot_password_title">Reset Password</string>
+    <string name="forgot_password_description">Enter your email and your ID or phone number to recover your password</string>
+    <string name="forgot_password_email">Email</string>
+    <string name="forgot_password_id">ID or Phone</string>
+    <string name="forgot_password_button">Reset Password</string>
+    <string name="forgot_password_your_password">Your password is:</string>
+    <string name="forgot_password_back_to_login">Back to Login</string>
+    <string name="forgot_password_error_title">Error</string>
+    
+    <!-- Strings de las pantallas de Registro -->
+    <string name="register_title">User Registration</string>
+    <string name="register_name">First Name</string>
+    <string name="register_lastname1">Last Name</string>
+    <string name="register_lastname2">Second Last Name</string>
+    <string name="register_email">Email</string>
+    <string name="register_password">Password</string>
+    <string name="register_confirm_password">Confirm Password</string>
+    <string name="register_password_requirements">Password requirements:</string>
+    <string name="register_password_req1">• At least 8 characters</string>
+    <string name="register_password_req2">• At least one uppercase letter</string>
+    <string name="register_password_req3">• At least one lowercase letter</string>
+    <string name="register_password_req4">• At least one number</string>
+    <string name="register_password_req5">• At least one special character</string>
+    <string name="register_role_select">Select your role</string>
+    <string name="register_role_organizer">Organizer</string>
+    <string name="register_role_participant">Participant</string>
+    <string name="register_complete_fields">Complete all fields correctly to continue</string>
+    <string name="register_have_account">Already have an account? Sign in</string>
+    <string name="register_error_title">Error</string>
+    
+    <!-- Strings de la pantalla de Registro de Participante -->
+    <string name="participant_title">Participant Data</string>
+    <string name="participant_basic_info">Basic Information</string>
+    <string name="participant_name">Name</string>
+    <string name="participant_email">Email</string>
+    <string name="participant_dni">ID (8 digits + letter)</string>
+    <string name="participant_dni_invalid">Invalid ID. Format: 12345678A</string>
+    <string name="participant_dni_format">The correct format is: 12345678A</string>
+    <string name="participant_phone">Phone (9 digits)</string>
+    <string name="participant_phone_invalid">Must contain 9 digits</string>
+    <string name="participant_phone_digits">Missing %1$d digits</string>
+    <string name="participant_complete">Complete Registration</string>
+    <string name="participant_success">Registration Successful!</string>
+    <string name="participant_success_message">Your account has been successfully created. You will be redirected to the login screen.</string>
+    <string name="participant_done">Done</string>
+    
+    <!-- Strings de la pantalla de Registro de Organizador -->
+    <string name="organizer_title">Organizer Data</string>
+    <string name="organizer_summary">Registration Summary</string>
+    <string name="organizer_org_name">Organization Name</string>
+    <string name="organizer_contact_phone">Contact Phone</string>
+    <string name="organizer_complete">Complete Registration</string>
+    <string name="organizer_error_org_name">Organization name is required</string>
+    <string name="organizer_error_phone_required">Contact phone is required</string>
+    <string name="organizer_error_phone_digits">Phone must have 9 digits</string>
+    <string name="organizer_success">Registration Successful</string>
+    <string name="organizer_success_message">Your organizer account has been successfully created.</string>
+    
+    <!-- Strings de la barra de navegación -->
+    <string name="nav_eventos">Events</string>
+    <string name="nav_mis_eventos">My Events</string>
+    <string name="nav_crear">Create</string>
+    <string name="nav_mis_tickets">My Tickets</string>
+    <string name="nav_favoritos">Favorites</string>
+    <string name="nav_perfil">Profile</string>
+    
+    <!-- Strings de la pantalla de eventos -->
+    <string name="eventos_titulo">EVENTS</string>
+    <string name="eventos_buscar">Search events</string>
+    <string name="eventos_limpiar_busqueda">Clear search</string>
+    <string name="eventos_imagen">Event image</string>
+    <string name="eventos_fecha">Date</string>
+    <string name="eventos_hora">Time</string>
+    <string name="eventos_ubicacion">Location</string>
+    <string name="eventos_no_disponible">Not available</string>
+    <string name="eventos_gratuito">Free</string>
+    <string name="eventos_error_desconocido">Unknown error</string>
+    <string name="eventos_no_hay">No events available</string>
+    <string name="eventos_no_hay_categoria">No events in this category</string>
+    <string name="eventos_no_hay_organizador">No events available for this organizer</string>
+    <string name="eventos_no_creados">You haven\'t created any events yet</string>
+    <string name="eventos_crear_primero">Create my first event</string>
+    
+    <!-- Strings para formato de fechas -->
+    <string name="date_of"></string>
+    
+    <!-- Strings para la pantalla de detalle de evento -->
+    <string name="evento_detalle_titulo">EVENT DETAILS</string>
+    <string name="evento_detalle_id_invalido">Invalid event ID</string>
+    <string name="evento_detalle_volver">Back</string>
+    <string name="evento_detalle_error_desconocido">Unknown error</string>
+    <string name="evento_detalle_no_encontrado">No event information found</string>
+    <string name="evento_detalle_imagen">Event image</string>
+    <string name="evento_detalle_fecha">Date</string>
+    <string name="evento_detalle_hora">Time</string>
+    <string name="evento_detalle_ubicacion">Location</string>
+    <string name="evento_detalle_localizacion">Location</string>
+    <string name="evento_detalle_error_mapa">Could not display the map.</string>
+    <string name="evento_detalle_error_localizacion">Could not find the location.</string>
+    <string name="evento_detalle_error_obtener_localizacion">Error getting location</string>
+    <string name="evento_detalle_organizador">Organizer</string>
+    <string name="evento_detalle_descripcion">Description</string>
+    <string name="evento_detalle_tipos_entrada">Ticket Types</string>
+    <string name="evento_detalle_disponibilidad_ilimitada">Availability: Unlimited</string>
+    <string name="evento_detalle_disponibles">Available</string>
+    <string name="evento_detalle_disminuir">Decrease</string>
+    <string name="evento_detalle_aumentar">Increase</string>
+    <string name="evento_detalle_entradas_seleccionadas">Selected tickets</string>
+    <string name="evento_detalle_total">Total</string>
+    <string name="evento_detalle_entradas_disponibles">Available tickets</string>
+    <string name="evento_detalle_mensaje_entradas">This event has %1$d ticket type(s)</string>
+    <string name="evento_detalle_comprar">BUY</string>
+    <string name="evento_detalle_quitar_favoritos">Remove from favorites</string>
+    <string name="evento_detalle_anadir_favoritos">Add to favorites</string>
+    <string name="evento_detalle_texto_evento">event</string>
+    <string name="evento_detalle_cero">0</string>
+    <string name="evento_detalle_organizado_por">Organized by</string>
+    <string name="evento_detalle_organizador_desconocido">Unknown organizer</string>
+    <string name="evento_detalle_organizador_ver_perfil">View organizer profile</string>
+    <string name="evento_detalle_precio">Price</string>
+    <string name="evento_detalle_precio_consultar">Check availability</string>
+    
+    <!-- Strings para el diálogo de pago -->
+    <string name="pago_titulo_confirmar">Confirm Purchase</string>
+    <string name="pago_titulo_exito">Purchase Successful!</string>
+    <string name="pago_procesando">Processing your purchase…</string>
+    <string name="pago_cancelar">Cancel</string>
+    <string name="pago_confirmar">Confirm</string>
+    <string name="pago_total">Total</string>
+    <string name="pago_compra_exitosa">Successful purchase</string>
+    
+    <!-- Categorías de eventos -->
+    <string name="categoria_arte_cultura">Art and Culture</string>
+    <string name="categoria_belleza_bienestar">Beauty and Wellness</string>
+    <string name="categoria_charlas_conferencias">Talks and Conferences</string>
+    <string name="categoria_cine">Cinema</string>
+    <string name="categoria_comedia">Comedy</string>
+    <string name="categoria_conciertos">Concerts</string>
+    <string name="categoria_deportes">Sports</string>
+    <string name="categoria_discoteca">Nightclub</string>
+    <string name="categoria_educacion">Education</string>
+    <string name="categoria_empresarial">Business</string>
+    <string name="categoria_exposiciones">Exhibitions</string>
+    <string name="categoria_familiar">Family</string>
+    <string name="categoria_festivales">Festivals</string>
+    <string name="categoria_gastronomia">Gastronomy</string>
+    <string name="categoria_infantil">Children</string>
+    <string name="categoria_moda">Fashion</string>
+    <string name="categoria_musica_directo">Live Music</string>
+    <string name="categoria_networking">Networking</string>
+    <string name="categoria_ocio_nocturno">Nightlife</string>
+    <string name="categoria_presentaciones">Presentations</string>
+    <string name="categoria_restaurantes">Restaurants</string>
+    <string name="categoria_salud_deporte">Health and Sports</string>
+    <string name="categoria_seminarios">Seminars</string>
+    <string name="categoria_talleres">Workshops</string>
+    <string name="categoria_teatro">Theater</string>
+    <string name="categoria_tecnologia">Technology</string>
+    <string name="categoria_turismo">Tourism</string>
+    <string name="categoria_varios">Miscellaneous</string>
+    
+    <!-- Strings para la pantalla de Mis Tickets -->
+    <string name="mis_tickets_titulo">MY TICKETS</string>
+    <string name="mis_tickets_actualizar">Refresh</string>
+    <string name="mis_tickets_cerrar">Close</string>
+    <string name="mis_tickets_reintentar">Retry</string>
+    <string name="mis_tickets_no_tickets">No tickets available</string>
+    <string name="mis_tickets_comprar_entradas">Buy tickets for available events!</string>
+    <string name="mis_tickets_ver_eventos">See available events</string>
+    <string name="mis_tickets_descargada_correctamente">Ticket downloaded successfully!</string>
+    <string name="mis_tickets_descargada_exito">Ticket downloaded successfully!</string>
+    <string name="mis_tickets_error_descargar">Download error</string>
+    <string name="mis_tickets_ver">View</string>
+    <string name="mis_tickets_ok">OK</string>
+    <string name="mis_tickets_ver_detalles">View details</string>
+    <string name="mis_tickets_anadir_calendario">Add to calendar</string>
+    <string name="mis_tickets_calendario">Calendar</string>
+    <string name="mis_tickets_descargando">Downloading...</string>
+    <string name="mis_tickets_descargada">Ticket downloaded</string>
+    <string name="mis_tickets_descargada_mensaje">Downloaded!</string>
+    <string name="mis_tickets_descargar_entrada">Download ticket</string>
+    <string name="mis_tickets_descargar">Download</string>
+    <string name="mis_tickets_descargando_mayus">DOWNLOADING...</string>
+    <string name="mis_tickets_entrada_descargada">TICKET DOWNLOADED</string>
+    
+    <!-- Strings para la pantalla de Favoritos -->
+    <string name="favoritos_titulo">MY FAVORITES</string>
+    <string name="favoritos_actualizar">Refresh</string>
+    <string name="favoritos_eventos">Events</string>
+    <string name="favoritos_organizadores">Organizers</string>
+    <string name="favoritos_no_eventos">You don\'t have favorite events</string>
+    <string name="favoritos_no_organizadores">You don\'t have favorite organizers</string>
+    <string name="favoritos_explorar_eventos">Explore events</string>
+    <string name="favoritos_explorar_organizadores">Explore organizers</string>
+    <string name="favoritos_error_login">You must be logged in to view your favorites</string>
+    
+    <!-- Strings para la pantalla de permisos de calendario -->
+    <string name="calendario_permisos_necesarios">Permissions required</string>
+    <string name="calendario_permisos_descripcion">To add events to the calendar, you need:</string>
+    <string name="calendario_permisos_google">1. To be signed in with a Google account on the device</string>
+    <string name="calendario_permisos_acceso">2. To grant permissions to access the calendar</string>
+    <string name="calendario_permisos_explicacion">This will allow the app to create events in your Google Calendar.</string>
+    <string name="calendario_permisos_conceder">Grant permissions</string>
+    <string name="calendario_permisos_cancelar">Cancel</string>
+    <string name="calendario_cuenta_requerida">Google Account required</string>
+    <string name="calendario_cuenta_no_encontrada">No valid Google account found on the device.</string>
+    <string name="calendario_cuenta_explicacion">To add events to the calendar, you need to sign in with a Google account in your device settings.</string>
+    <string name="calendario_abrir_ajustes">Open settings</string>
+    <string name="calendario_error_permisos">Calendar permissions are required for this feature</string>
+    <string name="calendario_error_ajustes">Could not open account settings</string>
+    <string name="calendario_error_abrir">Error opening calendar: %1$s</string>
+    
+    <!-- Strings adicionales para MisTicketsScreen -->
+    <string name="mis_tickets_title">MY TICKETS</string>
+    <string name="mis_tickets_permisos_necesarios">Permissions required</string>
+    <string name="mis_tickets_permiso_calendario_requerido">Calendar permissions are required for this feature</string>
+    <string name="mis_tickets_permiso_calendario_desc">To add events to the calendar, you need:</string>
+    <string name="mis_tickets_permiso_calendario_req">1. To be signed in with a Google account on the device\n2. To grant permissions to access the calendar</string>
+    <string name="mis_tickets_permiso_calendario_perm">This will allow the app to create events in your Google Calendar.</string>
+    <string name="mis_tickets_conceder_permisos">Grant permissions</string>
+    <string name="mis_tickets_cancelar">Cancel</string>
+    <string name="mis_tickets_cuenta_google_requerida">Google Account required</string>
+    <string name="mis_tickets_cuenta_google_no_encontrada">No valid Google account found on the device.</string>
+    <string name="mis_tickets_cuenta_google_perm">To add events to the calendar, you need to sign in with a Google account in your device settings.</string>
+    <string name="mis_tickets_ajustes_cuentas_error">Could not open account settings</string>
+    <string name="mis_tickets_abrir_ajustes">Open settings</string>
+    <string name="mis_tickets_error_calendario">Error opening calendar: %1$s</string>
+    <string name="mis_tickets_compra_entradas">Buy tickets for available events!</string>
+    <string name="mis_tickets_ver_eventos_disponibles">See available events</string>
+    
+    <!-- Strings para la pantalla de Historial de Compras -->
+    <string name="historial_compras_titulo">PURCHASE HISTORY</string>
+    <string name="historial_compras_volver">Back</string>
+    <string name="historial_compras_reintentar">Retry</string>
+    <string name="historial_compras_sin_compras">You don\'t have any purchases</string>
+    <string name="historial_compras_mensaje_vacio">When you make a purchase, it will appear here</string>
+    <string name="historial_compras_explorar_eventos">Explore events</string>
+    <string name="historial_compras_entradas">tickets</string>
+    <string name="historial_compras_compra">Purchase</string>
+    <string name="historial_compras_pagado">paid</string>
+    <string name="historial_compras_pendiente">pending</string>
+    <string name="historial_compras_descargar_factura">DOWNLOAD INVOICE</string>
+    <string name="historial_compras_descargando">DOWNLOADING...</string>
+    <string name="historial_compras_factura_descargada">INVOICE DOWNLOADED</string>
+    <string name="historial_compras_error_descarga">Download error</string>
+    <string name="historial_compras_sesion_expirada">Session expired</string>
+    <string name="historial_compras_sin_permiso">No permission</string>
+    <string name="historial_compras_factura_no_encontrada">Invoice not found</string>
+    <string name="historial_compras_error_servidor">Server error</string>
+    
+    <!-- Strings para la pantalla de cambio de contraseña -->
+    <string name="cambiar_contrasena_titulo">Change Password</string>
+    <string name="cambiar_contrasena_boton">CHANGE PASSWORD</string>
+    <string name="cambiar_contrasena_actual">Current password</string>
+    <string name="cambiar_contrasena_nueva">New password</string>
+    <string name="cambiar_contrasena_confirmar">Confirm password</string>
+    <string name="cambiar_contrasena_success">Your password has been successfully updated</string>
+    <string name="cambiar_contrasena_ocultar">Hide password</string>
+    <string name="cambiar_contrasena_mostrar">Show password</string>
+    <string name="cambiar_contrasena_boton_cambiar">Change</string>
+    <string name="cambiar_contrasena_boton_cancelar">Cancel</string>
+    <string name="cambiar_contrasena_error_no_coinciden">Passwords do not match</string>
+    <string name="cambiar_contrasena_error_misma">The new password must be different from the current one</string>
+    <string name="cambiar_contrasena_error_longitud">The new password must be at least 6 characters long</string>
+    <string name="cambiar_contrasena_error_no_sesion">Not logged in</string>
+    <string name="cambiar_contrasena_error_incorrecta">The current password is incorrect</string>
+    <string name="cambiar_contrasena_error_datos">Error in the data submitted</string>
+    <string name="cambiar_contrasena_error_sesion">Your session has expired. Please log in again</string>
+    <string name="cambiar_contrasena_error_generico">Error changing password</string>
+    <string name="cambiar_contrasena_exito">Success</string>
+    
+    <!-- Strings para la pantalla de perfil -->
+    <string name="perfil_titulo">MY PROFILE</string>
+    <string name="perfil_editar">Edit profile</string>
+    <string name="perfil_guardar">Save</string>
+    <string name="perfil_cancelar">Cancel</string>
+    <string name="perfil_nombre">First Name</string>
+    <string name="perfil_primer_apellido">Last Name</string>
+    <string name="perfil_segundo_apellido">Second Last Name</string>
+    <string name="perfil_email">Email</string>
+    <string name="perfil_dni">ID</string>
+    <string name="perfil_telefono">Phone</string>
+    <string name="perfil_nombre_organizacion">Organization Name</string>
+    <string name="perfil_telefono_contacto">Contact Phone</string>
+    <string name="perfil_actualizado">Profile updated successfully</string>
+    <string name="perfil_error_conexion">Server connection error</string>
+    <string name="perfil_reintentar">Retry</string>
+    <string name="perfil_iniciar_sesion">Sign in</string>
+    <string name="perfil_informacion_personal">Personal Information</string>
+    <string name="perfil_no_especificado">Not specified</string>
+    <string name="perfil_cerrar_sesion">Sign out</string>
+    <string name="perfil_rol_organizador">Organizer</string>
+    <string name="perfil_rol_participante">Participant</string>
+    
+    <!-- Strings para el diálogo de eliminar cuenta -->
+    <string name="eliminar_cuenta_titulo">Delete Account</string>
+    <string name="eliminar_cuenta_eliminando">Deleting account...</string>
+    <string name="eliminar_cuenta_advertencia">This action will permanently delete your account and all associated data:</string>
+    <string name="eliminar_cuenta_datos_personales">Your profile and personal data</string>
+    <string name="eliminar_cuenta_historial">Purchase history and invoices</string>
+    <string name="eliminar_cuenta_eventos_favoritos">Favorite events</string>
+    <string name="eliminar_cuenta_organizadores_favoritos">Favorite organizers</string>
+    <string name="eliminar_cuenta_eventos_creados">Created events</string>
+    <string name="eliminar_cuenta_tipos_entrada">Ticket types</string>
+    <string name="eliminar_cuenta_advertencia_final">This action cannot be undone.</string>
+    <string name="eliminar_cuenta_contrasena">Current password</string>
+    <string name="eliminar_cuenta_ocultar">Hide password</string>
+    <string name="eliminar_cuenta_mostrar">Show password</string>
+    <string name="eliminar_cuenta_confirmar">Confirm</string>
+    <string name="eliminar_cuenta_boton">DELETE ACCOUNT</string>
+    <string name="eliminar_cuenta_exito_titulo">Account deleted successfully</string>
+    <string name="eliminar_cuenta_exito_mensaje">Thank you for using our application</string>
+    <string name="eliminar_cuenta_exito_boton">OK</string>
+    
+    <!-- Strings para la pantalla de detalle de organizador -->
+    <string name="organizer_detail_title">ORGANIZER DETAILS</string>
+    <string name="organizer_avatar_desc">Organizer avatar</string>
+    <string name="default_avatar">Default avatar</string>
+    <string name="back_button">Back</string>
+    <string name="organizer_detail_show_more">Show more information</string>
+    <string name="organizer_detail_info">Organizer Information</string>
+    <string name="organizer_detail_phone">Phone</string>
+    <string name="organizer_detail_address">Address</string>
+    <string name="organizer_detail_cif">Tax ID</string>
+    <string name="organizer_detail_contact_info">Contact Information</string>
+    <string name="organizer_detail_events">Events</string>
+    <string name="organizer_detail_error_events">Error loading events</string>
+    <string name="organizer_detail_no_events">No events available for this organizer</string>
+    
+    <!-- Strings para la pantalla de Mis Eventos -->
+    <string name="mis_eventos_titulo">MY EVENTS</string>
+    <string name="mis_eventos_crear">Create Event</string>
+    <string name="mis_eventos_eliminar_titulo">Delete event</string>
+    <string name="mis_eventos_eliminar_confirmar">Are you sure you want to delete the event \'%1$s\'? This action cannot be undone.</string>
+    <string name="mis_eventos_eliminar_boton">Delete</string>
+    <string name="mis_eventos_cancelar">Cancel</string>
+    <string name="mis_eventos_solo_organizadores">This section is only available for organizers.</string>
+    <string name="mis_eventos_error_desconocido">Unknown error</string>
+    <string name="mis_eventos_editar">Edit</string>
+    <string name="mis_eventos_eliminar">Delete</string>
+    <string name="mis_eventos_online">Online</string>
+    <string name="mis_eventos_error_edicion">Error opening edit screen: %1$s</string>
+    
+    <!-- Strings para la pantalla de Crear/Editar Evento -->
+    <string name="crear_evento_titulo">CREATE EVENT</string>
+    <string name="editar_evento_titulo">EDIT EVENT</string>
+    <string name="evento_informacion_basica">BASIC INFORMATION</string>
+    <string name="evento_titulo">Event title</string>
+    <string name="evento_titulo_placeholder">Ex. Rock Concert</string>
+    <string name="evento_descripcion">Description</string>
+    <string name="evento_descripcion_placeholder">Describe your event</string>
+    <string name="evento_fecha">Event date</string>
+    <string name="evento_hora">Event time</string>
+    <string name="evento_hora_placeholder">HH:MM</string>
+    <string name="evento_hora_pasada">You cannot select a past time for today</string>
+    <string name="evento_ubicacion">Location</string>
+    <string name="evento_ubicacion_placeholder">Ex. Municipal Stadium</string>
+    <string name="evento_categoria">Category</string>
+    <string name="evento_seleccionar_imagen">Select image</string>
+    <string name="evento_como_anadir_imagen">How would you like to add an image?</string>
+    <string name="evento_tomar_foto">Take photo</string>
+    <string name="evento_galeria">Gallery</string>
+    <string name="evento_permiso_galeria">Permission is needed to access the gallery</string>
+    <string name="evento_permiso_camara">Permissions are needed to use the camera</string>
+    <string name="evento_imagen">Event image</string>
+    <string name="evento_eliminar_imagen">Remove image</string>
+    <string name="evento_anadir_imagen">Add event image</string>
+    <string name="evento_error_crear">Error creating event:</string>
+    <string name="evento_error_editar">Error editing event:</string>
+    <string name="evento_problemas_detectados">The following problems were detected:</string>
+    <string name="evento_error_fecha">• Date: The date must be after today</string>
+    <string name="evento_error_online">• Is online: The field must be true or false</string>
+    <string name="evento_error_tipos_entrada">• Ticket types: At least one valid ticket type is required</string>
+    <string name="evento_error_nombre">• Name: The name is required</string>
+    <string name="evento_error_precio">• Price: The price must be a valid number</string>
+    <string name="evento_error_es_ilimitado">• Is unlimited: The field must be true or false</string>
+    <string name="evento_tipo">EVENT TYPE</string>
+    <string name="evento_es_online">This event is online</string>
+    <string name="evento_tipos_entrada">TICKET TYPES</string>
+    <string name="evento_tipo_entrada">Ticket type %1$d</string>
+    <string name="evento_eliminar_tipo_entrada">Delete ticket type</string>
+    <string name="evento_nombre_tipo">Name</string>
+    <string name="evento_precio">Price (€)</string>
+    <string name="evento_descripcion_opcional">Description (optional)</string>
+    <string name="evento_entradas_ilimitadas">Unlimited tickets</string>
+    <string name="evento_cantidad_disponible">Available quantity</string>
+    <string name="evento_anadir_tipo_entrada">Add ticket type</string>
+    <string name="evento_edita_anade_tipos_entrada">Edit or add ticket types for your event</string>
+    <string name="evento_boton_crear">CREATE EVENT</string>
+    <string name="evento_boton_guardar">SAVE CHANGES</string>
+    <string name="evento_creado_exito">Event created successfully</string>
+    <string name="evento_actualizado_exito">Event updated successfully</string>
+    <string name="evento_id_invalido">Invalid event ID (%1$d)</string>
+    
+    <!-- Strings for invoice download -->
+    <string name="iniciando_descarga">Starting download...</string>
+    <string name="conectando_servidor">Connecting to server...</string>
+    <string name="descargando_factura">Downloading invoice...</string>
+    <string name="descargando">Downloading...</string>
+    <string name="error_no_pdf">Error: The server did not return a valid PDF</string>
+    <string name="error_guardar_archivo">Error saving file</string>
+    <string name="error_guardar_factura">Error saving invoice</string>
+    <string name="error_no_datos_servidor">Error: No data received from server</string>
+    <string name="factura_descargada_instalar_lector">Invoice downloaded! Install a PDF reader to view it</string>
+    <string name="factura_descargada_no_abrir">Invoice downloaded! Could not open automatically</string>
+</resources> 

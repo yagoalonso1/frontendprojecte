@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -31,6 +32,8 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.navigation.NavController
+import com.example.app.ui.components.LanguageAwareText
+import com.example.app.util.LocaleHelper
 
 @Composable
 fun RegisterScreen(
@@ -91,13 +94,12 @@ fun RegisterScreen(
             // Título
             item {
                 Text(
-                    text = "Registro de Usuario",
+                    text = stringResource(id = R.string.register_title),
                     style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFE53935) // Color rojo del logo
+                        fontWeight = FontWeight.Bold
                     ),
-                    modifier = Modifier.padding(bottom = 24.dp),
-                    textAlign = TextAlign.Center
+                    color = Color(0xFFE53935),
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
             }
 
@@ -106,7 +108,7 @@ fun RegisterScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp)
+                        .padding(horizontal = 16.dp)
                 ) {
                     // Campos comunes para ambos roles
                     OutlinedTextField(
@@ -119,7 +121,7 @@ fun RegisterScreen(
                                 viewModel.isNameError = false
                             }
                         },
-                        label = { Text("Nombre") },
+                        label = { LanguageAwareText(textId = R.string.register_name) },
                         isError = viewModel.isNameError,
                         supportingText = {
                             if (viewModel.isNameError) {
@@ -154,7 +156,7 @@ fun RegisterScreen(
                                 viewModel.isApellido1Error = false
                             }
                         },
-                        label = { Text("Primer Apellido") },
+                        label = { LanguageAwareText(textId = R.string.register_lastname1) },
                         isError = viewModel.isApellido1Error,
                         supportingText = {
                             if (viewModel.isApellido1Error) {
@@ -189,7 +191,7 @@ fun RegisterScreen(
                                 viewModel.isApellido2Error = false
                             }
                         },
-                        label = { Text("Segundo Apellido") },
+                        label = { LanguageAwareText(textId = R.string.register_lastname2) },
                         isError = !apellido2Valid,
                         supportingText = {
                             if (!apellido2Valid) {
@@ -221,7 +223,7 @@ fun RegisterScreen(
                                 viewModel.isEmailError = false
                             }
                         },
-                        label = { Text("Email") },
+                        label = { LanguageAwareText(textId = R.string.register_email) },
                         isError = viewModel.isEmailError,
                         supportingText = {
                             if (viewModel.isEmailError) {
@@ -257,7 +259,7 @@ fun RegisterScreen(
                                 viewModel.isPasswordError = false
                             }
                         },
-                        label = { Text("Contraseña") },
+                        label = { LanguageAwareText(textId = R.string.register_password) },
                         isError = viewModel.isPasswordError,
                         supportingText = {
                             if (viewModel.isPasswordError) {
@@ -280,7 +282,7 @@ fun RegisterScreen(
                                 IconButton(onClick = { showPasswordRequirements = !showPasswordRequirements }) {
                                     Icon(
                                         imageVector = Icons.Filled.Info,
-                                        contentDescription = "Requisitos de contraseña",
+                                        contentDescription = stringResource(id = R.string.register_password_requirements),
                                         tint = Color(0xFFE53935)
                                     )
                                 }
@@ -288,7 +290,7 @@ fun RegisterScreen(
                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                     Icon(
                                         imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                        contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                                        contentDescription = if (passwordVisible) stringResource(id = R.string.register_password) else stringResource(id = R.string.register_password),
                                         tint = Color(0xFFE53935)
                                     )
                                 }
@@ -318,8 +320,8 @@ fun RegisterScreen(
                                     .fillMaxWidth()
                                     .padding(16.dp)
                             ) {
-                                Text(
-                                    text = "Requisitos de contraseña:",
+                                LanguageAwareText(
+                                    textId = R.string.register_password_requirements,
                                     style = MaterialTheme.typography.titleSmall.copy(
                                         fontWeight = FontWeight.Bold
                                     ),
@@ -327,32 +329,32 @@ fun RegisterScreen(
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
                                 
-                                Text(
-                                    text = "• Al menos 8 caracteres",
+                                LanguageAwareText(
+                                    textId = R.string.register_password_req1,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.DarkGray
                                 )
                                 
-                                Text(
-                                    text = "• Al menos una letra mayúscula",
+                                LanguageAwareText(
+                                    textId = R.string.register_password_req2,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.DarkGray
                                 )
                                 
-                                Text(
-                                    text = "• Al menos una letra minúscula",
+                                LanguageAwareText(
+                                    textId = R.string.register_password_req3,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.DarkGray
                                 )
                                 
-                                Text(
-                                    text = "• Al menos un número",
+                                LanguageAwareText(
+                                    textId = R.string.register_password_req4,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.DarkGray
                                 )
                                 
-                                Text(
-                                    text = "• Al menos un carácter especial",
+                                LanguageAwareText(
+                                    textId = R.string.register_password_req5,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.DarkGray
                                 )
@@ -372,7 +374,7 @@ fun RegisterScreen(
                                 viewModel.isConfirmPasswordError = false
                             }
                         },
-                        label = { Text("Confirmar Contraseña") },
+                        label = { LanguageAwareText(textId = R.string.register_confirm_password) },
                         isError = viewModel.isConfirmPasswordError,
                         supportingText = {
                             if (viewModel.isConfirmPasswordError) {
@@ -393,7 +395,7 @@ fun RegisterScreen(
                             IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                                 Icon(
                                     imageVector = if (confirmPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                    contentDescription = if (confirmPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                                    contentDescription = if (confirmPasswordVisible) stringResource(id = R.string.register_password) else stringResource(id = R.string.register_password),
                                     tint = Color(0xFFE53935)
                                 )
                             }
@@ -417,16 +419,18 @@ fun RegisterScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Selecciona tu rol",
+                        text = stringResource(id = R.string.register_role_select),
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.SemiBold
                         ),
                         color = Color(0xFF333333),
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
                     )
                     
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         Button(
@@ -445,8 +449,8 @@ fun RegisterScreen(
                                 disabledContainerColor = Color.LightGray
                             )
                         ) {
-                            Text(
-                                text = "Organizador",
+                            LanguageAwareText(
+                                textId = R.string.register_role_organizer,
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
@@ -470,8 +474,8 @@ fun RegisterScreen(
                                 disabledContainerColor = Color.LightGray
                             )
                         ) {
-                            Text(
-                                text = "Participante",
+                            LanguageAwareText(
+                                textId = R.string.register_role_participant,
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
@@ -482,8 +486,8 @@ fun RegisterScreen(
                     
                     // Mensaje de ayuda si los botones están deshabilitados
                     if (!buttonsEnabled) {
-                        Text(
-                            text = "Completa todos los campos correctamente para continuar",
+                        LanguageAwareText(
+                            textId = R.string.register_complete_fields,
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.Gray,
                             textAlign = TextAlign.Center,
@@ -501,8 +505,8 @@ fun RegisterScreen(
                     },
                     modifier = Modifier.padding(top = 8.dp)
                 ) {
-                    Text(
-                        text = "¿Ya tienes cuenta? Inicia sesión",
+                    LanguageAwareText(
+                        textId = R.string.register_have_account,
                         color = Color(0xFFE53935),
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium
@@ -519,10 +523,11 @@ fun RegisterScreen(
         AlertDialog(
             onDismissRequest = { viewModel.clearError() },
             title = { 
-                androidx.compose.material3.Text(
-                    text = "Error",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+                LanguageAwareText(
+                    textId = R.string.register_error_title,
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold
+                    )
                 ) 
             },
             text = { 
@@ -533,10 +538,11 @@ fun RegisterScreen(
             },
             confirmButton = {
                 TextButton(onClick = { viewModel.clearError() }) {
-                    androidx.compose.material3.Text(
-                        text = "Aceptar",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
+                    LanguageAwareText(
+                        textId = R.string.ok_button,
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        )
                     )
                 }
             },

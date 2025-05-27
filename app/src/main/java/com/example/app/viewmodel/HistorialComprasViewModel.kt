@@ -1,6 +1,8 @@
 package com.example.app.viewmodel
 
+import android.content.Intent
 import android.os.Build
+import android.provider.MediaStore
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
@@ -8,13 +10,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.app.R
 import com.example.app.api.RetrofitClient
 import com.example.app.util.SessionManager
+import com.example.app.view.MENSAJE_FACTURA_DESCARGADA
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.ResponseBody
+import retrofit2.Response
 
 class HistorialComprasViewModel(
     private val application: android.app.Application
@@ -46,6 +52,10 @@ class HistorialComprasViewModel(
         loadHistorialCompras()
     }
     
+    fun resetShouldNavigateToLogin() {
+        _shouldNavigateToLogin.value = false
+    }
+    
     fun loadHistorialCompras() {
         viewModelScope.launch {
             try {
@@ -58,7 +68,7 @@ class HistorialComprasViewModel(
                 
                 if (token.isNullOrEmpty()) {
                     Log.e(TAG, "Error: No hay token disponible")
-                    setError("No se ha iniciado sesión")
+                    setError(application.getString(R.string.favoritos_error_login))
                     _shouldNavigateToLogin.value = true
                     return@launch
                 }
@@ -75,50 +85,53 @@ class HistorialComprasViewModel(
                 
                 // Procesar la respuesta
                 if (response == null) {
-                    setError("Error de conexión al servidor")
+                    setError(application.getString(R.string.historial_compras_error_servidor))
                     return@launch
                 }
                 
                 if (response.isSuccessful) {
                     val historialResponse = response.body()
-                    Log.d(TAG, "Respuesta exitosa: ${historialResponse?.message}")
+                    Log.d(TAG, "Respuesta del servidor: $historialResponse")
                     
-                    if (historialResponse != null && historialResponse.status == "success") {
-                        _compras.value = historialResponse.compras ?: emptyList()
-                        Log.d(TAG, "Compras cargadas: ${_compras.value.size}")
+                    if (historialResponse?.status?.equals("success", ignoreCase = true) == true) {
+                        val comprasLista = historialResponse.compras ?: emptyList()
+                        _compras.value = comprasLista
+                        
+                        if (comprasLista.isEmpty()) {
+                            Log.d(TAG, "El historial de compras está vacío")
+                        } else {
+                            Log.d(TAG, "Se han cargado ${comprasLista.size} compras")
+                        }
                     } else {
-                        Log.e(TAG, "Respuesta vacía o sin datos")
-                        setError("No se pudieron obtener las compras")
+                        Log.e(TAG, "Error en la respuesta: ${historialResponse?.message}")
+                        setError(historialResponse?.message ?: application.getString(R.string.historial_compras_error_servidor))
                     }
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    Log.e(TAG, "Error ${response.code()}: $errorBody")
+                    Log.e(TAG, "Error en la respuesta HTTP: ${response.code()}, $errorBody")
                     
                     when (response.code()) {
                         401 -> {
-                            setError("Tu sesión ha expirado. Por favor, inicia sesión nuevamente")
+                            setError(application.getString(R.string.historial_compras_sesion_expirada))
                             _shouldNavigateToLogin.value = true
                         }
-                        403 -> setError("No tienes permiso para acceder a esta información")
-                        404 -> setError("No se encontraron compras")
-                        500 -> setError("Error interno del servidor")
-                        else -> setError("Error al cargar el historial: ${response.code()}")
+                        403 -> setError(application.getString(R.string.historial_compras_sin_permiso))
+                        404 -> setError("No se encontró el historial")
+                        500 -> setError(application.getString(R.string.historial_compras_error_servidor))
+                        else -> setError("Error: ${response.code()}")
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error en loadHistorialCompras: ${e.message}", e)
-                setError("Error de conexión: ${e.message}")
+                Log.e(TAG, "Error al cargar historial: ${e.message}")
+                setError("Error: ${e.message}")
             } finally {
                 isLoading = false
             }
         }
     }
     
-    fun resetShouldNavigateToLogin() {
-        _shouldNavigateToLogin.value = false
-    }
-    
     private fun setError(message: String) {
+        Log.e(TAG, "Error: $message")
         errorMessage = message
     }
     
@@ -126,137 +139,147 @@ class HistorialComprasViewModel(
         errorMessage = null
     }
     
-    @RequiresApi(Build.VERSION_CODES.Q)
     fun downloadFactura(idCompra: Int) {
         viewModelScope.launch {
             try {
                 _isDownloadingPdf.value = true
-                _downloadMessage.value = null
+                _downloadMessage.value = application.getString(R.string.iniciando_descarga)
                 
                 val token = SessionManager.getToken()
                 if (token.isNullOrEmpty()) {
-                    _downloadMessage.value = "No se ha iniciado sesión"
+                    _downloadMessage.value = application.getString(R.string.historial_compras_sesion_expirada)
                     _shouldNavigateToLogin.value = true
                     return@launch
                 }
                 
+                _downloadMessage.value = application.getString(R.string.conectando_servidor)
                 val response = withContext(Dispatchers.IO) {
                     try {
                         RetrofitClient.apiService.downloadFactura("Bearer $token", idCompra)
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error al realizar petición HTTP: ${e.message}", e)
+                        Log.e(TAG, "Error al realizar petición HTTP para descargar factura: ${e.message}", e)
                         return@withContext null
                     }
                 }
                 
                 if (response == null) {
-                    _downloadMessage.value = "Error de conexión al servidor"
+                    _downloadMessage.value = application.getString(R.string.historial_compras_error_descarga)
                     return@launch
                 }
                 
                 if (response.isSuccessful) {
                     val responseBody = response.body()
                     if (responseBody != null) {
+                        _downloadMessage.value = application.getString(R.string.descargando_factura)
+                        
+                        // Verificar el tipo de contenido
+                        val contentType = response.headers()["Content-Type"]
+                        if (contentType?.contains("application/pdf") != true) {
+                            _downloadMessage.value = application.getString(R.string.error_no_pdf)
+                            return@launch
+                        }
+                        
+                        // Guardar el PDF en el almacenamiento
+                        val fileName = "factura_$idCompra.pdf"
+                        val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
+                            android.os.Environment.DIRECTORY_DOWNLOADS
+                        )
+                        downloadsDir.mkdirs()
+                        
+                        val file = java.io.File(downloadsDir, fileName)
+                        
                         try {
-                            // Verificar el tipo de contenido
-                            val contentType = response.headers()["Content-Type"]
-                            if (contentType?.contains("application/pdf") != true) {
-                                _downloadMessage.value = "Error: El servidor no devolvió un PDF válido"
-                                return@launch
-                            }
-                            
-                            // Obtener el nombre del archivo del header Content-Disposition si existe
-                            val contentDisposition = response.headers()["Content-Disposition"]
-                            val fileName = contentDisposition?.let {
-                                it.split("filename=").getOrNull(1)?.trim('"')
-                            } ?: "factura_$idCompra.pdf"
-                            
-                            // Usar el contexto de la aplicación
-                            val context = application.applicationContext
-                            
-                            // Crear el directorio de descargas si no existe
-                            val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
-                                android.os.Environment.DIRECTORY_DOWNLOADS
-                            )
-                            downloadsDir.mkdirs()
-                            
-                            // Crear el archivo
-                            val file = java.io.File(downloadsDir, fileName)
-                            
-                            // Escribir el contenido
                             withContext(Dispatchers.IO) {
-                                try {
-                                    file.outputStream().use { fileOut ->
-                                        responseBody.byteStream().use { inputStream ->
-                                            val buffer = ByteArray(8192)
-                                            var bytesRead: Int
-                                            var totalBytes: Long = 0
+                                file.outputStream().use { outputStream ->
+                                    responseBody.byteStream().use { inputStream ->
+                                        val buffer = ByteArray(4096)
+                                        var bytesRead: Int
+                                        var totalBytesRead: Long = 0
+                                        val contentLength = responseBody.contentLength()
+                                        
+                                        while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                                            outputStream.write(buffer, 0, bytesRead)
+                                            totalBytesRead += bytesRead
                                             
-                                            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                                                fileOut.write(buffer, 0, bytesRead)
-                                                totalBytes += bytesRead
-                                            }
-                                            
-                                            // Verificar que se escribieron bytes
-                                            if (totalBytes == 0L) {
-                                                throw Exception("El archivo descargado está vacío")
+                                            // Actualizar progreso
+                                            if (contentLength > 0) {
+                                                val progress = (totalBytesRead * 100 / contentLength).toInt()
+                                                _downloadMessage.value = "${application.getString(R.string.descargando)} $progress%"
                                             }
                                         }
                                     }
-                                } catch (e: Exception) {
-                                    // Si hay un error, eliminar el archivo si existe
-                                    file.delete()
-                                    throw e
+                                }
+                                
+                                // Verificar que el archivo se creó correctamente
+                                if (!file.exists() || file.length() == 0L) {
+                                    throw Exception(application.getString(R.string.error_guardar_archivo))
                                 }
                             }
                             
                             // Notificar al sistema del nuevo archivo
                             val contentValues = android.content.ContentValues().apply {
-                                put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                                put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
-                                put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+                                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                                put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                                put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
                             }
                             
-                            context.contentResolver.insert(
-                                android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                                contentValues
-                            )
-                            
-                            // Notificar al usuario
-                            _downloadMessage.value = "Factura descargada correctamente"
+                            val contentUri = MediaStore.Files.getContentUri("external")
+                            application.contentResolver.insert(contentUri, contentValues)
                             
                             // Abrir el PDF automáticamente
-                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                                setDataAndType(android.net.Uri.fromFile(file), "application/pdf")
-                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            try {
+                                val fileUri = androidx.core.content.FileProvider.getUriForFile(
+                                    application,
+                                    "${application.packageName}.provider",
+                                    file
+                                )
+                                
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(fileUri, "application/pdf")
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                
+                                // Verificar si hay alguna aplicación que pueda abrir PDFs
+                                val packageManager = application.packageManager
+                                if (intent.resolveActivity(packageManager) != null) {
+                                    application.startActivity(intent)
+                                } else {
+                                    _downloadMessage.value = application.getString(R.string.factura_descargada_instalar_lector)
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error al abrir el PDF", e)
+                                _downloadMessage.value = application.getString(R.string.factura_descargada_no_abrir)
                             }
-                            context.startActivity(intent)
                             
+                            _downloadMessage.value = MENSAJE_FACTURA_DESCARGADA
+                            Log.d(TAG, "Factura descargada correctamente")
                         } catch (e: Exception) {
-                            Log.e(TAG, "Error al guardar el archivo: ${e.message}", e)
-                            _downloadMessage.value = "Error al guardar la factura: ${e.message}"
+                            Log.e(TAG, "Error al guardar el archivo", e)
+                            _downloadMessage.value = "${application.getString(R.string.error_guardar_factura)}: ${e.message}"
+                            // Intentar eliminar el archivo si se creó
+                            file.delete()
                         }
                     } else {
-                        _downloadMessage.value = "Error: Respuesta vacía del servidor"
+                        _downloadMessage.value = application.getString(R.string.error_no_datos_servidor)
                     }
                 } else {
                     val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "Error en la respuesta: $errorBody")
                     when (response.code()) {
                         401 -> {
-                            _downloadMessage.value = "Sesión expirada"
+                            _downloadMessage.value = application.getString(R.string.historial_compras_sesion_expirada)
                             _shouldNavigateToLogin.value = true
                         }
-                        403 -> _downloadMessage.value = "Sin permiso"
-                        404 -> _downloadMessage.value = "Factura no encontrada"
-                        500 -> _downloadMessage.value = "Error del servidor"
+                        403 -> _downloadMessage.value = application.getString(R.string.historial_compras_sin_permiso)
+                        404 -> _downloadMessage.value = application.getString(R.string.historial_compras_factura_no_encontrada)
+                        500 -> _downloadMessage.value = application.getString(R.string.historial_compras_error_servidor)
                         else -> _downloadMessage.value = "Error: ${response.code()}"
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error al descargar factura: ${e.message}", e)
-                _downloadMessage.value = "Error al descargar"
+                _downloadMessage.value = "${application.getString(R.string.historial_compras_error_descarga)}: ${e.message}"
             } finally {
                 _isDownloadingPdf.value = false
             }

@@ -41,6 +41,7 @@ import com.example.app.model.Evento
 import com.example.app.model.TipoEntrada
 import com.example.app.model.TipoEntradaDetalle
 import com.example.app.util.Constants
+import com.example.app.util.CategoryTranslator
 
 class EditarEventoViewModel : ViewModel() {
     // ID del evento a editar
@@ -222,8 +223,8 @@ class EditarEventoViewModel : ViewModel() {
             isLoadingCategorias = true
             errorCategorias = null
             try {
-                // Usar categorías estáticas por ahora
-                categorias = listOf(
+                // Definir categorías estáticas
+                val categoriasOriginales = listOf(
                     "Festival",
                     "Concierto",
                     "Teatro",
@@ -233,7 +234,13 @@ class EditarEventoViewModel : ViewModel() {
                     "Taller",
                     "Otro"
                 )
-                Log.d(TAG, "Categorías cargadas: $categorias")
+                
+                // Traducir cada categoría al idioma actual
+                categorias = categoriasOriginales.map { categoria ->
+                    CategoryTranslator.translate(categoria)
+                }
+                
+                Log.d(TAG, "Categorías cargadas y traducidas: $categorias")
             } catch (e: Exception) {
                 errorCategorias = "Error al cargar las categorías: ${e.message}"
                 Log.e(TAG, "Excepción al cargar categorías", e)

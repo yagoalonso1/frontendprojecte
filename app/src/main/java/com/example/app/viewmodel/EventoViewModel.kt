@@ -119,7 +119,9 @@ class EventoViewModel : ViewModel() {
                         // Si no hay eventos, actualizar mensaje de error
                         if (eventos.isEmpty()) {
                             Log.d("EVENTOS", "No hay eventos disponibles")
-                            setError("No hay eventos registrados")
+                            val appContext = com.example.app.MyApplication.appContext
+                            val errorMsg = appContext.getString(com.example.app.R.string.eventos_no_hay)
+                            setError(errorMsg)
                         }
                     } else {
                         setError("No se pudieron cargar los eventos: Respuesta vacía")

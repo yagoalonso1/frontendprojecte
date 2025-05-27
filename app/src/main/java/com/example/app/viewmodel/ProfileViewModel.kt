@@ -122,6 +122,15 @@ class ProfileViewModel : ViewModel() {
                         if (profileResponse != null && profileResponse.data != null) {
                             profileData = profileResponse.data
                             Log.d("ProfileViewModel", "Datos de perfil recibidos: $profileData")
+                            
+                            // Añadir logs específicos para el avatar
+                            Log.d("ProfileViewModel", "Avatar URL recibida: ${profileData?.avatar}")
+                            if (profileData?.avatar == null || profileData?.avatar?.isEmpty() == true) {
+                                Log.w("ProfileViewModel", "⚠️ Avatar URL vacía o nula")
+                            } else {
+                                Log.d("ProfileViewModel", "✓ Avatar URL válida: ${profileData?.avatar}")
+                            }
+                            
                             initEditableFields()
                         } else {
                             Log.e("ProfileViewModel", "Cuerpo de respuesta vacío o sin datos")
@@ -227,14 +236,24 @@ class ProfileViewModel : ViewModel() {
                         )
                     }
                     
-                    // Procesar la respuesta
+                    // Procesar la respuesta 
+                    
                     withContext(Dispatchers.Main) {
                         if (response.isSuccessful) {
                             val profileResponse = response.body()
                             if (profileResponse != null && profileResponse.data != null) {
+                                // Actualizar los datos de perfil con la respuesta
                                 profileData = profileResponse.data
                                 isEditing = false
                                 _isUpdateSuccessful.value = true
+                                
+                                // Aquí agregamos la carga del perfil para asegurar que tenemos el avatar actualizado
+                                // Importante: Usar un delay para dejar que el backend procese los cambios
+                                withContext(Dispatchers.Main) {
+                                    kotlinx.coroutines.delay(300) // Pequeño delay para asegurar que el backend ha procesado los cambios
+                                    loadProfile() // Recargar el perfil para obtener el avatar actualizado
+                                }
+                                
                             } else {
                                 setError("No se pudo actualizar la información del perfil")
                             }
@@ -489,22 +508,19 @@ class ProfileViewModel : ViewModel() {
                     try {
                         com.example.app.api.RetrofitClient.apiService.changePassword("Bearer $token", passwordData)
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error HTTP al cambiar contraseña: ${e.message}", e)
+                        Log.e(TAG, "Error al cambiar contraseña: ${e.message}", e)
                         return@withContext null
                     }
                 }
                 
-                // Procesar la respuesta
                 if (response == null) {
-                    setError("Error de conexión al servidor")
+                    setError("Error de conexión")
                     return@launch
                 }
                 
                 if (response.isSuccessful) {
-                    // Marcar como exitoso y limpiar errores
+                    Log.d(TAG, "Contraseña cambiada exitosamente")
                     _isPasswordChangeSuccessful.value = true
-                    clearError()
-                    Log.d(TAG, "Contraseña cambiada con éxito")
                 } else {
                     // Procesar el error según el código
                     val errorBody = response.errorBody()?.string()
@@ -528,7 +544,7 @@ class ProfileViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error al cambiar contraseña: ${e.message}", e)
-                setError("Error: ${e.message}")
+                setError("Error de conexión: ${e.message}")
             } finally {
                 isChangingPassword = false
             }

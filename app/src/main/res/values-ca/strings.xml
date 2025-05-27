@@ -1,0 +1,446 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EventFlix</string>
+    
+    <!-- Strings de la pantalla de Login -->
+    <string name="login_title">Iniciar Sessió</string>
+    <string name="login_email_hint">Email</string>
+    <string name="login_password_hint">Contrasenya</string>
+    <string name="login_forgot_password">Has oblidat la contrasenya?</string>
+    <string name="login_button">Iniciar Sessió</string>
+    <string name="login_or_divider">o</string>
+    <string name="login_with_google">Continuar amb Google</string>
+    <string name="login_no_account">Encara no tens compte?</string>
+    <string name="login_create_account">Crear Compte</string>
+    <string name="login_copyright">© 2025 EventFlix. Tots els drets reservats.</string>
+    
+    <!-- Mensajes de error -->
+    <string name="error_invalid_email">Email no vàlid</string>
+    <string name="error_invalid_password">La contrasenya ha de tenir almenys 6 caràcters</string>
+    <string name="error_empty_fields">Tots els camps són obligatoris</string>
+    <string name="error_login_failed">Credencials incorrectes</string>
+    <string name="error_connection">Error de connexió</string>
+    <string name="error_user_not_found">La resposta no conté informació d\'usuari</string>
+    <string name="error_invalid_token">No s\'ha rebut un token vàlid del servidor</string>
+    <string name="error_process_response">Error al processar la resposta</string>
+    
+    <!-- Opciones de idioma -->
+    <string name="language_selector_title">Seleccionar idioma</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_catalan">Català</string>
+    <string name="language_english">English</string>
+    <string name="language_changed">Idioma canviat a Català</string>
+    <string name="language_changed_to_spanish">Idioma canviat a Espanyol</string>
+    <string name="language_changed_to_catalan">Idioma canviat a Català</string>
+    <string name="language_changed_to_english">Idioma canviat a Anglès</string>
+    
+    <!-- Botones comunes -->
+    <string name="ok_button">Acceptar</string>
+    
+    <!-- Strings de la pantalla de Recuperación de Contraseña -->
+    <string name="forgot_password_title">Recuperar Contrasenya</string>
+    <string name="forgot_password_description">Introdueix el teu correu electrònic i el teu DNI o telèfon per recuperar la teva contrasenya</string>
+    <string name="forgot_password_email">Correu Electrònic</string>
+    <string name="forgot_password_id">DNI o Telèfon</string>
+    <string name="forgot_password_button">Recuperar Contrasenya</string>
+    <string name="forgot_password_your_password">La teva contrasenya és:</string>
+    <string name="forgot_password_back_to_login">Tornar a Iniciar Sessió</string>
+    <string name="forgot_password_error_title">Error</string>
+    
+    <!-- Strings de las pantallas de Registro -->
+    <string name="register_title">Registre d\'Usuari</string>
+    <string name="register_name">Nom</string>
+    <string name="register_lastname1">Primer Cognom</string>
+    <string name="register_lastname2">Segon Cognom</string>
+    <string name="register_email">Email</string>
+    <string name="register_password">Contrasenya</string>
+    <string name="register_confirm_password">Confirmar Contrasenya</string>
+    <string name="register_password_requirements">Requisits de contrasenya:</string>
+    <string name="register_password_req1">• Almenys 8 caràcters</string>
+    <string name="register_password_req2">• Almenys una lletra majúscula</string>
+    <string name="register_password_req3">• Almenys una lletra minúscula</string>
+    <string name="register_password_req4">• Almenys un número</string>
+    <string name="register_password_req5">• Almenys un caràcter especial</string>
+    <string name="register_role_select">Selecciona el teu rol</string>
+    <string name="register_role_organizer">Organitzador</string>
+    <string name="register_role_participant">Participant</string>
+    <string name="register_complete_fields">Completa tots els camps correctament per continuar</string>
+    <string name="register_have_account">Ja tens compte? Inicia sessió</string>
+    <string name="register_error_title">Error</string>
+    
+    <!-- Strings de la pantalla de Registro de Participante -->
+    <string name="participant_title">Dades del Participant</string>
+    <string name="participant_basic_info">Informació bàsica</string>
+    <string name="participant_name">Nom</string>
+    <string name="participant_email">Email</string>
+    <string name="participant_dni">DNI (8 dígits + lletra)</string>
+    <string name="participant_dni_invalid">DNI invàlid. Format: 12345678A</string>
+    <string name="participant_dni_format">El format correcte és: 12345678A</string>
+    <string name="participant_phone">Telèfon (9 dígits)</string>
+    <string name="participant_phone_invalid">Ha de contenir 9 dígits</string>
+    <string name="participant_phone_digits">Falten %1$d dígits</string>
+    <string name="participant_complete">Completar Registre</string>
+    <string name="participant_success">Registre Exitós!</string>
+    <string name="participant_success_message">El teu compte ha estat creat correctament. Seràs redirigit a la pantalla d\'inici de sessió.</string>
+    <string name="participant_done">Fet</string>
+    
+    <!-- Strings de la pantalla de Registro de Organizador -->
+    <string name="organizer_title">Dades de l\'Organitzador</string>
+    <string name="organizer_summary">Resum de Registre</string>
+    <string name="organizer_org_name">Nom de l\'Organització</string>
+    <string name="organizer_contact_phone">Telèfon de Contacte</string>
+    <string name="organizer_complete">Completar Registre</string>
+    <string name="organizer_error_org_name">El nom de l\'organització és obligatori</string>
+    <string name="organizer_error_phone_required">El telèfon de contacte és obligatori</string>
+    <string name="organizer_error_phone_digits">El telèfon ha de tenir 9 dígits</string>
+    <string name="organizer_success">Registre Exitós</string>
+    <string name="organizer_success_message">El teu compte d\'organitzador ha estat creat correctament.</string>
+    
+    <!-- Strings de la barra de navegación -->
+    <string name="nav_eventos"></string>
+    <string name="nav_mis_eventos"></string>
+    <string name="nav_crear"></string>
+    <string name="nav_mis_tickets"></string>
+    <string name="nav_favoritos"></string>
+    <string name="nav_perfil"></string>
+    
+    <!-- Strings de la pantalla de eventos -->
+    <string name="eventos_titulo">ESDEVENIMENTS</string>
+    <string name="eventos_buscar">Cercar esdeveniments</string>
+    <string name="eventos_limpiar_busqueda">Netejar cerca</string>
+    <string name="eventos_imagen">Imatge de l\'esdeveniment</string>
+    <string name="eventos_fecha">Data</string>
+    <string name="eventos_hora">Hora</string>
+    <string name="eventos_ubicacion">Ubicació</string>
+    <string name="eventos_no_disponible">No disponible</string>
+    <string name="eventos_gratuito">Gratuït</string>
+    <string name="eventos_error_desconocido">Error desconegut</string>
+    <string name="eventos_no_hay">No hi ha esdeveniments registrats</string>
+    <string name="eventos_no_hay_categoria">No hi ha esdeveniments en aquesta categoria</string>
+    <string name="eventos_no_hay_organizador">No hi ha esdeveniments per a aquest organitzador</string>
+    <string name="eventos_no_creados">No has creat cap esdeveniment encara</string>
+    <string name="eventos_crear_primero">Crear el meu primer esdeveniment</string>
+    
+    <!-- Strings para formato de fechas -->
+    <string name="date_of">de</string>
+    
+    <!-- Strings para la pantalla de detalle de evento -->
+    <string name="evento_detalle_titulo">DETALL ESDEVENIMENT</string>
+    <string name="evento_detalle_id_invalido">ID d\'esdeveniment invàlid</string>
+    <string name="evento_detalle_volver">Tornar</string>
+    <string name="evento_detalle_error_desconocido">Error desconegut</string>
+    <string name="evento_detalle_no_encontrado">No s\'ha trobat informació de l\'esdeveniment</string>
+    <string name="evento_detalle_imagen">Imatge de l\'esdeveniment</string>
+    <string name="evento_detalle_fecha">Data</string>
+    <string name="evento_detalle_hora">Hora</string>
+    <string name="evento_detalle_ubicacion">Ubicació</string>
+    <string name="evento_detalle_localizacion">Localització</string>
+    <string name="evento_detalle_error_mapa">No s\'ha pogut mostrar el mapa.</string>
+    <string name="evento_detalle_error_localizacion">No s\'ha pogut trobar la localització.</string>
+    <string name="evento_detalle_error_obtener_localizacion">Error en obtenir la localització</string>
+    <string name="evento_detalle_organizador">Organitzador</string>
+    <string name="evento_detalle_descripcion">Descripció</string>
+    <string name="evento_detalle_tipos_entrada">Tipus d\'entrada</string>
+    <string name="evento_detalle_disponibilidad_ilimitada">Disponibilitat: Il·limitada</string>
+    <string name="evento_detalle_disponibles">Disponibles</string>
+    <string name="evento_detalle_disminuir">Disminuir</string>
+    <string name="evento_detalle_aumentar">Augmentar</string>
+    <string name="evento_detalle_entradas_seleccionadas">Entrades seleccionades</string>
+    <string name="evento_detalle_total">Total</string>
+    <string name="evento_detalle_entradas_disponibles">Entrades disponibles</string>
+    <string name="evento_detalle_mensaje_entradas">Aquest esdeveniment té %1$d tipus d\'entrada</string>
+    <string name="evento_detalle_comprar">COMPRAR</string>
+    <string name="evento_detalle_quitar_favoritos">Treure dels favorits</string>
+    <string name="evento_detalle_anadir_favoritos">Afegir als favorits</string>
+    <string name="evento_detalle_texto_evento">esdeveniment</string>
+    <string name="evento_detalle_cero">0</string>
+    <string name="evento_detalle_organizado_por">Organitzat per</string>
+    <string name="evento_detalle_organizador_desconocido">Organitzador desconegut</string>
+    <string name="evento_detalle_organizador_ver_perfil">Veure perfil de l\'organitzador</string>
+    <string name="evento_detalle_precio">Preu</string>
+    <string name="evento_detalle_precio_consultar">Consultar disponibilitat</string>
+    
+    <!-- Strings para el diálogo de pago -->
+    <string name="pago_titulo_confirmar">Confirmar Compra</string>
+    <string name="pago_titulo_exito">Compra Exitosa!</string>
+    <string name="pago_procesando">Processant la teva compra...</string>
+    <string name="pago_cancelar">Cancel·lar</string>
+    <string name="pago_confirmar">Confirmar</string>
+    <string name="pago_total">Total</string>
+    <string name="pago_compra_exitosa">Compra exitosa</string>
+    
+    <!-- Categorías de eventos -->
+    <string name="categoria_arte_cultura">Art i Cultura</string>
+    <string name="categoria_belleza_bienestar">Bellesa i Benestar</string>
+    <string name="categoria_charlas_conferencias">Xerrades i Conferències</string>
+    <string name="categoria_cine">Cinema</string>
+    <string name="categoria_comedia">Comèdia</string>
+    <string name="categoria_conciertos">Concerts</string>
+    <string name="categoria_deportes">Esports</string>
+    <string name="categoria_discoteca">Discoteca</string>
+    <string name="categoria_educacion">Educació</string>
+    <string name="categoria_empresarial">Empresarial</string>
+    <string name="categoria_exposiciones">Exposicions</string>
+    <string name="categoria_familiar">Familiar</string>
+    <string name="categoria_festivales">Festivals</string>
+    <string name="categoria_gastronomia">Gastronomia</string>
+    <string name="categoria_infantil">Infantil</string>
+    <string name="categoria_moda">Moda</string>
+    <string name="categoria_musica_directo">Música en Directe</string>
+    <string name="categoria_networking">Networking</string>
+    <string name="categoria_ocio_nocturno">Oci Nocturn</string>
+    <string name="categoria_presentaciones">Presentacions</string>
+    <string name="categoria_restaurantes">Restaurants</string>
+    <string name="categoria_salud_deporte">Salut i Esport</string>
+    <string name="categoria_seminarios">Seminaris</string>
+    <string name="categoria_talleres">Tallers</string>
+    <string name="categoria_teatro">Teatre</string>
+    <string name="categoria_tecnologia">Tecnologia</string>
+    <string name="categoria_turismo">Turisme</string>
+    <string name="categoria_varios">Diversos</string>
+    
+    <!-- Strings para la pantalla de Mis Tickets -->
+    <string name="mis_tickets_titulo">ELS MEUS TIQUETS</string>
+    <string name="mis_tickets_actualizar">Actualitzar</string>
+    <string name="mis_tickets_cerrar">Tancar</string>
+    <string name="mis_tickets_reintentar">Tornar a provar</string>
+    <string name="mis_tickets_no_tickets">No tens tiquets</string>
+    <string name="mis_tickets_comprar_entradas">Compra entrades per als esdeveniments disponibles!</string>
+    <string name="mis_tickets_ver_eventos">Veure esdeveniments disponibles</string>
+    <string name="mis_tickets_descargada_correctamente">Entrada descarregada correctament!</string>
+    <string name="mis_tickets_descargada_exito">Entrada descarregada amb èxit!</string>
+    <string name="mis_tickets_error_descargar">Error al descarregar</string>
+    <string name="mis_tickets_ver">Veure</string>
+    <string name="mis_tickets_ok">D\'acord</string>
+    <string name="mis_tickets_ver_detalles">Veure detalls</string>
+    <string name="mis_tickets_anadir_calendario">Afegir al calendari</string>
+    <string name="mis_tickets_calendario">Calendari</string>
+    <string name="mis_tickets_descargando">Descarregant...</string>
+    <string name="mis_tickets_descargada">Entrada descarregada</string>
+    <string name="mis_tickets_descargada_mensaje">Descarregada!</string>
+    <string name="mis_tickets_descargar_entrada">Descarregar entrada</string>
+    <string name="mis_tickets_descargar">Descarregar</string>
+    <string name="mis_tickets_descargando_mayus">DESCARREGANT...</string>
+    <string name="mis_tickets_entrada_descargada">ENTRADA DESCARREGADA</string>
+    
+    <!-- Strings para la pantalla de permisos de calendario -->
+    <string name="calendario_permisos_necesarios">Permisos necessaris</string>
+    <string name="calendario_permisos_descripcion">Per afegir esdeveniments al calendari, necessites:</string>
+    <string name="calendario_permisos_google">1. Tenir iniciat sessió amb Google al dispositiu</string>
+    <string name="calendario_permisos_acceso">2. Concedir permisos per accedir al calendari</string>
+    <string name="calendario_permisos_explicacion">Això permetrà a l\'aplicació crear esdeveniments al teu Google Calendar.</string>
+    <string name="calendario_permisos_conceder">Concedir permisos</string>
+    <string name="calendario_permisos_cancelar">Cancel·lar</string>
+    <string name="calendario_cuenta_requerida">Compte de Google requerida</string>
+    <string name="calendario_cuenta_no_encontrada">No s\'ha trobat un compte de Google vàlid al dispositiu.</string>
+    <string name="calendario_cuenta_explicacion">Per afegir esdeveniments al calendari, necessites iniciar sessió amb un compte de Google als ajustos del dispositiu.</string>
+    <string name="calendario_abrir_ajustes">Obrir ajustos</string>
+    <string name="calendario_error_permisos">Es requereixen permisos de calendari per a aquesta funció</string>
+    <string name="calendario_error_ajustes">No s\'han pogut obrir els ajustos de comptes</string>
+    <string name="calendario_error_abrir">Error en obrir calendari: %1$s</string>
+    
+    <!-- Strings adicionales para MisTicketsScreen -->
+    <string name="mis_tickets_title">ELS MEUS TIQUETS</string>
+    <string name="mis_tickets_permisos_necesarios">Permisos necessaris</string>
+    <string name="mis_tickets_permiso_calendario_requerido">Es requereixen permisos de calendari per a aquesta funció</string>
+    <string name="mis_tickets_permiso_calendario_desc">Per afegir esdeveniments al calendari, necessites:</string>
+    <string name="mis_tickets_permiso_calendario_req">1. Tenir iniciat sessió amb Google al dispositiu\n2. Concedir permisos per accedir al calendari</string>
+    <string name="mis_tickets_permiso_calendario_perm">Això permetrà a l\'aplicació crear esdeveniments al teu Google Calendar.</string>
+    <string name="mis_tickets_conceder_permisos">Concedir permisos</string>
+    <string name="mis_tickets_cancelar">Cancel·lar</string>
+    <string name="mis_tickets_cuenta_google_requerida">Compte de Google requerida</string>
+    <string name="mis_tickets_cuenta_google_no_encontrada">No s\'ha trobat un compte de Google vàlid al dispositiu.</string>
+    <string name="mis_tickets_cuenta_google_perm">Per afegir esdeveniments al calendari, necessites iniciar sessió amb un compte de Google als ajustos del dispositiu.</string>
+    <string name="mis_tickets_ajustes_cuentas_error">No s\'han pogut obrir els ajustos de comptes</string>
+    <string name="mis_tickets_abrir_ajustes">Obrir ajustos</string>
+    <string name="mis_tickets_error_calendario">Error en obrir calendari: %1$s</string>
+    <string name="mis_tickets_compra_entradas">Compra entrades per als esdeveniments disponibles!</string>
+    <string name="mis_tickets_ver_eventos_disponibles">Veure esdeveniments disponibles</string>
+    
+    <!-- Strings para la pantalla de Favoritos -->
+    <string name="favoritos_titulo">ELS MEUS PREFERITS</string>
+    <string name="favoritos_actualizar">Actualitzar</string>
+    <string name="favoritos_eventos">Esdeveniments</string>
+    <string name="favoritos_organizadores">Organitzadors</string>
+    <string name="favoritos_no_eventos">No tens esdeveniments preferits</string>
+    <string name="favoritos_no_organizadores">No tens organitzadors preferits</string>
+    <string name="favoritos_explorar_eventos">Explorar esdeveniments</string>
+    <string name="favoritos_explorar_organizadores">Explorar organitzadors</string>
+    <string name="favoritos_error_login">Has d\'iniciar sessió per veure els teus preferits</string>
+    
+    <!-- Strings para la pantalla de Historial de Compras -->
+    <string name="historial_compras_titulo">HISTORIAL DE COMPRES</string>
+    <string name="historial_compras_volver">Tornar</string>
+    <string name="historial_compras_reintentar">Tornar a provar</string>
+    <string name="historial_compras_sin_compras">No tens compres realitzades</string>
+    <string name="historial_compras_mensaje_vacio">Quan facis una compra, apareixerà aquí</string>
+    <string name="historial_compras_explorar_eventos">Explorar esdeveniments</string>
+    <string name="historial_compras_entradas">entrades</string>
+    <string name="historial_compras_compra">Compra</string>
+    <string name="historial_compras_pagado">pagat</string>
+    <string name="historial_compras_pendiente">pendent</string>
+    <string name="historial_compras_descargar_factura">DESCARREGAR FACTURA</string>
+    <string name="historial_compras_descargando">DESCARREGANT...</string>
+    <string name="historial_compras_factura_descargada">FACTURA DESCARREGADA</string>
+    <string name="historial_compras_error_descarga">Error en descarregar</string>
+    <string name="historial_compras_sesion_expirada">Sessió expirada</string>
+    <string name="historial_compras_sin_permiso">Sense permís</string>
+    <string name="historial_compras_factura_no_encontrada">Factura no trobada</string>
+    <string name="historial_compras_error_servidor">Error del servidor</string>
+    
+    <!-- Strings para la pantalla de cambio de contraseña -->
+    <string name="cambiar_contrasena_titulo">Canviar contrasenya</string>
+    <string name="cambiar_contrasena_boton">CANVIAR CONTRASENYA</string>
+    <string name="cambiar_contrasena_actual">Contrasenya actual</string>
+    <string name="cambiar_contrasena_nueva">Nova contrasenya</string>
+    <string name="cambiar_contrasena_confirmar">Confirmar contrasenya</string>
+    <string name="cambiar_contrasena_success">La teva contrasenya ha estat actualitzada correctament</string>
+    <string name="cambiar_contrasena_ocultar">Ocultar contrasenya</string>
+    <string name="cambiar_contrasena_mostrar">Mostrar contrasenya</string>
+    <string name="cambiar_contrasena_boton_cambiar">Canviar</string>
+    <string name="cambiar_contrasena_boton_cancelar">Cancel·lar</string>
+    <string name="cambiar_contrasena_error_no_coinciden">Les contrasenyes no coincideixen</string>
+    <string name="cambiar_contrasena_error_misma">La nova contrasenya ha de ser diferent a l\'actual</string>
+    <string name="cambiar_contrasena_error_longitud">La nova contrasenya ha de tenir almenys 6 caràcters</string>
+    <string name="cambiar_contrasena_error_no_sesion">No s\'ha iniciat sessió</string>
+    <string name="cambiar_contrasena_error_incorrecta">La contrasenya actual és incorrecta</string>
+    <string name="cambiar_contrasena_error_datos">Error en les dades enviades</string>
+    <string name="cambiar_contrasena_error_sesion">La teva sessió ha expirat. Si us plau, inicia sessió de nou</string>
+    <string name="cambiar_contrasena_error_generico">Error al canviar la contrasenya</string>
+    <string name="cambiar_contrasena_exito">Èxit</string>
+    
+    <!-- Strings para la pantalla de perfil -->
+    <string name="perfil_titulo">EL MEU PERFIL</string>
+    <string name="perfil_editar">Editar perfil</string>
+    <string name="perfil_guardar">Desar</string>
+    <string name="perfil_cancelar">Cancel·lar</string>
+    <string name="perfil_nombre">Nom</string>
+    <string name="perfil_primer_apellido">Primer cognom</string>
+    <string name="perfil_segundo_apellido">Segon cognom</string>
+    <string name="perfil_email">Email</string>
+    <string name="perfil_dni">DNI</string>
+    <string name="perfil_telefono">Telèfon</string>
+    <string name="perfil_nombre_organizacion">Nom de l\'organització</string>
+    <string name="perfil_telefono_contacto">Telèfon de contacte</string>
+    <string name="perfil_actualizado">Perfil actualitzat correctament</string>
+    <string name="perfil_error_conexion">Error de connexió al servidor</string>
+    <string name="perfil_reintentar">Tornar a provar</string>
+    <string name="perfil_iniciar_sesion">Iniciar sessió</string>
+    <string name="perfil_informacion_personal">Informació Personal</string>
+    <string name="perfil_no_especificado">No especificat</string>
+    <string name="perfil_cerrar_sesion">Tancar sessió</string>
+    <string name="perfil_rol_organizador">Organitzador</string>
+    <string name="perfil_rol_participante">Participant</string>
+    
+    <!-- Strings para el diálogo de eliminar cuenta -->
+    <string name="eliminar_cuenta_titulo">Eliminar compte</string>
+    <string name="eliminar_cuenta_eliminando">Eliminant compte...</string>
+    <string name="eliminar_cuenta_advertencia">Aquesta acció eliminarà permanentment el teu compte i totes les dades associades:</string>
+    <string name="eliminar_cuenta_datos_personales">El teu perfil i dades personals</string>
+    <string name="eliminar_cuenta_historial">Historial de compres i factures</string>
+    <string name="eliminar_cuenta_eventos_favoritos">Esdeveniments preferits</string>
+    <string name="eliminar_cuenta_organizadores_favoritos">Organitzadors preferits</string>
+    <string name="eliminar_cuenta_eventos_creados">Esdeveniments creats</string>
+    <string name="eliminar_cuenta_tipos_entrada">Tipus d\'entrada</string>
+    <string name="eliminar_cuenta_advertencia_final">Aquesta acció no es pot desfer.</string>
+    <string name="eliminar_cuenta_contrasena">Contrasenya actual</string>
+    <string name="eliminar_cuenta_ocultar">Amagar contrasenya</string>
+    <string name="eliminar_cuenta_mostrar">Mostrar contrasenya</string>
+    <string name="eliminar_cuenta_confirmar">Confirmar</string>
+    <string name="eliminar_cuenta_boton">ELIMINAR COMPTE</string>
+    <string name="eliminar_cuenta_exito_titulo">Compte eliminat amb èxit</string>
+    <string name="eliminar_cuenta_exito_mensaje">Gràcies per haver utilitzat la nostra aplicació</string>
+    <string name="eliminar_cuenta_exito_boton">Acceptar</string>
+    
+    <!-- Strings para la pantalla de detalle de organizador -->
+    <string name="organizer_detail_title">DETALL ORGANITZADOR</string>
+    <string name="organizer_avatar_desc">Avatar de l\'organitzador</string>
+    <string name="default_avatar">Avatar per defecte</string>
+    <string name="back_button">Tornar</string>
+    <string name="organizer_detail_show_more">Mostrar més informació</string>
+    <string name="organizer_detail_info">Informació de l\'Organitzador</string>
+    <string name="organizer_detail_phone">Telèfon</string>
+    <string name="organizer_detail_address">Adreça</string>
+    <string name="organizer_detail_cif">CIF</string>
+    <string name="organizer_detail_contact_info">Informació de Contacte</string>
+    <string name="organizer_detail_events">Esdeveniments</string>
+    <string name="organizer_detail_error_events">Error al carregar esdeveniments</string>
+    <string name="organizer_detail_no_events">No hi ha esdeveniments per a aquest organitzador</string>
+    
+    <!-- Strings para la pantalla de Mis Eventos -->
+    <string name="mis_eventos_titulo">ELS MEUS ESDEVENIMENTS</string>
+    <string name="mis_eventos_crear">Crear Esdeveniment</string>
+    <string name="mis_eventos_eliminar_titulo">Eliminar esdeveniment</string>
+    <string name="mis_eventos_eliminar_confirmar">Estàs segur que vols eliminar l\'esdeveniment \'%1$s\'? Aquesta acció no es pot desfer.</string>
+    <string name="mis_eventos_eliminar_boton">Eliminar</string>
+    <string name="mis_eventos_cancelar">Cancel·lar</string>
+    <string name="mis_eventos_solo_organizadores">Aquesta secció només està disponible per a organitzadors.</string>
+    <string name="mis_eventos_error_desconocido">Error desconegut</string>
+    <string name="mis_eventos_editar">Editar</string>
+    <string name="mis_eventos_eliminar">Eliminar</string>
+    <string name="mis_eventos_online">Online</string>
+    <string name="mis_eventos_error_edicion">Error en obrir la pantalla d\'edició: %1$s</string>
+    
+    <!-- Strings para la pantalla de Crear/Editar Evento -->
+    <string name="crear_evento_titulo">CREAR ESDEVENIMENT</string>
+    <string name="editar_evento_titulo">EDITAR ESDEVENIMENT</string>
+    <string name="evento_informacion_basica">INFORMACIÓ BÀSICA</string>
+    <string name="evento_titulo">Títol de l\'esdeveniment</string>
+    <string name="evento_titulo_placeholder">Ex. Concert de Rock</string>
+    <string name="evento_descripcion">Descripció</string>
+    <string name="evento_descripcion_placeholder">Descriu el teu esdeveniment</string>
+    <string name="evento_fecha">Data de l\'esdeveniment</string>
+    <string name="evento_hora">Hora de l\'esdeveniment</string>
+    <string name="evento_hora_placeholder">HH:MM</string>
+    <string name="evento_hora_pasada">No pots seleccionar una hora passada per avui</string>
+    <string name="evento_ubicacion">Ubicació</string>
+    <string name="evento_ubicacion_placeholder">Ex. Estadi Municipal</string>
+    <string name="evento_categoria">Categoria</string>
+    <string name="evento_seleccionar_imagen">Seleccionar imatge</string>
+    <string name="evento_como_anadir_imagen">Com vols afegir una imatge?</string>
+    <string name="evento_tomar_foto">Prendre foto</string>
+    <string name="evento_galeria">Galeria</string>
+    <string name="evento_permiso_galeria">Es necessita permís per accedir a la galeria</string>
+    <string name="evento_permiso_camara">Es necessiten permisos per utilitzar la càmera</string>
+    <string name="evento_imagen">Imatge de l\'esdeveniment</string>
+    <string name="evento_eliminar_imagen">Eliminar imatge</string>
+    <string name="evento_anadir_imagen">Afegir imatge de l\'esdeveniment</string>
+    <string name="evento_error_crear">Error en crear l\'esdeveniment:</string>
+    <string name="evento_error_editar">Error en editar l\'esdeveniment:</string>
+    <string name="evento_problemas_detectados">S\'han detectat els següents problemes:</string>
+    <string name="evento_error_fecha">• Data: La data ha de ser posterior a avui</string>
+    <string name="evento_error_online">• És online: El camp ha de ser true o false</string>
+    <string name="evento_error_tipos_entrada">• Tipus d\'entrada: Es requereix almenys un tipus d\'entrada vàlid</string>
+    <string name="evento_error_nombre">• Nom: El nom és obligatori</string>
+    <string name="evento_error_precio">• Preu: El preu ha de ser un número vàlid</string>
+    <string name="evento_error_es_ilimitado">• És il·limitat: El camp ha de ser true o false</string>
+    <string name="evento_tipo">TIPUS D\'ESDEVENIMENT</string>
+    <string name="evento_es_online">Aquest esdeveniment és online</string>
+    <string name="evento_tipos_entrada">TIPUS D\'ENTRADA</string>
+    <string name="evento_tipo_entrada">Tipus d\'entrada %1$d</string>
+    <string name="evento_eliminar_tipo_entrada">Eliminar tipus d\'entrada</string>
+    <string name="evento_nombre_tipo">Nom</string>
+    <string name="evento_precio">Preu (€)</string>
+    <string name="evento_descripcion_opcional">Descripció (opcional)</string>
+    <string name="evento_entradas_ilimitadas">Entrades il·limitades</string>
+    <string name="evento_cantidad_disponible">Quantitat disponible</string>
+    <string name="evento_anadir_tipo_entrada">Afegir tipus d\'entrada</string>
+    <string name="evento_edita_anade_tipos_entrada">Edita o afegeix tipus d\'entrada per al teu esdeveniment</string>
+    <string name="evento_boton_crear">CREAR ESDEVENIMENT</string>
+    <string name="evento_boton_guardar">DESAR CANVIS</string>
+    <string name="evento_creado_exito">Esdeveniment creat amb èxit</string>
+    <string name="evento_actualizado_exito">Esdeveniment actualitzat amb èxit</string>
+    <string name="evento_id_invalido">ID d\'esdeveniment invàlid (%1$d)</string>
+    
+    <!-- Strings para descarga de facturas -->
+    <string name="iniciando_descarga">Iniciant descàrrega...</string>
+    <string name="conectando_servidor">Connectant amb el servidor...</string>
+    <string name="descargando_factura">Descarregant factura...</string>
+    <string name="descargando">Descarregant...</string>
+    <string name="error_no_pdf">Error: El servidor no va retornar un PDF vàlid</string>
+    <string name="error_guardar_archivo">Error en guardar l\'arxiu</string>
+    <string name="error_guardar_factura">Error en guardar la factura</string>
+    <string name="error_no_datos_servidor">Error: No s\'han rebut dades del servidor</string>
+    <string name="factura_descargada_instalar_lector">Factura descarregada! Instal·la un lector de PDF per veure-la</string>
+    <string name="factura_descargada_no_abrir">Factura descarregada! No s\'ha pogut obrir automàticament</string>
+</resources> 

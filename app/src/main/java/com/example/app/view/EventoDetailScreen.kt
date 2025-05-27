@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -28,6 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.app.util.formatDate
 import com.example.app.viewmodel.EventoDetailViewModel
@@ -48,6 +50,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.location.Geocoder
 import com.google.android.gms.maps.model.CameraPosition
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.example.app.util.CategoryTranslator
+import com.example.app.R
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.border
+import com.example.app.model.getAvatarUrl
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -140,7 +150,7 @@ fun EventoDetailScreen(
                 TopAppBar(
                     title = { 
                         Text(
-                            text = "DETALLE EVENTO",
+                            text = stringResource(id = com.example.app.R.string.evento_detalle_titulo),
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 22.sp,
@@ -153,7 +163,7 @@ fun EventoDetailScreen(
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack, 
-                                contentDescription = "Volver",
+                                contentDescription = stringResource(id = com.example.app.R.string.evento_detalle_volver),
                                 tint = primaryColor
                             )
                         }
@@ -182,7 +192,7 @@ fun EventoDetailScreen(
                                 } else {
                                     Icon(
                                         imageVector = if (isFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                        contentDescription = if (isFavorito) "Quitar de favoritos" else "Añadir a favoritos",
+                                        contentDescription = stringResource(id = if (isFavorito) com.example.app.R.string.evento_detalle_quitar_favoritos else com.example.app.R.string.evento_detalle_anadir_favoritos),
                                         tint = if (isFavorito) primaryColor else Color.Gray
                                     )
                                 }
@@ -210,7 +220,7 @@ fun EventoDetailScreen(
                             modifier = Modifier.padding(16.dp)
                         ) {
                             Text(
-                                text = "ID de evento inválido: '$eventoId'",
+                                text = stringResource(id = com.example.app.R.string.evento_detalle_id_invalido) + ": '$eventoId'",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = Color.Red,
                                 textAlign = TextAlign.Center
@@ -228,7 +238,7 @@ fun EventoDetailScreen(
                                     .height(48.dp)
                             ) {
                                 Text(
-                                    text = "Volver",
+                                    text = stringResource(id = com.example.app.R.string.evento_detalle_volver),
                                     style = MaterialTheme.typography.bodyLarge.copy(
                                         fontWeight = FontWeight.Bold
                                     )
@@ -258,7 +268,7 @@ fun EventoDetailScreen(
                             modifier = Modifier.padding(16.dp)
                         ) {
                             Text(
-                                text = errorMessage ?: "Error desconocido",
+                                text = errorMessage ?: stringResource(id = com.example.app.R.string.evento_detalle_error_desconocido),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = Color.Red,
                                 textAlign = TextAlign.Center
@@ -276,7 +286,7 @@ fun EventoDetailScreen(
                                     .height(48.dp)
                             ) {
                                 Text(
-                                    text = "Volver",
+                                    text = stringResource(id = com.example.app.R.string.evento_detalle_volver),
                                     style = MaterialTheme.typography.bodyLarge.copy(
                                         fontWeight = FontWeight.Bold
                                     )
@@ -305,7 +315,7 @@ fun EventoDetailScreen(
                                     .data(imageUrl)
                                     .crossfade(true)
                                     .build(),
-                                contentDescription = "Imagen del evento",
+                                contentDescription = stringResource(id = com.example.app.R.string.evento_detalle_imagen),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
@@ -319,8 +329,10 @@ fun EventoDetailScreen(
                                     .background(primaryColor.copy(alpha = 0.8f))
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
+                                // Traducir la categoría usando el CategoryTranslator
+                                val categoriaTraducida = CategoryTranslator.translate(evento.categoria)
                                 Text(
-                                    text = evento.categoria,
+                                    text = categoriaTraducida,
                                     style = MaterialTheme.typography.labelLarge,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
@@ -383,7 +395,7 @@ fun EventoDetailScreen(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.CalendarMonth,
-                                                contentDescription = "Fecha",
+                                                contentDescription = stringResource(id = com.example.app.R.string.evento_detalle_fecha),
                                                 tint = primaryColor,
                                                 modifier = Modifier.size(24.dp)
                                             )
@@ -405,7 +417,7 @@ fun EventoDetailScreen(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Schedule,
-                                                contentDescription = "Hora",
+                                                contentDescription = stringResource(id = com.example.app.R.string.evento_detalle_hora),
                                                 tint = primaryColor,
                                                 modifier = Modifier.size(24.dp)
                                             )
@@ -437,7 +449,7 @@ fun EventoDetailScreen(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.LocationOn,
-                                                contentDescription = "Ubicación",
+                                                contentDescription = stringResource(id = com.example.app.R.string.evento_detalle_ubicacion),
                                                 tint = primaryColor,
                                                 modifier = Modifier.size(24.dp)
                                             )
@@ -456,7 +468,7 @@ fun EventoDetailScreen(
                                 Spacer(modifier = Modifier.height(24.dp))
 
                                 Text(
-                                    text = "Localización",
+                                    text = stringResource(id = com.example.app.R.string.evento_detalle_localizacion),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = textPrimaryColor
@@ -483,10 +495,12 @@ fun EventoDetailScreen(
                                                     cameraPositionState.position = CameraPosition.fromLatLngZoom(newLatLng, 15f)
                                                 }
                                             } else {
-                                                geocodeError = "No se pudo encontrar la localización."
+                                                val errorMsg = context.getString(com.example.app.R.string.evento_detalle_error_localizacion)
+                                                geocodeError = errorMsg
                                             }
                                         } catch (e: Exception) {
-                                            geocodeError = "Error al obtener la localización: ${e.localizedMessage}"
+                                            val errorMsg = context.getString(com.example.app.R.string.evento_detalle_error_obtener_localizacion) + ": ${e.localizedMessage}"
+                                            geocodeError = errorMsg
                                         }
                                     }
                                 }
@@ -511,7 +525,7 @@ fun EventoDetailScreen(
                                     }
                                 } else if (geocodeError != null) {
                                     Text(
-                                        text = geocodeError ?: "No se pudo mostrar el mapa.",
+                                        text = geocodeError ?: stringResource(id = com.example.app.R.string.evento_detalle_error_mapa),
                                         color = Color.Red,
                                         style = MaterialTheme.typography.bodyMedium
                                     )
@@ -528,55 +542,129 @@ fun EventoDetailScreen(
                                 
                                 Spacer(modifier = Modifier.height(24.dp))
                                 
-                                // Organizador clicable
-                                evento.organizador?.let { organizador ->
-                                    Text(
-                                        text = "Organizador",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = textPrimaryColor
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Card(
+                                // Organizador
+                                Text(
+                                    text = stringResource(id = com.example.app.R.string.evento_detalle_organizado_por),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = textPrimaryColor
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            // Navegar al perfil del organizador
+                                            Log.d("EventoDetailScreen", "Click en organizador: ${evento.organizador?.id}")
+                                            navController.navigate("organizador/${evento.organizador?.id}")
+                                        },
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color(0xFFF5F5F5)
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .clickable {
-                                                navController.navigate(
-                                                    Routes.OrganizadorDetalle.createRoute(organizador.id)
-                                                )
-                                            },
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-                                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                            .padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(16.dp)
-                                        ) {
-                                            Text(
-                                                text = organizador.nombre,
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Medium,
-                                                color = textPrimaryColor
+                                        // Avatar del organizador
+                                        if (evento.organizador != null) {
+                                            val avatarUrl = evento.organizador.getAvatarUrl()
+                                            Log.d("EventoDetailScreen", "URL del avatar del organizador: $avatarUrl")
+                                            SubcomposeAsyncImage(
+                                                model = ImageRequest.Builder(LocalContext.current)
+                                                    .data(avatarUrl)
+                                                    .crossfade(true)
+                                                    .build(),
+                                                contentDescription = "Avatar del organizador",
+                                                contentScale = ContentScale.Crop,
+                                                loading = {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(48.dp)
+                                                            .clip(CircleShape)
+                                                            .background(primaryColor.copy(alpha = 0.1f)),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        CircularProgressIndicator(
+                                                            color = primaryColor,
+                                                            strokeWidth = 2.dp,
+                                                            modifier = Modifier.size(24.dp)
+                                                        )
+                                                    }
+                                                },
+                                                error = {
+                                                    // Avatar de respaldo con las iniciales del organizador
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(48.dp)
+                                                            .clip(CircleShape)
+                                                            .background(primaryColor.copy(alpha = 0.2f))
+                                                            .border(1.dp, primaryColor.copy(alpha = 0.5f), CircleShape),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        val iniciales = evento.organizador.nombre.take(2).uppercase()
+                                                        Text(
+                                                            text = iniciales,
+                                                            color = primaryColor,
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 18.sp
+                                                        )
+                                                    }
+                                                },
+                                                modifier = Modifier
+                                                    .size(48.dp)
+                                                    .clip(CircleShape)
+                                                    .border(1.dp, primaryColor.copy(alpha = 0.5f), CircleShape)
                                             )
-                                            organizador.user?.let { user ->
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text(
-                                                    text = user.nombre,
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = textSecondaryColor
+                                        } else {
+                                            // Icono predeterminado si no hay organizador
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(48.dp)
+                                                    .clip(CircleShape)
+                                                    .background(primaryColor.copy(alpha = 0.2f))
+                                                    .border(1.dp, primaryColor.copy(alpha = 0.5f), CircleShape),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Business,
+                                                    contentDescription = null,
+                                                    tint = primaryColor,
+                                                    modifier = Modifier.size(24.dp)
                                                 )
                                             }
                                         }
+                                        
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        
+                                        Column {
+                                            Text(
+                                                text = evento.organizador?.nombre ?: stringResource(id = com.example.app.R.string.evento_detalle_organizador_desconocido),
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                fontWeight = FontWeight.Bold,
+                                                color = textPrimaryColor
+                                            )
+                                            
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            
+                                            Text(
+                                                text = stringResource(id = com.example.app.R.string.evento_detalle_organizador_ver_perfil),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = primaryColor
+                                            )
+                                        }
                                     }
-                                    Spacer(modifier = Modifier.height(16.dp))
                                 }
                                 
-                                // Descripción
+                                Spacer(modifier = Modifier.height(24.dp))
+
                                 Text(
-                                    text = "Descripción",
+                                    text = stringResource(id = com.example.app.R.string.evento_detalle_descripcion),
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = textPrimaryColor
@@ -595,7 +683,7 @@ fun EventoDetailScreen(
                                 // Tipos de entrada (solo si no es online o tiene entradas)
                                 if (!evento.esOnline && viewModel.tiposEntrada.isNotEmpty()) {
                                     Text(
-                                        text = "Tipos de entrada",
+                                        text = stringResource(id = com.example.app.R.string.evento_detalle_tipos_entrada),
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
                                         color = textPrimaryColor
@@ -637,11 +725,11 @@ fun EventoDetailScreen(
                                                 
                                                 // Disponibilidad
                                                 val disponibilidadText = if (tipoEntrada.esIlimitado) {
-                                                    "Disponibilidad: Ilimitada"
+                                                    stringResource(id = com.example.app.R.string.evento_detalle_disponibilidad_ilimitada)
                                                 } else {
                                                     val disponibles = tipoEntrada.disponibilidad ?: 
                                                         (tipoEntrada.cantidadDisponible?.minus(tipoEntrada.entradasVendidas) ?: 0)
-                                                    "Disponibles: $disponibles"
+                                                    "${stringResource(id = com.example.app.R.string.evento_detalle_disponibles)}: $disponibles"
                                                 }
                                                 
                                                 Text(
@@ -685,14 +773,14 @@ fun EventoDetailScreen(
                                                         ) {
                                                             Icon(
                                                                 imageVector = Icons.Default.Remove,
-                                                                contentDescription = "Disminuir",
+                                                                contentDescription = stringResource(id = com.example.app.R.string.evento_detalle_disminuir),
                                                                 tint = if (cantidad > 0) primaryColor else Color.Gray.copy(alpha = 0.5f),
                                                                 modifier = Modifier.size(30.dp)
                                                             )
                                                         }
                                                         
                                                         Text(
-                                                            text = if (cantidad > 0) "${cantidad}x" else "0",
+                                                            text = if (cantidad > 0) "${cantidad}x" else stringResource(id = com.example.app.R.string.evento_detalle_cero),
                                                             style = MaterialTheme.typography.bodyLarge,
                                                             fontWeight = FontWeight.Bold,
                                                             modifier = Modifier.padding(horizontal = 12.dp),
@@ -705,7 +793,7 @@ fun EventoDetailScreen(
                                                         ) {
                                                             Icon(
                                                                 imageVector = Icons.Default.Add,
-                                                                contentDescription = "Aumentar",
+                                                                contentDescription = stringResource(id = com.example.app.R.string.evento_detalle_aumentar),
                                                                 tint = primaryColor,
                                                                 modifier = Modifier.size(30.dp)
                                                             )
@@ -737,7 +825,7 @@ fun EventoDetailScreen(
                                                 // Contador de entradas
                                                 val totalEntradas = viewModel.tiposEntrada.sumOf { viewModel.obtenerCantidad(it.id) }
                                                 Text(
-                                                    text = "Entradas seleccionadas: $totalEntradas",
+                                                    text = stringResource(id = com.example.app.R.string.evento_detalle_entradas_seleccionadas) + ": $totalEntradas",
                                                     style = MaterialTheme.typography.bodyLarge,
                                                     fontWeight = FontWeight.Medium
                                                 )
@@ -751,7 +839,7 @@ fun EventoDetailScreen(
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
                                                     Text(
-                                                        text = "Total",
+                                                        text = stringResource(id = com.example.app.R.string.pago_total),
                                                         style = MaterialTheme.typography.titleMedium,
                                                         fontWeight = FontWeight.Bold
                                                     )
@@ -771,7 +859,7 @@ fun EventoDetailScreen(
                                     Spacer(modifier = Modifier.height(24.dp))
                                     
                                     Text(
-                                        text = "Entradas disponibles",
+                                        text = stringResource(id = com.example.app.R.string.evento_detalle_entradas_disponibles),
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
                                         color = textPrimaryColor
@@ -793,7 +881,7 @@ fun EventoDetailScreen(
                                             modifier = Modifier.padding(16.dp)
                                         ) {
                                             Text(
-                                                text = "Este evento tiene ${evento.entradas.size} tipo(s) de entrada",
+                                                text = stringResource(id = com.example.app.R.string.evento_detalle_mensaje_entradas, evento.entradas.size),
                                                 style = MaterialTheme.typography.bodyLarge
                                             )
                                         }
@@ -829,7 +917,7 @@ fun EventoDetailScreen(
                                     )
                                 ) {
                                     Text(
-                                        text = "COMPRAR",
+                                        text = stringResource(id = com.example.app.R.string.evento_detalle_comprar),
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold,
                                             letterSpacing = 1.sp,
@@ -853,7 +941,7 @@ fun EventoDetailScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No se encontró información del evento",
+                            text = stringResource(id = com.example.app.R.string.evento_detalle_no_encontrado),
                             style = MaterialTheme.typography.bodyLarge,
                             color = textSecondaryColor,
                             textAlign = TextAlign.Center
@@ -898,7 +986,7 @@ fun PaymentDialog(
             ) {
                 // Título
                 Text(
-                    text = if (compraExitosa.value) "¡Compra Exitosa!" else "Confirmar Compra",
+                    text = if (compraExitosa.value) stringResource(id = com.example.app.R.string.pago_titulo_exito) else stringResource(id = com.example.app.R.string.pago_titulo_confirmar),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = if (compraExitosa.value) Color(0xFF4CAF50) else primaryColor
@@ -910,7 +998,7 @@ fun PaymentDialog(
                     // Icono de éxito
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Compra exitosa",
+                        contentDescription = stringResource(id = com.example.app.R.string.pago_compra_exitosa),
                         tint = Color(0xFF4CAF50),
                         modifier = Modifier.size(64.dp)
                     )
@@ -932,7 +1020,7 @@ fun PaymentDialog(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Text(
-                        text = "Procesando tu compra...",
+                        text = stringResource(id = com.example.app.R.string.pago_procesando),
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center
                     )
@@ -978,7 +1066,7 @@ fun PaymentDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Total",
+                                text = stringResource(id = com.example.app.R.string.pago_total),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1009,7 +1097,7 @@ fun PaymentDialog(
                                 contentColor = primaryColor
                             )
                         ) {
-                            Text(text = "Cancelar")
+                            Text(text = stringResource(id = com.example.app.R.string.pago_cancelar))
                         }
                         
                         Button(
@@ -1022,7 +1110,7 @@ fun PaymentDialog(
                                 containerColor = primaryColor
                             )
                         ) {
-                            Text(text = "Confirmar")
+                            Text(text = stringResource(id = com.example.app.R.string.pago_confirmar))
                         }
                     }
                 }

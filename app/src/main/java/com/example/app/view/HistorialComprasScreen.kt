@@ -7,8 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -23,8 +21,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,6 +30,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
+import com.example.app.R
 import com.example.app.routes.BottomNavigationBar
 import com.example.app.viewmodel.CompraItem
 import com.example.app.viewmodel.HistorialComprasViewModel
@@ -47,6 +46,9 @@ private val textSecondaryColor = Color.DarkGray
 private val surfaceColor = Color(0xFFF5F5F5)  // Gris muy claro para fondos
 private val successColor = Color(0xFF4CAF50)  // Verde para estados exitosos
 private val warningColor = Color(0xFFFFA000)  // Ámbar para estados pendientes
+
+// Constante para identificar el mensaje de éxito independientemente del idioma
+const val MENSAJE_FACTURA_DESCARGADA = "FACTURA_DESCARGADA_OK"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,7 +83,7 @@ fun HistorialComprasScreen(
             TopAppBar(
                 title = { 
                     Text(
-                        text = "HISTORIAL DE COMPRAS",
+                        text = stringResource(id = R.string.historial_compras_titulo),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 22.sp,
@@ -94,7 +96,7 @@ fun HistorialComprasScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack, 
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(id = R.string.historial_compras_volver),
                             tint = primaryColor
                         )
                     }
@@ -145,7 +147,10 @@ fun HistorialComprasScreen(
                         ),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text(text = "Reintentar", color = Color.White)
+                        Text(
+                            text = stringResource(id = R.string.historial_compras_reintentar), 
+                            color = Color.White
+                        )
                     }
                 }
             } else if (compras.isEmpty()) {
@@ -166,7 +171,7 @@ fun HistorialComprasScreen(
                     )
                     
                     Text(
-                        text = "No tienes compras realizadas",
+                        text = stringResource(id = R.string.historial_compras_sin_compras),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
                         color = textSecondaryColor
@@ -175,7 +180,7 @@ fun HistorialComprasScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     Text(
-                        text = "Cuando realices una compra, aparecerá aquí",
+                        text = stringResource(id = R.string.historial_compras_mensaje_vacio),
                         fontSize = 16.sp,
                         color = textSecondaryColor
                     )
@@ -189,7 +194,10 @@ fun HistorialComprasScreen(
                         ),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text(text = "Explorar eventos", color = Color.White)
+                        Text(
+                            text = stringResource(id = R.string.historial_compras_explorar_eventos), 
+                            color = Color.White
+                        )
                     }
                 }
             } else {
@@ -330,7 +338,7 @@ fun CompraCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${compra.entradas.size} entradas",
+                    text = "${compra.entradas.size} ${stringResource(id = R.string.historial_compras_entradas)}",
                     fontWeight = FontWeight.Medium,
                     fontSize = 16.sp,
                     color = textPrimaryColor
@@ -366,7 +374,7 @@ fun CompraCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     
                     Text(
-                        text = "Compra: ${formatFechaSinYear(compra.fecha_compra)}",
+                        text = "${stringResource(id = R.string.historial_compras_compra)}: ${formatFechaSinYear(compra.fecha_compra)}",
                         fontSize = 14.sp,
                         color = textSecondaryColor
                     )
@@ -376,13 +384,13 @@ fun CompraCard(
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = when (compra.estado.lowercase()) {
-                        "pagado" -> successColor.copy(alpha = 0.1f)
-                        "pendiente" -> warningColor.copy(alpha = 0.1f)
+                        stringResource(id = R.string.historial_compras_pagado) -> successColor.copy(alpha = 0.1f)
+                        stringResource(id = R.string.historial_compras_pendiente) -> warningColor.copy(alpha = 0.1f)
                         else -> Color.LightGray.copy(alpha = 0.3f)
                     },
                     contentColor = when (compra.estado.lowercase()) {
-                        "pagado" -> successColor
-                        "pendiente" -> warningColor
+                        stringResource(id = R.string.historial_compras_pagado) -> successColor
+                        stringResource(id = R.string.historial_compras_pendiente) -> warningColor
                         else -> textSecondaryColor
                     },
                     modifier = Modifier
@@ -410,7 +418,7 @@ fun CompraCard(
                     disabledContainerColor = Color(0xFFE0E0E0)
                 ),
                 shape = RoundedCornerShape(8.dp),
-                enabled = !isDownloading && downloadMessage != "Factura descargada correctamente"
+                enabled = !isDownloading && downloadMessage != MENSAJE_FACTURA_DESCARGADA
             ) {
                 Row(
                     horizontalArrangement = Arrangement.Center,
@@ -424,13 +432,13 @@ fun CompraCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "DESCARGANDO...",
+                            text = stringResource(id = R.string.historial_compras_descargando),
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
                         )
-                    } else if (downloadMessage == "Factura descargada correctamente") {
+                    } else if (downloadMessage == MENSAJE_FACTURA_DESCARGADA) {
                         Icon(
                             imageVector = Icons.Default.ReceiptLong,
                             contentDescription = null,
@@ -439,7 +447,7 @@ fun CompraCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "FACTURA DESCARGADA",
+                            text = stringResource(id = R.string.historial_compras_factura_descargada),
                             color = Color(0xFF4CAF50),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
@@ -448,13 +456,13 @@ fun CompraCard(
                     } else {
                         Icon(
                             imageVector = Icons.Default.ReceiptLong,
-                            contentDescription = "Descargar factura",
+                            contentDescription = stringResource(id = R.string.historial_compras_descargar_factura),
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "DESCARGAR FACTURA",
+                            text = stringResource(id = R.string.historial_compras_descargar_factura),
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,

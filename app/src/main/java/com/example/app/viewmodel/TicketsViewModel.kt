@@ -24,6 +24,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
+import android.app.Activity
+import androidx.activity.ComponentActivity
 
 class TicketsViewModel(
     private val application: android.app.Application
@@ -55,129 +57,31 @@ class TicketsViewModel(
     // Cargar tickets al iniciar
     init {
         loadTickets()
+        calendarHelper = GoogleCalendarHelper(application)
     }
     
-    // Función para añadir evento al calendario
-    suspend fun addEventToCalendar(ticket: TicketCompra) {
+    // Función para añadir evento al calendario desde la Activity
+    fun addEventToCalendar(ticket: TicketCompra, activity: ComponentActivity) {
         try {
-            // Usar el método alternativo que usa intents en lugar de la API de Calendar
-            val result = calendarHelper?.addEventToCalendarUsingIntent(ticket)
+            // Usar el helper actualizado que maneja todos los casos y errores
+            calendarHelper?.addEventToCalendarFromActivity(activity, ticket)
             
-            if (result == true) {
-                setSuccessMessage("Evento en curso de añadirse a tu calendario")
-            } else {
-                // Si falló, intentar con el método tradicional
-                addEventToCalendarUsingAPI(ticket)
-            }
+            // No necesitamos setear un mensaje de éxito aquí porque el helper ya muestra un Toast
         } catch (e: Exception) {
-            Log.e("TicketsViewModel", "Error global: ${e.message}", e)
-            setError("Error inesperado: ${e.message}")
+            Log.e("TicketsViewModel", "Error al añadir evento al calendario: ${e.message}", e)
+            setError("Error al añadir evento al calendario: ${e.message}")
         }
     }
     
-    // Método original que usa la API de Google Calendar
-    private suspend fun addEventToCalendarUsingAPI(ticket: TicketCompra) {
-        // Todas las operaciones de Google Calendar deben ejecutarse en un hilo secundario
-        withContext(Dispatchers.IO) {
-            try {
-                // Verificar si tenemos una cuenta Google
-                if (googleAccount == null) {
-                    // Intentar obtener la cuenta Google del dispositivo
-                    googleAccount = com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(
-                        com.example.app.MyApplication.appContext
-                    )
-                }
-                
-                val account = googleAccount
-                if (account == null) {
-                    withContext(Dispatchers.Main) {
-                        setError("No hay una cuenta de Google conectada. Por favor, inicie sesión con Google primero.")
-                    }
-                    return@withContext
-                }
-
-                Log.d("TicketsViewModel", "Añadiendo evento al calendario con cuenta: ${account.email}")
-                
-                // Verificar que la cuenta tenga los permisos necesarios
-                try {
-                    val calendarService = calendarHelper?.getCalendarService(account)
-                    if (calendarService == null) {
-                        withContext(Dispatchers.Main) {
-                            setError("Error al inicializar el servicio de calendario")
-                        }
-                        return@withContext
-                    }
-
-                    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                    val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-                    
-                    val startDate = dateFormat.parse(ticket.evento.fecha) ?: Date()
-                    val startTime = timeFormat.parse(ticket.evento.hora) ?: Date()
-                    
-                    // Combinar fecha y hora
-                    val calendar = Calendar.getInstance()
-                    calendar.time = startDate
-                    val timeCalendar = Calendar.getInstance()
-                    timeCalendar.time = startTime
-                    calendar.set(Calendar.HOUR_OF_DAY, timeCalendar.get(Calendar.HOUR_OF_DAY))
-                    calendar.set(Calendar.MINUTE, timeCalendar.get(Calendar.MINUTE))
-                    calendar.set(Calendar.SECOND, timeCalendar.get(Calendar.SECOND))
-                    
-                    // Calcular la hora de fin (2 horas después)
-                    val endCalendar = Calendar.getInstance()
-                    endCalendar.timeInMillis = calendar.timeInMillis
-                    endCalendar.add(Calendar.HOUR_OF_DAY, 2)
-                    
-                    Log.d("TicketsViewModel", "Creando evento: ${ticket.evento.nombre} - Fecha: ${dateFormat.format(calendar.time)} ${timeFormat.format(calendar.time)}")
-
-                    val event = Event()
-                        .setSummary(ticket.evento.nombre)
-                        .setDescription("Entrada para ${ticket.evento.nombre}")
-                        .setLocation("Ubicación del evento")
-                        .setStart(EventDateTime().setDateTime(com.google.api.client.util.DateTime(calendar.time)))
-                        .setEnd(EventDateTime().setDateTime(com.google.api.client.util.DateTime(endCalendar.time)))
-                    
-                    // Agregar recordatorios
-                    val reminderOverrides = listOf(
-                        com.google.api.services.calendar.model.EventReminder().setMethod("email").setMinutes(24 * 60), // 1 día antes
-                        com.google.api.services.calendar.model.EventReminder().setMethod("popup").setMinutes(60) // 1 hora antes
-                    )
-                    val reminders = com.google.api.services.calendar.model.Event.Reminders()
-                        .setUseDefault(false)
-                        .setOverrides(reminderOverrides)
-                    event.reminders = reminders
-
-                    // Ejecutar en un contexto de IO para evitar bloquear el hilo principal
-                    val createdEvent = calendarService.events()
-                        .insert("primary", event)
-                        .execute()
-
-                    Log.d("TicketsViewModel", "Evento creado: ${createdEvent.htmlLink}")
-                    withContext(Dispatchers.Main) {
-                        setSuccessMessage("Evento '${ticket.evento.nombre}' añadido a tu Google Calendar")
-                    }
-                } catch (e: Exception) {
-                    Log.e("TicketsViewModel", "Error específico en la API de Calendar: ${e.message}", e)
-                    withContext(Dispatchers.Main) {
-                        if (e.message?.contains("DEAD_OBJECT") == true || e.message?.contains("DeadObject") == true) {
-                            setError("Error de conexión con Google Calendar. Intente nuevamente iniciando sesión con Google.")
-                        } else if (e.message?.contains("PERMISSION_DENIED") == true) {
-                            setError("Permiso denegado. Verifica que hayas iniciado sesión con tu cuenta Google.")
-                        } else if (e.message?.contains("NetworkError") == true || e.message?.contains("Failed to connect") == true) {
-                            setError("Error de red. Verifica tu conexión a internet.")
-                        } else if (e.message?.contains("deadlock") == true || e.message?.contains("Calling this from your main thread") == true) {
-                            setError("Error interno. Por favor, intenta de nuevo más tarde.")
-                        } else {
-                            setError("Error al añadir evento al calendario: ${e.message}")
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("TicketsViewModel", "Error general: ${e.message}", e)
-                withContext(Dispatchers.Main) {
-                    setError("Error al añadir evento al calendario: ${e.message}")
-                }
-            }
+    // Función simplificada para compatibilidad con código existente
+    fun addEventToCalendar(ticket: TicketCompra) {
+        // Ya no usamos coroutines aquí porque el método helper lo maneja internamente
+        try {
+            // Simplemente usamos el método para contextos no-Activity
+            calendarHelper?.addEventToCalendarFromAnyContext(ticket)
+        } catch (e: Exception) {
+            Log.e("TicketsViewModel", "Error al añadir evento al calendario: ${e.message}", e)
+            setError("Error al añadir evento al calendario: ${e.message}")
         }
     }
     
@@ -230,11 +134,13 @@ class TicketsViewModel(
         }
     }
     
-    // Función para establecer un mensaje de error
-    fun setError(error: String) {
-        _error.value = error
-        _isLoading.value = false
-        Log.e(TAG, "Error: $error")
+    // Función para establecer error
+    fun setError(errorMessage: String) {
+        _error.value = errorMessage
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(5000)
+            _error.value = null
+        }
     }
     
     // Función para limpiar el mensaje de error

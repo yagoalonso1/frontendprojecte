@@ -1,7 +1,6 @@
 package com.example.app.view
 
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +17,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,6 +34,7 @@ import com.example.app.viewmodel.EventoViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 import com.example.app.util.Constants
+import com.example.app.util.CategoryTranslator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,63 +67,7 @@ fun MisEventosScreen(
     val userRole = SessionManager.getUserRole() ?: "participante"
     val isOrganizador = userRole == "organizador"
     
-    // Efecto para mostrar mensaje cuando se elimina un evento
-    LaunchedEffect(eventoEliminado) {
-        if (eventoEliminado) {
-            // Mostrar mensaje de éxito con el texto del backend
-            Toast.makeText(
-                context,
-                mensajeExito,
-                Toast.LENGTH_SHORT
-            ).show()
-            
-            // Resetear el estado
-            viewModel.resetEventoEliminado()
-        }
-    }
-    
-    // Efecto para mostrar mensajes de error
-    LaunchedEffect(viewModel.isError) {
-        if (viewModel.isError && !viewModel.errorMessage.isNullOrEmpty()) {
-            // Añadir verificación explícita para el caso de "evento no existe"
-            val errorMsg = viewModel.errorMessage ?: "Error desconocido"
-            
-            // Si el error indica que el evento ya fue eliminado, tratarlo como éxito
-            if (errorMsg.contains("no existe o ya fue eliminado")) {
-                // Actualizar la lista de eventos para quitar el que ya no existe
-                viewModel.fetchMisEventos()
-                
-                // Mostrar un toast informativo en verde
-                val customToast = Toast.makeText(
-                    context,
-                    errorMsg,
-                    Toast.LENGTH_LONG
-                )
-                // Nota: en una implementación real, necesitaríamos una vista personalizada
-                // para el Toast con fondo verde, pero omitimos eso por simplicidad
-                
-                customToast.show()
-            } else {
-                // Para otros errores, mostrar el mensaje normal
-                Toast.makeText(
-                    context,
-                    errorMsg,
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            
-            // Limpiar error después de mostrarlo
-            viewModel.clearError()
-            
-            // Actualizar la lista de eventos también después de cualquier error
-            if (isOrganizador && errorMsg.contains("eliminar")) {
-                Log.d("MisEventosScreen", "Actualizando lista tras error relacionado con eliminación")
-                viewModel.fetchMisEventos()
-            }
-        }
-    }
-    
-    // Actualizar eventos cada vez que se muestra la pantalla o al eliminar un evento
+    // Efecto para actualizar eventos cada vez que se muestra la pantalla o al eliminar un evento
     LaunchedEffect(Unit, eventoEliminado) {
         Log.d("MisEventosScreen", "Actualizando lista de mis eventos...")
         if (isOrganizador) {
@@ -141,8 +86,15 @@ fun MisEventosScreen(
                 showDeleteConfirmDialog = false
                 eventoToDelete = null
             },
-            title = { Text("Eliminar evento") },
-            text = { Text("¿Estás seguro que deseas eliminar el evento '${eventoToDelete?.titulo}'? Esta acción no se puede deshacer.") },
+            title = { Text(stringResource(id = com.example.app.R.string.mis_eventos_eliminar_titulo)) },
+            text = { 
+                Text(
+                    stringResource(
+                        id = com.example.app.R.string.mis_eventos_eliminar_confirmar, 
+                        eventoToDelete?.titulo ?: ""
+                    )
+                ) 
+            },
             confirmButton = {
                 Button(
                     onClick = {
@@ -157,7 +109,7 @@ fun MisEventosScreen(
                         containerColor = Color.Red
                     )
                 ) {
-                    Text("Eliminar")
+                    Text(stringResource(id = com.example.app.R.string.mis_eventos_eliminar_boton))
                 }
             },
             dismissButton = {
@@ -167,7 +119,7 @@ fun MisEventosScreen(
                         eventoToDelete = null
                     }
                 ) {
-                    Text("Cancelar")
+                    Text(stringResource(id = com.example.app.R.string.mis_eventos_cancelar))
                 }
             }
         )
@@ -179,7 +131,7 @@ fun MisEventosScreen(
             TopAppBar(
                 title = { 
                     Text(
-                        text = "MIS EVENTOS",
+                        text = stringResource(id = com.example.app.R.string.mis_eventos_titulo),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 22.sp,
@@ -196,7 +148,7 @@ fun MisEventosScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
-                            contentDescription = "Crear Evento",
+                            contentDescription = stringResource(id = com.example.app.R.string.mis_eventos_crear),
                             tint = primaryColor
                         )
                     }
@@ -242,7 +194,7 @@ fun MisEventosScreen(
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = viewModel.errorMessage ?: "Error desconocido",
+                                text = viewModel.errorMessage ?: stringResource(id = com.example.app.R.string.mis_eventos_error_desconocido),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = Color.Red,
                                 textAlign = TextAlign.Center
@@ -251,7 +203,7 @@ fun MisEventosScreen(
                             if (viewModel.errorMessage?.contains("Solo los organizadores") == true) {
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    text = "Esta sección está disponible solo para organizadores.",
+                                    text = stringResource(id = com.example.app.R.string.mis_eventos_solo_organizadores),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color.Gray,
                                     textAlign = TextAlign.Center
@@ -273,7 +225,7 @@ fun MisEventosScreen(
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "No has creado ningún evento todavía",
+                                text = stringResource(id = com.example.app.R.string.eventos_no_creados),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = Color.Gray,
                                 textAlign = TextAlign.Center
@@ -291,7 +243,7 @@ fun MisEventosScreen(
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Crear mi primer evento")
+                                Text(stringResource(id = com.example.app.R.string.eventos_crear_primero))
                             }
                         }
                     }
@@ -317,8 +269,6 @@ fun MisEventosScreen(
                                     val eventoId = evento.getEventoId()
                                     if (eventoId > 0) {
                                         navController.navigate("evento/$eventoId")
-                                    } else {
-                                        // Opcional: mostrar un Toast de error
                                     }
                                 },
                                 onEditClick = { onEditEventoClick(evento) },
@@ -365,11 +315,6 @@ private fun editarEvento(evento: Evento, navController: NavController) {
         Log.d("EditEvento", "Navegación completada exitosamente")
     } catch (e: Exception) {
         Log.e("EditEvento", "Error al navegar", e)
-        Toast.makeText(
-            navController.context,
-            "Error al abrir pantalla de edición: ${e.message}",
-            Toast.LENGTH_LONG
-        ).show()
     }
 }
 
@@ -413,7 +358,7 @@ fun EventoCardConAcciones(
                 // Imagen del evento
                 AsyncImage(
                     model = evento.getImageUrl(),
-                    contentDescription = "Imagen del evento",
+                    contentDescription = stringResource(id = com.example.app.R.string.eventos_imagen),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .width(120.dp)
@@ -427,9 +372,10 @@ fun EventoCardConAcciones(
                         .weight(1f)
                         .padding(16.dp)
                 ) {
-                    // Categoría
+                    // Categoría traducida
+                    val categoriaTraducida = CategoryTranslator.translate(evento.categoria)
                     Text(
-                        text = evento.categoria.uppercase(),
+                        text = categoriaTraducida.uppercase(),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Medium,
                             letterSpacing = 1.sp
@@ -458,7 +404,7 @@ fun EventoCardConAcciones(
                     ) {
                         Icon(
                             imageVector = Icons.Default.CalendarToday,
-                            contentDescription = "Fecha",
+                            contentDescription = stringResource(id = com.example.app.R.string.eventos_fecha),
                             tint = textSecondaryColor,
                             modifier = Modifier.size(16.dp)
                         )
@@ -480,7 +426,7 @@ fun EventoCardConAcciones(
                     ) {
                         Icon(
                             imageVector = Icons.Default.AccessTime,
-                            contentDescription = "Hora",
+                            contentDescription = stringResource(id = com.example.app.R.string.eventos_hora),
                             tint = textSecondaryColor,
                             modifier = Modifier.size(16.dp)
                         )
@@ -502,7 +448,7 @@ fun EventoCardConAcciones(
                     ) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
-                            contentDescription = "Ubicación",
+                            contentDescription = stringResource(id = com.example.app.R.string.eventos_ubicacion),
                             tint = textSecondaryColor,
                             modifier = Modifier.size(16.dp)
                         )
@@ -510,7 +456,7 @@ fun EventoCardConAcciones(
                         Spacer(modifier = Modifier.width(4.dp))
                         
                         Text(
-                            text = if (evento.esOnline) "Online" else evento.ubicacion,
+                            text = if (evento.esOnline) stringResource(id = com.example.app.R.string.mis_eventos_online) else evento.ubicacion,
                             style = MaterialTheme.typography.bodySmall,
                             color = textSecondaryColor
                         )
@@ -538,11 +484,11 @@ fun EventoCardConAcciones(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Edit,
-                        contentDescription = "Editar evento",
+                        contentDescription = stringResource(id = com.example.app.R.string.mis_eventos_editar),
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Editar")
+                    Text(stringResource(id = com.example.app.R.string.mis_eventos_editar))
                 }
                 
                 // Botón de eliminar (a la derecha)
@@ -556,11 +502,11 @@ fun EventoCardConAcciones(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Eliminar evento",
+                        contentDescription = stringResource(id = com.example.app.R.string.mis_eventos_eliminar),
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Eliminar")
+                    Text(stringResource(id = com.example.app.R.string.mis_eventos_eliminar))
                 }
             }
         }

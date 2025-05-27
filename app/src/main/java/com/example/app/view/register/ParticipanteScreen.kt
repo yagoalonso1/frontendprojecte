@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -36,6 +37,8 @@ import com.example.app.viewmodel.RegisterViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import android.util.Log
+import com.example.app.ui.components.LanguageAwareText
+import com.example.app.util.LocaleHelper
 
 @Composable
 fun ParticipanteScreen(
@@ -43,34 +46,71 @@ fun ParticipanteScreen(
 ) {
     // Cargar datos de Google Auth si existen
     LaunchedEffect(Unit) {
-        val sharedPrefs = com.example.app.MyApplication.appContext.getSharedPreferences(
-            "GoogleAuthData",
-            android.content.Context.MODE_PRIVATE
-        )
+        Log.d("PARTICIPANTE_SCREEN", "Inicializando pantalla de registro de participante")
         
-        val isFromGoogle = sharedPrefs.getBoolean("is_from_google", false)
-        if (isFromGoogle) {
-            val email = sharedPrefs.getString("google_email", "") ?: ""
-            val nombre = sharedPrefs.getString("google_nombre", "") ?: ""
-            val apellido1 = sharedPrefs.getString("google_apellido1", "") ?: ""
-            val token = sharedPrefs.getString("google_token", null)
-            
-            Log.d("PARTICIPANTE_SCREEN", "Datos detectados de Google Auth: Email=$email, Nombre=$nombre")
-            
-            // Establecer datos de Google en el ViewModel
-            viewModel.setGoogleAuthData(
-                email = email,
-                name = nombre,
-                apellido1 = apellido1,
-                apellido2 = null,
-                token = token
+        try {
+            val sharedPrefs = com.example.app.MyApplication.appContext.getSharedPreferences(
+                "GoogleAuthData",
+                android.content.Context.MODE_PRIVATE
             )
             
-            // Limpiar preferencias después de usarlas
-            with(sharedPrefs.edit()) {
-                clear()
-                apply()
+            // Verificar si viene de Google Auth
+            val isFromGoogle = sharedPrefs.getBoolean("is_from_google", false)
+            Log.d("PARTICIPANTE_SCREEN", "Verificando datos de Google Auth: isFromGoogle=$isFromGoogle")
+            
+            if (isFromGoogle) {
+                // Leer todos los datos guardados
+                val email = sharedPrefs.getString("google_email", "") ?: ""
+                val nombre = sharedPrefs.getString("google_nombre", "") ?: ""
+                val apellido1 = sharedPrefs.getString("google_apellido1", "") ?: ""
+                val token = sharedPrefs.getString("google_token", null)
+                
+                Log.d("PARTICIPANTE_SCREEN", "==== DATOS DE GOOGLE RECUPERADOS ====")
+                Log.d("PARTICIPANTE_SCREEN", "Email=$email, Nombre=$nombre, Apellido1=$apellido1")
+                Log.d("PARTICIPANTE_SCREEN", "Token present: ${!token.isNullOrEmpty()}")
+                
+                // Validar que los datos esenciales no estén vacíos
+                if (email.isNotEmpty() && nombre.isNotEmpty()) {
+                    Log.d("PARTICIPANTE_SCREEN", "Estableciendo datos de Google en el ViewModel")
+                    
+                    try {
+                        // Establecer datos de Google en el ViewModel
+                        viewModel.setGoogleAuthData(
+                            email = email,
+                            name = nombre,
+                            apellido1 = apellido1,
+                            apellido2 = null,
+                            token = token
+                        )
+                        
+                        // Verificar que los datos se hayan establecido correctamente
+                        Log.d("PARTICIPANTE_SCREEN", "Después de establecer datos: Email=${viewModel.email}, Nombre=${viewModel.name}, isFromGoogleAuth=${viewModel.isFromGoogleAuth}")
+                        
+                        if (!viewModel.isFromGoogleAuth || viewModel.email != email) {
+                            Log.e("PARTICIPANTE_SCREEN", "ERROR: Los datos no se establecieron correctamente en el ViewModel")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("PARTICIPANTE_SCREEN", "ERROR al establecer datos de Google en ViewModel: ${e.message}", e)
+                    }
+                    
+                    // Limpiar preferencias después de usarlas
+                    try {
+                        with(sharedPrefs.edit()) {
+                            clear()
+                            commit()
+                        }
+                        Log.d("PARTICIPANTE_SCREEN", "Preferencias limpiadas")
+                    } catch (e: Exception) {
+                        Log.e("PARTICIPANTE_SCREEN", "ERROR al limpiar preferencias: ${e.message}", e)
+                    }
+                } else {
+                    Log.e("PARTICIPANTE_SCREEN", "ERROR: Datos incompletos de Google Auth - Email: $email, Nombre: $nombre")
+                }
+            } else {
+                Log.d("PARTICIPANTE_SCREEN", "No hay datos de Google Auth en preferencias")
             }
+        } catch (e: Exception) {
+            Log.e("PARTICIPANTE_SCREEN", "ERROR al procesar datos de Google Auth: ${e.message}", e)
         }
     }
     
@@ -131,13 +171,13 @@ fun ParticipanteScreen(
 
             // Título de la pantalla
             item {
-                androidx.compose.material3.Text(
-                    text = "Datos de Participante",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
+                LanguageAwareText(
+                    textId = R.string.participant_title,
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
                     color = Color(0xFFE53935),
-                    modifier = Modifier.padding(bottom = 24.dp),
-                    textAlign = TextAlign.Center
+                    modifier = Modifier.padding(bottom = 32.dp)
                 )
             }
 
@@ -146,7 +186,7 @@ fun ParticipanteScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp)
+                        .padding(horizontal = 16.dp)
                 ) {
                     // Resumen de datos personales
                     Card(
@@ -163,8 +203,8 @@ fun ParticipanteScreen(
                                 .fillMaxWidth()
                                 .padding(16.dp)
                         ) {
-                            Text(
-                                text = "Información básica",
+                            LanguageAwareText(
+                                textId = R.string.participant_basic_info,
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
@@ -203,13 +243,13 @@ fun ParticipanteScreen(
                                 viewModel.isDniError = false
                             }
                         },
-                        label = { Text("DNI (8 dígitos + letra)") },
+                        label = { LanguageAwareText(textId = R.string.participant_dni) },
                         isError = !dniValid,
                         supportingText = {
                             if (!dniValid) {
-                                Text("DNI inválido. Formato: 12345678A")
+                                Text(text = stringResource(id = R.string.participant_dni_invalid))
                             } else if (viewModel.dni.isNotEmpty()) {
-                                Text("El formato correcto es: 12345678A", color = Color.Gray)
+                                Text(text = stringResource(id = R.string.participant_dni_format))
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -243,15 +283,18 @@ fun ParticipanteScreen(
                                 viewModel.isTelefonoError = false
                             }
                         },
-                        label = { Text("Teléfono (9 dígitos)") },
+                        label = { LanguageAwareText(textId = R.string.participant_phone) },
                         isError = !telefonoValid,
                         supportingText = {
                             if (!telefonoValid) {
-                                Text("Debe contener 9 dígitos")
+                                Text(text = stringResource(id = R.string.participant_phone_invalid))
                             } else {
-                                val digitsLeft = 9 - viewModel.telefono.length
-                                if (digitsLeft > 0) {
-                                    Text("Faltan $digitsLeft dígitos", color = Color.Gray)
+                                val remaining = 9 - viewModel.telefono.length
+                                if (remaining > 0) {
+                                    LanguageAwareText(
+                                        textId = R.string.participant_phone_digits,
+                                        formatArgs = arrayOf(remaining)
+                                    )
                                 }
                             }
                         },
@@ -314,8 +357,8 @@ fun ParticipanteScreen(
                         disabledContainerColor = Color.LightGray
                     )
                 ) {
-                    Text(
-                        text = "Completar Registro",
+                    LanguageAwareText(
+                        textId = R.string.participant_complete,
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -347,28 +390,27 @@ fun ParticipanteScreen(
                 Log.d("PARTICIPANTE_SCREEN", "Error cerrado por usuario")
             },
             title = { 
-                androidx.compose.material3.Text(
-                    text = "Error",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
+                LanguageAwareText(
+                    textId = R.string.register_error_title,
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
                     color = Color(0xFFE53935)
                 ) 
             },
             text = { 
-                androidx.compose.material3.Text(
-                    text = errorMessageState ?: "",
-                    style = MaterialTheme.typography.bodyMedium
-                ) 
+                Text(errorMessageState ?: "") 
             },
             confirmButton = {
                 TextButton(onClick = { 
                     viewModel.clearError() 
                     Log.d("PARTICIPANTE_SCREEN", "Error confirmado por usuario")
                 }) {
-                    androidx.compose.material3.Text(
-                        text = "Aceptar",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
+                    LanguageAwareText(
+                        textId = R.string.ok_button,
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
                         color = Color(0xFFE53935)
                     )
                 }
@@ -385,19 +427,20 @@ fun ParticipanteScreen(
         AlertDialog(
             onDismissRequest = { /* No hacer nada, la navegación se maneja en AppNavHost */ },
             title = { 
-                Text(
-                    text = "¡Registro Exitoso!",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4CAF50)
-                    )
+                LanguageAwareText(
+                    textId = R.string.participant_success,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = Color(0xFF4CAF50)
                 ) 
             },
             text = { 
-                Text(
-                    text = "Tu cuenta ha sido creada correctamente. Serás redirigido a la pantalla de inicio de sesión.",
-                    style = MaterialTheme.typography.bodyMedium
-                ) 
+                LanguageAwareText(
+                    textId = R.string.participant_success_message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.DarkGray
+                )
             },
             confirmButton = {
                 // Quitamos la acción del botón para evitar interferencias con la navegación automática
@@ -405,12 +448,12 @@ fun ParticipanteScreen(
                     /* No hacer nada, la navegación se maneja en AppNavHost */ 
                     Log.d("PARTICIPANTE_SCREEN", "Confirmado diálogo de éxito")
                 }) {
-                    Text(
-                        text = "Hecho",
+                    LanguageAwareText(
+                        textId = R.string.participant_done,
                         style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF4CAF50)
-                        )
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color(0xFF4CAF50)
                     )
                 }
             },

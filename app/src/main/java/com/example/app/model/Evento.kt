@@ -18,7 +18,9 @@ data class Evento(
     @SerializedName("organizador") val organizador: OrganizadorEvento?,
     @SerializedName("isFavorito") val isFavorito: Boolean = false,
     @SerializedName("entradas") val entradas: List<TipoEntrada> = emptyList(),
-    @SerializedName("es_online") val esOnline: Boolean = false
+    @SerializedName("es_online") val esOnline: Boolean = false,
+    @SerializedName("precio_minimo") val precioMinimo: Double? = null,
+    @SerializedName("precio_maximo") val precioMaximo: Double? = null
 ) {
     fun getEventoId(): Int = idEvento ?: -1
 }
@@ -30,7 +32,8 @@ data class OrganizadorEvento(
     @SerializedName("direccion_fiscal") val direccionFiscal: String? = null,
     @SerializedName("cif") val cif: String? = null,
     @SerializedName("user") val user: com.example.app.model.UserInfo?,
-    @SerializedName("avatar_url") val avatarUrl: String? = null
+    @SerializedName("avatar_url") val avatarUrl: String? = null,
+    @SerializedName("avatar") val avatar: String? = null
 )
 
 data class TipoEntrada(
@@ -59,4 +62,38 @@ fun Evento.getImageUrl(): String {
         Log.d("Evento", "Usando URL por defecto: $urlDefault")
         urlDefault
     }
+}
+
+/**
+ * Método de extensión para obtener la URL del avatar del organizador
+ * Prioridad: avatarUrl > avatar > avatar del usuario > avatar generado
+ */
+fun OrganizadorEvento.getAvatarUrl(): String {
+    val result = when {
+        !avatarUrl.isNullOrEmpty() -> {
+            // Si ya tenemos una URL, la usamos directamente
+            Log.d("OrganizadorEvento", "Usando avatarUrl: $avatarUrl")
+            avatarUrl
+        }
+        !avatar.isNullOrEmpty() -> {
+            // Si tenemos avatar, lo usamos directamente
+            Log.d("OrganizadorEvento", "Usando avatar: $avatar")
+            avatar
+        }
+        user?.avatar != null -> {
+            // Si tenemos avatar de usuario, lo usamos
+            Log.d("OrganizadorEvento", "Usando avatar de user: ${user.avatar}")
+            user.avatar
+        }
+        else -> {
+            // Si no hay avatar, generamos uno con las iniciales del nombre de la organización
+            val initials = nombre.take(2).uppercase()
+            val generatedUrl = "https://ui-avatars.com/api/?name=$initials&background=random&color=fff&size=128"
+            Log.d("OrganizadorEvento", "Generando avatar con iniciales: $initials, URL: $generatedUrl")
+            generatedUrl
+        }
+    }
+    
+    Log.d("OrganizadorEvento", "URL final del avatar: $result")
+    return result
 }

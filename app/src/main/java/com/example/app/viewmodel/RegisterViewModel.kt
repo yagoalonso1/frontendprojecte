@@ -590,6 +590,53 @@ class RegisterViewModel : ViewModel() {
             }
             
             try {
+                // Si es autenticación con Google y ya tenemos un token, intentar iniciar sesión directamente
+                if (isFromGoogleAuth && !googleToken.isNullOrEmpty()) {
+                    // En lugar de registrarse, intentemos actualizar el perfil del usuario existente
+                    Log.d("REGISTRO_DEBUG", "Usuario de Google ya existe, intentando actualizar perfil")
+                    
+                    try {
+                        // Guardamos una copia local del token
+                        val tokenCopy = googleToken
+                        
+                        // Preparar datos del perfil
+                        val profileData = mapOf(
+                            "dni" to dni,
+                            "telefono" to telefono,
+                            "completeProfile" to "true"
+                        )
+                        
+                        // Actualizar el perfil usando el token de Google
+                        val response = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            RetrofitClient.apiService.updateProfile("Bearer $tokenCopy", profileData)
+                        }
+                        
+                        withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            isLoading = false
+                            
+                            if (response.isSuccessful) {
+                                Log.d("REGISTRO_DEBUG", "Perfil actualizado correctamente. Iniciando sesión...")
+                                
+                                // Guardar el token y rol en SessionManager
+                                com.example.app.util.SessionManager.saveToken(tokenCopy)
+                                com.example.app.util.SessionManager.saveUserRole("participante")
+                                
+                                // Indicar que el registro fue exitoso
+                                _isRegisterSuccessful.value = true
+                                return@withContext
+                            } else {
+                                // Si falla la actualización, intentar con el registro normal
+                                Log.e("REGISTRO_DEBUG", "Error al actualizar perfil: ${response.code()} - ${response.errorBody()?.string()}")
+                                Log.d("REGISTRO_DEBUG", "Continuando con proceso normal de registro")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("REGISTRO_DEBUG", "Error al actualizar perfil: ${e.message}")
+                        Log.d("REGISTRO_DEBUG", "Continuando con proceso normal de registro")
+                        // Continuamos con el proceso normal de registro
+                    }
+                }
+                
                 // Preparar datos de registro
                 val request: RegisterRequest
                 
@@ -617,6 +664,14 @@ class RegisterViewModel : ViewModel() {
                     )
                     Log.d("REGISTRO_DEBUG", "Request con Google creada correctamente")
                     Log.d("REGISTRO_DEBUG", "Detalles de request con Google: ${Gson().toJson(request)}")
+                    
+                    // Asegurarse de que los campos específicos estén completos
+                    if (dni.isBlank() || telefono.isBlank()) {
+                        Log.e("REGISTRO_DEBUG", "ERROR: Faltan datos específicos de participante (DNI o teléfono)")
+                        setError("Por favor complete su DNI y teléfono para finalizar el registro")
+                        isLoading = false
+                        return@launch
+                    }
                 } else {
                     // Si es registro normal pero está faltando algún campo obligatorio
                     if (name.isBlank() || apellido1.isBlank() || email.isBlank() || password.isBlank()) {
@@ -688,8 +743,9 @@ class RegisterViewModel : ViewModel() {
                             com.example.app.util.SessionManager.saveUserRole("participante")
                         } else if (isFromGoogleAuth && googleToken != null) {
                             // Si no hay token en la respuesta pero estamos usando Google Auth, usar ese token
-                            Log.d("REGISTRO_DEBUG", "Usando token de Google: ${googleToken?.safeSubstring()}")
-                            com.example.app.util.SessionManager.saveToken(googleToken!!)
+                            val tokenCopy = googleToken
+                            Log.d("REGISTRO_DEBUG", "Usando token de Google: ${tokenCopy.safeSubstring()}")
+                            com.example.app.util.SessionManager.saveToken(tokenCopy)
                             com.example.app.util.SessionManager.saveUserRole("participante")
                         }
                         
@@ -699,6 +755,48 @@ class RegisterViewModel : ViewModel() {
                         val errorBody = response.errorBody()?.string()
                         Log.e("REGISTRO_DEBUG", "ERROR en el registro: ${response.code()} - $errorBody")
                         mostrarMensaje("Error en el registro: $errorBody")
+                        
+                        // Si el error es de que el email ya existe y estamos en modo Google Auth,
+                        // intentamos hacer la actualización del perfil
+                        val tokenCopy = googleToken
+                        if (response.code() == 422 && isFromGoogleAuth && tokenCopy != null && 
+                            errorBody?.contains("Este email ya est", ignoreCase = true) == true) {
+                            
+                            Log.d("REGISTRO_DEBUG", "Email ya registrado, intentando actualizar perfil...")
+                            
+                            try {
+                                // Guardamos una copia local del token
+                                val tokenCopy = googleToken
+                                
+                                // Preparar datos del perfil para actualización
+                                val profileData = mapOf(
+                                    "dni" to dni,
+                                    "telefono" to telefono,
+                                    "completeProfile" to "true"
+                                )
+                                
+                                // Intentar actualizar perfil con el token de Google
+                                val updateResponse = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                    RetrofitClient.apiService.updateProfile("Bearer $tokenCopy", profileData)
+                                }
+                                
+                                if (updateResponse.isSuccessful) {
+                                    Log.d("REGISTRO_DEBUG", "Perfil actualizado correctamente después de error de email existente")
+                                    
+                                    // Guardar token y rol en SessionManager
+                                    com.example.app.util.SessionManager.saveToken(tokenCopy)
+                                    com.example.app.util.SessionManager.saveUserRole("participante")
+                                    
+                                    // Indicar éxito
+                                    _isRegisterSuccessful.value = true
+                                    return@withContext
+                                } else {
+                                    Log.e("REGISTRO_DEBUG", "Error al actualizar perfil después de error de email existente: ${updateResponse.errorBody()?.string()}")
+                                }
+                            } catch (e: Exception) {
+                                Log.e("REGISTRO_DEBUG", "Excepción al actualizar perfil después de error: ${e.message}")
+                            }
+                        }
                         
                         try {
                             if (errorBody != null) {
@@ -860,40 +958,81 @@ class RegisterViewModel : ViewModel() {
         Log.d("REGISTRO_DEBUG", "Apellido2: ${apellido2 ?: "null"}")
         Log.d("REGISTRO_DEBUG", "Token: ${token?.safeSubstring()}")
         
-        if (email.isBlank() || name.isBlank() || apellido1.isBlank()) {
-            Log.e("REGISTRO_DEBUG", "ERROR: Datos incompletos de Google Auth")
-            setError("No se recibieron todos los datos necesarios del login con Google")
+        // Validación más rigurosa de los datos
+        val isEmailValid = email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
+        val isNameValid = name.isNotBlank()
+        val isApellido1Valid = apellido1.isNotBlank()
+        
+        if (!isEmailValid || !isNameValid || !isApellido1Valid) {
+            Log.e("REGISTRO_DEBUG", "ERROR: Datos incompletos o inválidos de Google Auth")
+            Log.e("REGISTRO_DEBUG", "Email válido: $isEmailValid, Nombre válido: $isNameValid, Apellido1 válido: $isApellido1Valid")
+            
+            // Intentar recuperar lo que se pueda
+            val errorMessage = buildString {
+                append("Datos incompletos del login con Google: ")
+                if (!isEmailValid) append("email inválido, ")
+                if (!isNameValid) append("nombre vacío, ")
+                if (!isApellido1Valid) append("apellido vacío, ")
+            }.trimEnd(',', ' ')
+            
+            setError(errorMessage)
             return
         }
         
-        // Guardar los datos del usuario de Google
-        this.email = email
-        this.name = name
-        this.apellido1 = apellido1
-        this.apellido2 = apellido2 ?: ""
-        this.googleToken = token
-        this.isFromGoogleAuth = true
-
-        // Generar una contraseña segura para Google Auth
-        this.password = generateRandomPassword()
-        this.confirmPassword = this.password
-        Log.d("REGISTRO_DEBUG", "Generada contraseña aleatoria para Google Auth: ${this.password.safeSubstring()}")
-        
-        // Verificar si el token está en SessionManager o si necesitamos guardarlo
-        if (token != null && token.isNotEmpty()) {
-            try {
-                Log.d("REGISTRO_DEBUG", "Guardando token de Google en SessionManager")
-                com.example.app.util.SessionManager.saveToken(token)
-            } catch (e: Exception) {
-                Log.e("REGISTRO_DEBUG", "Error al guardar el token en SessionManager: ${e.message}")
+        try {
+            // Guardar los datos del usuario de Google
+            this.email = email
+            this.name = name
+            this.apellido1 = apellido1
+            this.apellido2 = apellido2 ?: ""
+            this.googleToken = token
+            this.isFromGoogleAuth = true
+            
+            // Imprimir estado después de la asignación
+            Log.d("REGISTRO_DEBUG", "Después de asignar datos:")
+            Log.d("REGISTRO_DEBUG", "email=${this.email}, name=${this.name}, apellido1=${this.apellido1}")
+            Log.d("REGISTRO_DEBUG", "isFromGoogleAuth=${this.isFromGoogleAuth}, token=${this.googleToken?.safeSubstring()}")
+    
+            // Generar una contraseña segura para Google Auth
+            this.password = generateRandomPassword()
+            this.confirmPassword = this.password
+            Log.d("REGISTRO_DEBUG", "Generada contraseña aleatoria para Google Auth: ${this.password.safeSubstring()}")
+            
+            // Verificar si el token está en SessionManager o si necesitamos guardarlo
+            if (!token.isNullOrEmpty()) {
+                try {
+                    Log.d("REGISTRO_DEBUG", "Guardando token de Google en SessionManager")
+                    com.example.app.util.SessionManager.saveToken(token)
+                    
+                    // También guardar rol temporal
+                    com.example.app.util.SessionManager.saveUserRole("participante")
+                    Log.d("REGISTRO_DEBUG", "Rol temporal 'participante' guardado")
+                    
+                    // Verificar que se haya guardado correctamente
+                    val savedToken = com.example.app.util.SessionManager.getToken()
+                    val savedRole = com.example.app.util.SessionManager.getUserRole()
+                    Log.d("REGISTRO_DEBUG", "Verificación - Token: ${savedToken?.safeSubstring()}, Rol: $savedRole")
+                } catch (e: Exception) {
+                    Log.e("REGISTRO_DEBUG", "Error al guardar el token en SessionManager: ${e.message}", e)
+                }
+            } else {
+                Log.w("REGISTRO_DEBUG", "No hay token para guardar en SessionManager")
+                // Verificar si hay un token guardado en SessionManager
+                val savedToken = com.example.app.util.SessionManager.getToken()
+                if (!savedToken.isNullOrEmpty()) {
+                    Log.d("REGISTRO_DEBUG", "Ya hay un token guardado en SessionManager: ${savedToken.safeSubstring()}")
+                }
             }
-        } else {
-            Log.w("REGISTRO_DEBUG", "No hay token para guardar en SessionManager")
+            
+            // Indicar que estamos usando datos de Google
+            mostrarMensaje("Datos de Google cargados: $email, $name, $apellido1")
+            Log.d("REGISTRO_DEBUG", "Datos de Google establecidos correctamente en el ViewModel")
+            Log.d("REGISTRO_DEBUG", "Estado después de establecer datos - isFromGoogleAuth: $isFromGoogleAuth")
+        } catch (e: Exception) {
+            // Capturar cualquier excepción que pueda ocurrir durante el proceso
+            Log.e("REGISTRO_DEBUG", "ERROR CRÍTICO al establecer datos de Google: ${e.message}", e)
+            setError("Error al procesar datos de Google: ${e.message}")
         }
-        
-        // Indicar que estamos usando datos de Google
-        mostrarMensaje("Datos de Google cargados: $email, $name, $apellido1")
-        Log.d("REGISTRO_DEBUG", "Datos de Google establecidos correctamente en el ViewModel")
     }
 
     // Método para generar contraseña aleatoria segura

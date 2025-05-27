@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.app.R
 import com.example.app.viewmodel.ForgotPasswordViewModel
+import com.example.app.ui.components.LanguageAwareText
 
 @Composable
 fun ForgotPasswordScreen(
@@ -37,6 +38,15 @@ fun ForgotPasswordScreen(
         }
     }
     
+    // Asegurar que se aplique el idioma actual
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(Unit) {
+        val savedLanguage = com.example.app.util.SessionManager.getUserLanguage()
+        if (savedLanguage != null) {
+            com.example.app.util.LocaleHelper.setLocale(context, savedLanguage)
+        }
+    }
+    
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -47,8 +57,8 @@ fun ForgotPasswordScreen(
             Spacer(modifier = Modifier.height(48.dp))
             
             // Título principal
-            Text(
-                text = "Recuperar Contraseña",
+            LanguageAwareText(
+                textId = R.string.forgot_password_title,
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
@@ -57,8 +67,8 @@ fun ForgotPasswordScreen(
             )
             
             // Texto explicativo
-            Text(
-                text = "Introduce tu correo electrónico y tu DNI o teléfono para recuperar tu contraseña",
+            LanguageAwareText(
+                textId = R.string.forgot_password_description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray,
                 textAlign = TextAlign.Center,
@@ -69,7 +79,7 @@ fun ForgotPasswordScreen(
             OutlinedTextField(
                 value = viewModel.email,
                 onValueChange = { viewModel.onEmailChange(it) },
-                label = { Text("Correo Electrónico") },
+                label = { LanguageAwareText(textId = R.string.forgot_password_email) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
@@ -90,7 +100,7 @@ fun ForgotPasswordScreen(
             OutlinedTextField(
                 value = viewModel.identificador,
                 onValueChange = { viewModel.onIdentificadorChange(it) },
-                label = { Text("DNI o Teléfono") },
+                label = { LanguageAwareText(textId = R.string.forgot_password_id) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
@@ -128,8 +138,8 @@ fun ForgotPasswordScreen(
                         color = Color.White
                     )
                 } else {
-                    Text(
-                        text = "Recuperar Contraseña",
+                    LanguageAwareText(
+                        textId = R.string.forgot_password_button,
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -157,8 +167,8 @@ fun ForgotPasswordScreen(
                             .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "Tu contraseña es:",
+                        LanguageAwareText(
+                            textId = R.string.forgot_password_your_password,
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             ),
@@ -184,8 +194,8 @@ fun ForgotPasswordScreen(
                 onClick = onNavigateToLogin,
                 modifier = Modifier.padding(bottom = 16.dp)
             ) {
-                Text(
-                    text = "Volver a Iniciar Sesión",
+                LanguageAwareText(
+                    textId = R.string.forgot_password_back_to_login,
                     color = Color(0xFFE53935),
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Medium
@@ -214,8 +224,8 @@ fun ForgotPasswordScreen(
             AlertDialog(
                 onDismissRequest = { /* No hacer nada */ },
                 title = { 
-                    Text(
-                        text = "Error",
+                    LanguageAwareText(
+                        textId = R.string.forgot_password_error_title,
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -230,8 +240,8 @@ fun ForgotPasswordScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { viewModel.setError(null) }) {
-                        Text(
-                            text = "Aceptar",
+                        LanguageAwareText(
+                            textId = R.string.ok_button,
                             style = MaterialTheme.typography.labelLarge.copy(
                                 fontWeight = FontWeight.Bold
                             ),

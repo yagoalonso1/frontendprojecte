@@ -27,7 +27,8 @@ class EventosCategoriaViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     eventos = response.body()?.eventos ?: emptyList()
                     if (eventos.isEmpty()) {
-                        errorMessage = "No hay eventos en esta categoría"
+                        val appContext = com.example.app.MyApplication.appContext
+                        errorMessage = appContext.getString(com.example.app.R.string.eventos_no_hay_categoria)
                     }
                 } else {
                     val errorBody = response.errorBody()?.string()

@@ -47,8 +47,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import com.example.app.R
+import com.example.app.ui.components.LanguageAwareText
+import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +71,6 @@ fun OrganizadorDetailScreen(
     val eventos by remember { derivedStateOf { viewModel.eventos } }
     val isLoading by remember { derivedStateOf { viewModel.isLoading } }
     val isError by remember { derivedStateOf { viewModel.isError } }
-    val avatarUrlFromViewModel by remember { derivedStateOf { viewModel.avatarUrl } }
     val organizadorData by remember { derivedStateOf { viewModel.getOrganizador() ?: organizador } }
 
     // Colores y estilos
@@ -82,16 +84,16 @@ fun OrganizadorDetailScreen(
     var expanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
     
-    // Calcular la URL del avatar usando solo el campo avatarUrl o user.avatarUrl
-    val avatarUrl = organizadorData.avatarUrl ?: organizadorData.user?.avatarUrl
+    // Calcular la URL del avatar usando solo el campo avatar o user?.avatar
+    val avatar = organizadorData.avatar ?: organizadorData.user?.avatar
 
     Surface(modifier = Modifier.fillMaxSize(), color = backgroundColor) {
         Scaffold(
             topBar = {
                 TopAppBar(
                     title = {
-                        Text(
-                            "DETALLE ORGANIZADOR",
+                        LanguageAwareText(
+                            textId = R.string.organizer_detail_title,
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             color = primaryColor
                         )
@@ -100,7 +102,7 @@ fun OrganizadorDetailScreen(
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Volver",
+                                contentDescription = stringResource(R.string.back_button),
                                 tint = primaryColor
                             )
                         }
@@ -135,7 +137,10 @@ fun OrganizadorDetailScreen(
                                     Log.d("OrganizadorDetailScreen", "🎨 Renderizando icono, estado isFavorito=$isFavorito")
                                     Icon(
                                         imageVector = if (isFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                        contentDescription = if (isFavorito) "Quitar de favoritos" else "Añadir a favoritos",
+                                        contentDescription = if (isFavorito) 
+                                            stringResource(R.string.evento_detalle_quitar_favoritos) 
+                                            else 
+                                            stringResource(R.string.evento_detalle_anadir_favoritos),
                                         tint = if (isFavorito) primaryColor else Color.Gray,
                                         modifier = Modifier.size(30.dp)
                                     )
@@ -175,13 +180,13 @@ fun OrganizadorDetailScreen(
                                     modifier = Modifier.size(50.dp)
                                 )
                             } else {
-                                if (!avatarUrl.isNullOrEmpty()) {
+                                if (!avatar.isNullOrEmpty()) {
                                     SubcomposeAsyncImage(
                                         model = ImageRequest.Builder(LocalContext.current)
-                                            .data(avatarUrl)
+                                            .data(avatar)
                                             .crossfade(true)
                                             .build(),
-                                        contentDescription = "Avatar del organizador",
+                                        contentDescription = stringResource(R.string.organizer_avatar_desc),
                                         contentScale = ContentScale.Crop,
                                         loading = {
                                             CircularProgressIndicator(
@@ -190,22 +195,40 @@ fun OrganizadorDetailScreen(
                                             )
                                         },
                                         error = {
-                                            Icon(
-                                                Icons.Default.Person,
-                                                contentDescription = "Avatar por defecto",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(80.dp)
-                                            )
+                                            Surface(
+                                                modifier = Modifier.fillMaxSize(),
+                                                shape = CircleShape,
+                                                color = primaryColor.copy(alpha = 0.15f),
+                                                border = BorderStroke(2.dp, primaryColor.copy(alpha = 0.5f))
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Person,
+                                                    contentDescription = stringResource(R.string.default_avatar),
+                                                    modifier = Modifier
+                                                        .padding(24.dp)
+                                                        .size(64.dp),
+                                                    tint = primaryColor
+                                                )
+                                            }
                                         },
                                         modifier = Modifier.fillMaxSize()
                                     )
                                 } else {
-                                    Icon(
-                                        Icons.Default.Person,
-                                        contentDescription = "Avatar por defecto",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(80.dp)
-                                    )
+                                    Surface(
+                                        modifier = Modifier.fillMaxSize(),
+                                        shape = CircleShape,
+                                        color = primaryColor.copy(alpha = 0.15f),
+                                        border = BorderStroke(2.dp, primaryColor.copy(alpha = 0.5f))
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Person,
+                                            contentDescription = stringResource(R.string.default_avatar),
+                                            modifier = Modifier
+                                                .padding(24.dp)
+                                                .size(64.dp),
+                                            tint = primaryColor
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -242,10 +265,11 @@ fun OrganizadorDetailScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = "Mostrar más información",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
+                            LanguageAwareText(
+                                textId = R.string.organizer_detail_show_more,
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
                                 color = textPrimaryColor
                             )
                             Switch(
@@ -278,7 +302,7 @@ fun OrganizadorDetailScreen(
                             ) {
                                 // Sección información del organizador
                                 SectionHeader(
-                                    title = "Información del Organizador",
+                                    title = stringResource(R.string.organizer_detail_info),
                                     icon = Icons.Default.Business,
                                     color = primaryColor
                                 )
@@ -291,7 +315,7 @@ fun OrganizadorDetailScreen(
                                 
                                 // Teléfono (siempre debe estar disponible)
                                 InfoRow(
-                                    label = "Teléfono:",
+                                    label = stringResource(R.string.organizer_detail_phone) + ":",
                                     value = organizadorData.telefonoContacto,
                                     icon = Icons.Default.Phone
                                 )
@@ -299,7 +323,7 @@ fun OrganizadorDetailScreen(
                                 // Dirección fiscal
                                 organizadorData.direccionFiscal?.let { direccion ->
                                     InfoRow(
-                                        label = "Dirección:",
+                                        label = stringResource(R.string.organizer_detail_address) + ":",
                                         value = direccion,
                                         icon = Icons.Default.LocationOn
                                     )
@@ -308,7 +332,7 @@ fun OrganizadorDetailScreen(
                                 // CIF
                                 organizadorData.cif?.let { cif ->
                                     InfoRow(
-                                        label = "CIF:",
+                                        label = stringResource(R.string.organizer_detail_cif) + ":",
                                         value = cif,
                                         icon = Icons.Default.Info
                                     )
@@ -320,7 +344,7 @@ fun OrganizadorDetailScreen(
                                     
                                     // Encabezado de contacto
                                     SectionHeader(
-                                        title = "Información de Contacto",
+                                        title = stringResource(R.string.organizer_detail_contact_info),
                                         icon = Icons.Default.Person,
                                         color = primaryColor
                                     )
@@ -333,27 +357,17 @@ fun OrganizadorDetailScreen(
                                     
                                     // Nombre
                                     InfoRow(
-                                        label = "Nombre:",
+                                        label = stringResource(R.string.register_name) + ":",
                                         value = organizadorData.nombreUsuario ?: user.nombre,
                                         icon = Icons.Default.Person
                                     )
                                     
                                     // Email
                                     InfoRow(
-                                        label = "Email:",
+                                        label = stringResource(R.string.register_email) + ":",
                                         value = user.email,
                                         icon = Icons.Default.Email
                                     )
-                                    
-                                    // Avatar URL
-                                    user.avatarUrl?.let { avatarUrl ->
-                                        InfoRow(
-                                            label = "Avatar URL:",
-                                            value = avatarUrl,
-                                            icon = Icons.Default.Image,
-                                            maxLines = 1
-                                        )
-                                    }
                                 }
                             }
                         }
@@ -366,7 +380,7 @@ fun OrganizadorDetailScreen(
                         modifier = Modifier.padding(horizontal = 24.dp)
                     ) {
                         SectionHeader(
-                            title = "Eventos:",
+                            title = stringResource(R.string.organizer_detail_events) + ":",
                             icon = Icons.Default.Event,
                             color = primaryColor,
                             modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
@@ -388,13 +402,13 @@ fun OrganizadorDetailScreen(
                     }
                     isError -> item {
                         ErrorMessage(
-                            message = "Error al cargar eventos",
+                            message = stringResource(R.string.organizer_detail_error_events),
                             modifier = Modifier.padding(24.dp)
                         )
                     }
                     eventos.isEmpty() -> item {
                         EmptyStateMessage(
-                            message = "No hay eventos para este organizador",
+                            message = stringResource(R.string.organizer_detail_no_events),
                             modifier = Modifier.padding(24.dp, bottom = 56.dp)
                         )
                     }

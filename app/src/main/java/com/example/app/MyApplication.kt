@@ -5,6 +5,7 @@ import android.content.Context
 import android.util.Log
 import com.example.app.utils.TokenManager
 import com.example.app.util.SessionManager
+import com.example.app.util.LocaleHelper
 
 class MyApplication : Application() {
     companion object {
@@ -24,6 +25,16 @@ class MyApplication : Application() {
             Log.d("MyApplication", "Inicializando TokenManager...")
             TokenManager.init(this)
             Log.d("MyApplication", "TokenManager inicializado correctamente")
+            
+            // Inicializar el idioma de la aplicación
+            Log.d("MyApplication", "Inicializando idioma de la aplicación...")
+            // Verificar el idioma guardado
+            val savedLanguage = SessionManager.getUserLanguage()
+            Log.d("MyApplication", "Idioma guardado en SessionManager: $savedLanguage")
+            
+            val updatedContext = LocaleHelper.initLocale(this)
+            val currentLanguage = LocaleHelper.getLanguage(this)
+            Log.d("MyApplication", "Idioma inicializado correctamente: $currentLanguage")
         } catch (e: Exception) {
             Log.e("MyApplication", "Error al inicializar managers: ${e.message}")
             e.printStackTrace()

@@ -37,6 +37,7 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.FileOutputStream
 import java.io.InputStream
+import com.example.app.util.CategoryTranslator
 
 // Método de extensión para convertir Boolean a RequestBody
 fun Boolean.toRequestBody(mediaType: okhttp3.MediaType?): RequestBody {
@@ -111,8 +112,8 @@ class CrearEventoViewModel : ViewModel() {
             isLoadingCategorias = true
             errorCategorias = null
             try {
-                // Usar categorías estáticas en lugar de cargarlas de la API
-                categorias = listOf(
+                // Definir categorías estáticas
+                val categoriasOriginales = listOf(
                     "Festival",
                     "Concierto",
                     "Teatro",
@@ -122,7 +123,13 @@ class CrearEventoViewModel : ViewModel() {
                     "Taller",
                     "Otro"
                 )
-                Log.d("CrearEventoViewModel", "Categorías cargadas: $categorias")
+                
+                // Traducir cada categoría al idioma actual
+                categorias = categoriasOriginales.map { categoria ->
+                    CategoryTranslator.translate(categoria)
+                }
+                
+                Log.d("CrearEventoViewModel", "Categorías cargadas y traducidas: $categorias")
             } catch (e: Exception) {
                 errorCategorias = "Error al cargar las categorías: ${e.message}"
                 Log.e("CrearEventoViewModel", "Excepción al cargar categorías", e)

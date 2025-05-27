@@ -27,6 +27,8 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.res.stringResource
+import com.example.app.R
 import com.example.app.util.SessionManager
 
 // Enumeración para los tipos de usuario
@@ -39,7 +41,7 @@ enum class UserType {
 // Definición de los elementos del menú de navegación
 data class NavItem(
     val route: String,
-    val title: String,
+    val titleResId: Int,
     val icon: ImageVector,
     val userType: UserType
 )
@@ -61,25 +63,25 @@ fun BottomNavigationBar(
                 listOf(
                     NavItem(
                         route = "eventos",
-                        title = "Eventos",
+                        titleResId = R.string.nav_eventos,
                         icon = Icons.Default.Home,
                         userType = UserType.ALL
                     ),
                     NavItem(
                         route = "mis_eventos",
-                        title = "Mis Eventos",
+                        titleResId = R.string.nav_mis_eventos,
                         icon = Icons.Default.ConfirmationNumber,
                         userType = UserType.ORGANIZER
                     ),
                     NavItem(
                         route = Routes.CrearEvento.route,
-                        title = "Crear",
+                        titleResId = R.string.nav_crear,
                         icon = Icons.Default.Add,
                         userType = UserType.ORGANIZER
                     ),
                     NavItem(
                         route = "perfil",
-                        title = "Perfil",
+                        titleResId = R.string.nav_perfil,
                         icon = Icons.Default.Person,
                         userType = UserType.ALL
                     )
@@ -92,25 +94,25 @@ fun BottomNavigationBar(
                 listOf(
                     NavItem(
                         route = "eventos",
-                        title = "Eventos",
+                        titleResId = R.string.nav_eventos,
                         icon = Icons.Default.Home,
                         userType = UserType.ALL
                     ),
                     NavItem(
                         route = "mis_tickets",
-                        title = "Mis Tickets",
+                        titleResId = R.string.nav_mis_tickets,
                         icon = Icons.Default.ConfirmationNumber,
                         userType = UserType.PARTICIPANT
                     ),
                     NavItem(
                         route = "favoritos",
-                        title = "Favoritos",
+                        titleResId = R.string.nav_favoritos,
                         icon = Icons.Default.Favorite,
                         userType = UserType.PARTICIPANT
                     ),
                     NavItem(
                         route = "perfil",
-                        title = "Perfil",
+                        titleResId = R.string.nav_perfil,
                         icon = Icons.Default.Person,
                         userType = UserType.ALL
                     )
@@ -136,11 +138,13 @@ fun BottomNavigationBar(
                 icon = {
                     Icon(
                         imageVector = item.icon,
-                        contentDescription = item.title,
+                        contentDescription = stringResource(id = item.titleResId),
                         modifier = Modifier.size(24.dp)
                     )
                 },
-                label = { Text(text = item.title) },
+                label = { 
+                    Text(text = stringResource(id = item.titleResId)) 
+                },
                 selected = selected,
                 onClick = {
                     navController.navigate(item.route) {

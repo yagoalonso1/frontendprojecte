@@ -40,11 +40,15 @@ import androidx.core.content.ContextCompat
 import java.text.SimpleDateFormat
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.res.stringResource
+import com.example.app.R
+import com.example.app.util.CategoryTranslator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,18 +59,14 @@ fun CrearEventoScreen(
     val context = LocalContext.current
     val userRole = SessionManager.getUserRole() ?: "participante"
 
-    // Lista de categorías disponibles
-    val categorias = listOf(
-        "Concierto",
-        "Festival",
-        "Teatro",
-        "Deportes",
-        "Conferencia",
-        "Exposición",
-        "Taller",
-        "Otro"
-    )
+    // Definir mensajes de error y texto aquí, dentro del contexto @Composable
+    val permisoGaleriaText = stringResource(id = com.example.app.R.string.evento_permiso_galeria)
+    val permisoCamaraText = stringResource(id = com.example.app.R.string.evento_permiso_camara)
+    val horaPasadaText = stringResource(id = com.example.app.R.string.evento_hora_pasada)
 
+    // Usar las categorías ya traducidas del ViewModel
+    val categorias = viewModel.categorias
+    
     // Estado para el dropdown de categorías
     var expandedCategoria by remember { mutableStateOf(false) }
     
@@ -79,7 +79,6 @@ fun CrearEventoScreen(
     // Efecto para manejar la navegación después de crear el evento
     LaunchedEffect(isCreationSuccessful) {
         if (isCreationSuccessful) {
-            Toast.makeText(context, "Evento creado con éxito", Toast.LENGTH_LONG).show()
             navController.popBackStack()
             viewModel.resetCreationState()
         }
@@ -115,7 +114,7 @@ fun CrearEventoScreen(
                 imagePicker.launch("image/*")
             }
             else -> {
-                Toast.makeText(context, "Se necesita permiso para acceder a la galería", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, permisoGaleriaText, Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -136,7 +135,7 @@ fun CrearEventoScreen(
                 cameraLauncher.launch(uri)
             }
         } else {
-            Toast.makeText(context, "Se necesitan permisos para usar la cámara", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, permisoCamaraText, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -164,8 +163,8 @@ fun CrearEventoScreen(
     if (showImagePickerDialog) {
         AlertDialog(
             onDismissRequest = { showImagePickerDialog = false },
-            title = { Text("Seleccionar imagen") },
-            text = { Text("¿Cómo quieres añadir una imagen?") },
+            title = { Text(stringResource(id = com.example.app.R.string.evento_seleccionar_imagen)) },
+            text = { Text(stringResource(id = com.example.app.R.string.evento_como_anadir_imagen)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -174,7 +173,7 @@ fun CrearEventoScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))
                 ) {
-                    Text("Tomar foto")
+                    Text(stringResource(id = com.example.app.R.string.evento_tomar_foto))
                 }
             },
             dismissButton = {
@@ -185,7 +184,7 @@ fun CrearEventoScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))
                 ) {
-                    Text("Galería")
+                    Text(stringResource(id = com.example.app.R.string.evento_galeria))
                 }
             }
         )
@@ -196,23 +195,21 @@ fun CrearEventoScreen(
             CenterAlignedTopAppBar(
                 title = { 
                     Text(
-                        text = "CREAR EVENTO",
+                        text = stringResource(id = com.example.app.R.string.crear_evento_titulo),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp,
-                            letterSpacing = 1.sp
+                            color = Color.White
                         )
                     )
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFFE53935),
-                    titleContentColor = Color.White
+                    containerColor = Color(0xFFE53935)
                 ),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
-                            Icons.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(id = com.example.app.R.string.back_button),
                             tint = Color.White
                         )
                     }
@@ -234,24 +231,40 @@ fun CrearEventoScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campos del formulario con estilo unificado
+            // Título de la sección de información básica
+            Text(
+                text = stringResource(id = com.example.app.R.string.evento_informacion_basica),
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFE53935)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Título del evento con validación
             OutlinedTextField(
                 value = viewModel.titulo,
                 onValueChange = { viewModel.updateTitulo(it) },
-                label = { Text("Título del evento*") },
+                label = { Text(stringResource(id = com.example.app.R.string.evento_titulo)) },
+                placeholder = { Text(stringResource(id = com.example.app.R.string.evento_titulo_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color(0xFFE53935),
                     focusedLabelColor = Color(0xFFE53935)
                 )
             )
-
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Descripción del evento
             OutlinedTextField(
                 value = viewModel.descripcion,
                 onValueChange = { viewModel.updateDescripcion(it) },
-                label = { Text("Descripción*") },
+                label = { Text(stringResource(id = com.example.app.R.string.evento_descripcion)) },
+                placeholder = { Text(stringResource(id = com.example.app.R.string.evento_descripcion_placeholder)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp),
@@ -267,7 +280,7 @@ fun CrearEventoScreen(
             OutlinedTextField(
                 value = viewModel.fechaEvento,
                 onValueChange = {},
-                label = { Text("Fecha del evento") },
+                label = { Text(stringResource(id = com.example.app.R.string.evento_fecha)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { 
@@ -286,7 +299,7 @@ fun CrearEventoScreen(
                                 today.set(Calendar.MILLISECOND, 0)
                                 
                                 if (selectedCalendar.before(today)) {
-                                    Toast.makeText(context, "No puedes seleccionar una fecha pasada", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, horaPasadaText, Toast.LENGTH_SHORT).show()
                                 } else {
                                     viewModel.fechaEvento = String.format("%04d-%02d-%02d", year, month + 1, day)
                                 }
@@ -298,7 +311,9 @@ fun CrearEventoScreen(
                     },
                 enabled = false,
                 trailingIcon = {
-                    Icon(Icons.Default.DateRange, "Seleccionar fecha", tint = Color(0xFFE53935))
+                    Icon(Icons.Default.DateRange, 
+                         contentDescription = stringResource(id = com.example.app.R.string.evento_fecha), 
+                         tint = Color(0xFFE53935))
                 },
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -313,7 +328,7 @@ fun CrearEventoScreen(
             OutlinedTextField(
                 value = viewModel.hora,
                 onValueChange = {},
-                label = { Text("Hora del evento") },
+                label = { Text(stringResource(id = com.example.app.R.string.evento_hora)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { 
@@ -335,7 +350,7 @@ fun CrearEventoScreen(
                                     (selectedCalendar.get(Calendar.HOUR_OF_DAY) < now.get(Calendar.HOUR_OF_DAY) || 
                                     (selectedCalendar.get(Calendar.HOUR_OF_DAY) == now.get(Calendar.HOUR_OF_DAY) && 
                                      selectedCalendar.get(Calendar.MINUTE) < now.get(Calendar.MINUTE)))) {
-                                    Toast.makeText(context, "No puedes seleccionar una hora pasada para hoy", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, horaPasadaText, Toast.LENGTH_SHORT).show()
                                 } else {
                                     viewModel.hora = String.format("%02d:%02d", hour, minute)
                                 }
@@ -347,7 +362,9 @@ fun CrearEventoScreen(
                     },
                 enabled = false,
                 trailingIcon = {
-                    Icon(Icons.Default.Schedule, "Seleccionar hora", tint = Color(0xFFE53935))
+                    Icon(Icons.Default.Schedule, 
+                         contentDescription = stringResource(id = com.example.app.R.string.evento_hora), 
+                         tint = Color(0xFFE53935))
                 },
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -361,7 +378,8 @@ fun CrearEventoScreen(
             OutlinedTextField(
                 value = viewModel.ubicacion,
                 onValueChange = { viewModel.ubicacion = it },
-                label = { Text("Ubicación") },
+                label = { Text(stringResource(id = com.example.app.R.string.evento_ubicacion)) },
+                placeholder = { Text(stringResource(id = com.example.app.R.string.evento_ubicacion_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -380,7 +398,7 @@ fun CrearEventoScreen(
                     value = viewModel.categoria,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Categoría") },
+                    label = { Text(stringResource(id = com.example.app.R.string.evento_categoria)) },
                     trailingIcon = {
                         if (viewModel.isLoadingCategorias) {
                             CircularProgressIndicator(
@@ -406,7 +424,7 @@ fun CrearEventoScreen(
                         expanded = expandedCategoria,
                         onDismissRequest = { expandedCategoria = false }
                     ) {
-                        viewModel.categorias.forEach { categoria ->
+                        categorias.forEach { categoria ->
                             DropdownMenuItem(
                                 text = { Text(categoria) },
                                 onClick = {
@@ -443,7 +461,7 @@ fun CrearEventoScreen(
                         // Mostrar imagen seleccionada
                         AsyncImage(
                             model = viewModel.imagenUri,
-                            contentDescription = "Imagen del evento",
+                            contentDescription = stringResource(id = com.example.app.R.string.evento_imagen),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(200.dp),
@@ -462,7 +480,7 @@ fun CrearEventoScreen(
                         ) {
                             Icon(
                                 Icons.Filled.Close,
-                                contentDescription = "Eliminar imagen",
+                                contentDescription = stringResource(id = com.example.app.R.string.evento_eliminar_imagen),
                                 tint = Color.White
                             )
                         }
@@ -477,13 +495,13 @@ fun CrearEventoScreen(
                         ) {
                             Icon(
                                 Icons.Filled.Image,
-                                contentDescription = "Subir imagen",
+                                contentDescription = stringResource(id = com.example.app.R.string.evento_anadir_imagen),
                                 modifier = Modifier.size(48.dp),
                                 tint = Color.Gray
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Añadir imagen del evento",
+                                text = stringResource(id = com.example.app.R.string.evento_anadir_imagen),
                                 color = Color.Gray
                             )
                         }
@@ -506,7 +524,7 @@ fun CrearEventoScreen(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = "Error al crear el evento:",
+                            text = stringResource(id = com.example.app.R.string.evento_error_crear),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFD32F2F)
@@ -525,7 +543,7 @@ fun CrearEventoScreen(
                             }
                             
                             Text(
-                                text = "Se han detectado los siguientes problemas:",
+                                text = stringResource(id = com.example.app.R.string.evento_problemas_detectados),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFD32F2F)
@@ -536,7 +554,7 @@ fun CrearEventoScreen(
                             // Extraer cada campo con error
                             if (validationErrors.contains("fecha")) {
                                 Text(
-                                    text = "• Fecha: La fecha debe ser posterior a hoy",
+                                    text = stringResource(id = com.example.app.R.string.evento_error_fecha),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color(0xFFD32F2F)
                                 )
@@ -544,7 +562,7 @@ fun CrearEventoScreen(
                             
                             if (validationErrors.contains("es_online")) {
                                 Text(
-                                    text = "• Es online: El campo debe ser true o false",
+                                    text = stringResource(id = com.example.app.R.string.evento_error_online),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color(0xFFD32F2F)
                                 )
@@ -552,7 +570,7 @@ fun CrearEventoScreen(
                             
                             if (validationErrors.contains("tipos_entrada")) {
                                 Text(
-                                    text = "• Tipos de entrada: Formato incorrecto, debe ser un array",
+                                    text = stringResource(id = com.example.app.R.string.evento_error_tipos_entrada),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color(0xFFD32F2F)
                                 )
@@ -560,7 +578,7 @@ fun CrearEventoScreen(
                             
                             if (validationErrors.contains("nombre")) {
                                 Text(
-                                    text = "• Nombre: El nombre del tipo de entrada es obligatorio",
+                                    text = stringResource(id = com.example.app.R.string.evento_error_nombre),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color(0xFFD32F2F)
                                 )
@@ -568,7 +586,7 @@ fun CrearEventoScreen(
                             
                             if (validationErrors.contains("precio")) {
                                 Text(
-                                    text = "• Precio: El precio del tipo de entrada es obligatorio",
+                                    text = stringResource(id = com.example.app.R.string.evento_error_precio),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color(0xFFD32F2F)
                                 )
@@ -576,7 +594,7 @@ fun CrearEventoScreen(
                             
                             if (validationErrors.contains("es_ilimitado")) {
                                 Text(
-                                    text = "• Es ilimitado: Debe especificar si las entradas son ilimitadas",
+                                    text = stringResource(id = com.example.app.R.string.evento_error_es_ilimitado),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color(0xFFD32F2F)
                                 )
@@ -599,7 +617,7 @@ fun CrearEventoScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Evento online",
+                    text = stringResource(id = com.example.app.R.string.evento_es_online),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f)
                 )
@@ -619,19 +637,11 @@ fun CrearEventoScreen(
             // Sección de tipos de entrada (solo visible si el evento no es online)
             if (!viewModel.esOnline) {
                 Text(
-                    text = "TIPOS DE ENTRADA",
+                    text = stringResource(id = com.example.app.R.string.evento_tipos_entrada),
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFE53935)
                     ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Text(
-                    text = "Añade al menos un tipo de entrada para tu evento",
-                    style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.fillMaxWidth()
                 )
                 
@@ -658,7 +668,7 @@ fun CrearEventoScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "Tipo de entrada ${index + 1}",
+                                    text = stringResource(id = com.example.app.R.string.evento_tipo_entrada, index + 1),
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold
                                     )
@@ -668,7 +678,7 @@ fun CrearEventoScreen(
                                     IconButton(onClick = { viewModel.removeTipoEntrada(index) }) {
                                         Icon(
                                             imageVector = Icons.Default.Delete,
-                                            contentDescription = "Eliminar tipo de entrada",
+                                            contentDescription = stringResource(id = com.example.app.R.string.evento_eliminar_tipo_entrada),
                                             tint = Color(0xFFE53935)
                                         )
                                     }
@@ -685,7 +695,7 @@ fun CrearEventoScreen(
                                     updatedTipos[index] = tipoEntrada.copy(nombre = newValue)
                                     viewModel.tiposEntrada = updatedTipos
                                 },
-                                label = { Text("Nombre") },
+                                label = { Text(stringResource(id = com.example.app.R.string.evento_nombre_tipo)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
@@ -705,7 +715,7 @@ fun CrearEventoScreen(
                                     updatedTipos[index] = tipoEntrada.copy(precio = precio)
                                     viewModel.tiposEntrada = updatedTipos
                                 },
-                                label = { Text("Precio (€)") },
+                                label = { Text(stringResource(id = com.example.app.R.string.evento_precio)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 shape = RoundedCornerShape(8.dp),
@@ -725,7 +735,7 @@ fun CrearEventoScreen(
                                     updatedTipos[index] = tipoEntrada.copy(descripcion = newValue)
                                     viewModel.tiposEntrada = updatedTipos
                                 },
-                                label = { Text("Descripción (opcional)") },
+                                label = { Text(stringResource(id = com.example.app.R.string.evento_descripcion_opcional)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
@@ -742,7 +752,7 @@ fun CrearEventoScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Entradas ilimitadas",
+                                    text = stringResource(id = com.example.app.R.string.evento_entradas_ilimitadas),
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier.weight(1f)
                                 )
@@ -773,7 +783,7 @@ fun CrearEventoScreen(
                                         updatedTipos[index] = tipoEntrada.copy(cantidadDisponible = cantidad)
                                         viewModel.tiposEntrada = updatedTipos
                                     },
-                                    label = { Text("Cantidad disponible") },
+                                    label = { Text(stringResource(id = com.example.app.R.string.evento_cantidad_disponible)) },
                                     modifier = Modifier.fillMaxWidth(),
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     shape = RoundedCornerShape(8.dp),
@@ -800,11 +810,11 @@ fun CrearEventoScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "Añadir tipo de entrada",
+                        contentDescription = stringResource(id = com.example.app.R.string.evento_anadir_tipo_entrada),
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Añadir tipo de entrada")
+                    Text(stringResource(id = com.example.app.R.string.evento_anadir_tipo_entrada))
                 }
                 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -830,7 +840,7 @@ fun CrearEventoScreen(
                     )
                 } else {
                     Text(
-                        "CREAR EVENTO",
+                        stringResource(id = com.example.app.R.string.evento_boton_crear),
                         modifier = Modifier.padding(8.dp),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold

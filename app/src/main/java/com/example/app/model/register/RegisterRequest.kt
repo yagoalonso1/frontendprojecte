@@ -79,8 +79,8 @@ data class RegisterRequest(
             email: String,
             googleToken: String?,
             password: String = java.util.UUID.randomUUID().toString().replace("-", ""),
-            dni: String? = null,
-            telefono: String? = null,
+            dni: String,
+            telefono: String,
             role: String = "participante"
         ): RegisterRequest {
             // Asegurarnos de que siempre haya una contraseña
@@ -102,8 +102,8 @@ data class RegisterRequest(
                 rol = role,
                 nombreOrganizacion = "N/A",
                 telefonoContacto = "N/A",
-                dni = dni ?: "N/A",
-                telefono = telefono ?: "N/A",
+                dni = dni,
+                telefono = telefono,
                 googleToken = googleToken
             )
         }

@@ -1,11 +1,13 @@
 package com.example.app.viewmodel
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.app.R
 import com.example.app.api.RetrofitClient
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,6 +32,9 @@ class LoginViewModel : ViewModel() {
     var password by mutableStateOf("")
     var passwordVisible by mutableStateOf(false)
     
+    // Contexto de la aplicación para acceder a los recursos
+    private var appContext: Context? = null
+    
     // Estados de la UI
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
@@ -51,7 +56,13 @@ class LoginViewModel : ViewModel() {
     private val _isLogoutSuccessful = MutableStateFlow(false)
     val isLogoutSuccessful = _isLogoutSuccessful.asStateFlow()
 
-    fun onLoginClick() {
+    // Establecer el contexto para acceder a los recursos
+    fun setContext(context: Context) {
+        appContext = context.applicationContext
+    }
+
+    // Método principal de login
+    fun login() {
         // Validar campos
         if (!validateFields()) {
             return
@@ -81,7 +92,7 @@ class LoginViewModel : ViewModel() {
                             try {
                                 // Verificar si el usuario existe en la respuesta
                                 if (loginResponse.user == null) {
-                                    setError("La respuesta no contiene información de usuario")
+                                    setErrorResource(R.string.error_user_not_found)
                                     Log.e("LoginViewModel", "Usuario es null en la respuesta")
                                     return@withContext
                                 }
@@ -91,7 +102,7 @@ class LoginViewModel : ViewModel() {
                                 
                                 // Validar que obtuvimos un token
                                 if (accessToken.isNullOrBlank()) {
-                                    setError("No se recibió un token válido del servidor")
+                                    setErrorResource(R.string.error_invalid_token)
                                     Log.e("LoginViewModel", "No se pudo obtener un token válido")
                                     return@withContext
                                 }
@@ -140,11 +151,11 @@ class LoginViewModel : ViewModel() {
                                 }
                             } catch (e: Exception) {
                                 Log.e("LoginViewModel", "Error al procesar la respuesta: ${e.message}", e)
-                                setError("Error al procesar la respuesta: ${e.message ?: "Error desconocido"}")
+                                setErrorResource(R.string.error_process_response)
                                 return@withContext
                             }
                         } else {
-                            setError("Error desconocido durante el inicio de sesión")
+                            setErrorResource(R.string.error_login_failed)
                         }
                     } else {
                         // Intentar obtener el mensaje de error del cuerpo de la respuesta
@@ -152,13 +163,17 @@ class LoginViewModel : ViewModel() {
                             val errorBody = response.errorBody()?.string()
                             if (errorBody != null) {
                                 val errorResponse = com.google.gson.Gson().fromJson(errorBody, Map::class.java)
-                                val message = errorResponse["message"] as? String ?: "Error en la comunicación con el servidor"
-                                setError(message)
+                                val message = errorResponse["message"] as? String
+                                if (message != null) {
+                                    setError(message)
+                                } else {
+                                    setErrorResource(R.string.error_connection)
+                                }
                             } else {
-                                setError("Error en la comunicación con el servidor: ${response.code()}")
+                                setErrorResource(R.string.error_connection)
                             }
                         } catch (e: Exception) {
-                            setError("Error en la comunicación con el servidor: ${response.code()}")
+                            setErrorResource(R.string.error_connection)
                         }
                     }
                 }
@@ -166,7 +181,7 @@ class LoginViewModel : ViewModel() {
                 // Manejar errores
                 withContext(Dispatchers.Main) {
                     isLoading = false
-                    setError("Error de conexión: ${e.message ?: "Error desconocido"}")
+                    setErrorResource(R.string.error_connection)
                     Log.e("LoginViewModel", "Excepción durante el login", e)
                 }
             }
@@ -180,6 +195,10 @@ class LoginViewModel : ViewModel() {
 
     fun setError(message: String) {
         errorMessage = message
+    }
+
+    fun setErrorResource(resourceId: Int) {
+        errorMessage = appContext?.getString(resourceId) ?: "Error"
     }
 
     fun clearError() {
@@ -294,19 +313,22 @@ class LoginViewModel : ViewModel() {
         _isLoginSuccessful.value = false
     }
 
+    /**
+     * Valida los campos del formulario utilizando recursos localizados
+     */
     private fun validateFields(): Boolean {
         if (email.isEmpty()) {
-            setError("Por favor, introduce tu correo electrónico")
+            setErrorResource(R.string.error_empty_fields)
             return false
         }
         
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            setError("Por favor, introduce un correo electrónico válido")
+            setErrorResource(R.string.error_invalid_email)
             return false
         }
         
         if (password.isEmpty()) {
-            setError("Por favor, introduce tu contraseña")
+            setErrorResource(R.string.error_empty_fields)
             return false
         }
         
@@ -330,7 +352,8 @@ class LoginViewModel : ViewModel() {
                     photoUrl = account.photoUrl,
                     token = account.email,
                     id = account.email.split("@")[0],
-                    googleId = account.email
+                    googleId = account.email,
+                    registerOnly = true // Indicamos que solo queremos verificar, no registrar automáticamente
                 )
                 
                 Log.d("GOOGLE_AUTH_DEBUG", "Enviando solicitud de autenticación con Google: ${Gson().toJson(request)}")
@@ -350,12 +373,13 @@ class LoginViewModel : ViewModel() {
                             Log.d("GOOGLE_AUTH_DEBUG", "Respuesta exitosa de Google: ${Gson().toJson(loginResponse)}")
                             
                             if (loginResponse != null) {
-                                // Obtener token y verificar si necesita registro
+                                // Obtener token
                                 val accessToken = loginResponse.token ?: loginResponse.accessToken
-                                val needsRegistration = loginResponse.needsRegistration ?: false
+                                // Verificar si existe el usuario
+                                val userExists = loginResponse.needsRegistration == false
                                 
                                 Log.d("GOOGLE_AUTH_DEBUG", "Token recibido: ${accessToken?.take(10)}...")
-                                Log.d("GOOGLE_AUTH_DEBUG", "¿Necesita registro? $needsRegistration")
+                                Log.d("GOOGLE_AUTH_DEBUG", "¿Usuario ya existe? ${userExists}")
                                 
                                 if (accessToken.isNullOrBlank()) {
                                     Log.e("GOOGLE_AUTH_DEBUG", "ERROR: Token nulo o vacío en respuesta de Google")
@@ -367,36 +391,64 @@ class LoginViewModel : ViewModel() {
                                 token = accessToken
                                 user = loginResponse.user
                                 
-                                // Guardar en SessionManager
-                                try {
-                                    if (SessionManager.isInitialized()) {
-                                        SessionManager.saveToken(accessToken)
-                                        
-                                        // Determinar y guardar el rol
-                                        val userRole = when {
-                                            loginResponse.role?.isNotBlank() == true -> loginResponse.role
-                                            loginResponse.userRole?.isNotBlank() == true -> loginResponse.userRole
-                                            loginResponse.userRoleAlt?.isNotBlank() == true -> loginResponse.userRoleAlt
-                                            user?.role?.isNotBlank() == true -> user?.role
-                                            else -> "participante"
+                                if (userExists) {
+                                    // Si el usuario ya existe, guardamos el token y navegamos a Eventos
+                                    try {
+                                        if (SessionManager.isInitialized()) {
+                                            SessionManager.saveToken(accessToken)
+                                            
+                                            // Determinar y guardar el rol
+                                            val userRole = when {
+                                                loginResponse.role?.isNotBlank() == true -> loginResponse.role
+                                                loginResponse.userRole?.isNotBlank() == true -> loginResponse.userRole
+                                                loginResponse.userRoleAlt?.isNotBlank() == true -> loginResponse.userRoleAlt
+                                                user?.role?.isNotBlank() == true -> user?.role
+                                                else -> "participante"
+                                            }
+                                            
+                                            userRole?.let { 
+                                                SessionManager.saveUserRole(it)
+                                                Log.d("GOOGLE_AUTH_DEBUG", "Rol guardado: $it")
+                                            }
                                         }
-                                        
-                                        userRole?.let { 
-                                            SessionManager.saveUserRole(it)
-                                            Log.d("GOOGLE_AUTH_DEBUG", "Rol guardado: $it")
-                                        }
+                                    } catch (e: Exception) {
+                                        Log.e("GOOGLE_AUTH_DEBUG", "Error al guardar en SessionManager: ${e.message}", e)
                                     }
-                                } catch (e: Exception) {
-                                    Log.e("GOOGLE_AUTH_DEBUG", "Error al guardar en SessionManager: ${e.message}", e)
-                                }
-                                
-                                // Decidir la navegación basada en needs_registration
-                                if (needsRegistration) {
-                                    Log.d("GOOGLE_AUTH_DEBUG", "Usuario necesita completar registro...")
-                                    _shouldNavigateToParticipanteRegister.value = true
-                                } else {
-                                    Log.d("GOOGLE_AUTH_DEBUG", "Usuario ya registrado, procediendo al login...")
+                                    
+                                    // Usuario ya existe, directamente a Eventos
+                                    Log.d("GOOGLE_AUTH_DEBUG", "Usuario ya existe, procediendo al login...")
                                     _isLoginSuccessful.value = true
+                                } else {
+                                    // Si el usuario no existe o necesita completar registro
+                                    Log.d("GOOGLE_AUTH_DEBUG", "Usuario necesita completar registro...")
+                                    
+                                    // Preparar datos para el formulario de registro
+                                    val userEmail = user?.email ?: account.email
+                                    val userName = user?.nombre ?: account.nombre
+                                    val userApellido1 = user?.apellido1 ?: account.apellido1 ?: ""
+                                    
+                                    // Comprobar que tenemos los datos mínimos necesarios
+                                    if (userEmail.isBlank() || userName.isBlank()) {
+                                        Log.e("GOOGLE_AUTH_DEBUG", "ERROR: No se pudieron obtener datos mínimos para registro")
+                                        setError("No se pudieron obtener los datos básicos de su cuenta de Google")
+                                        return@withContext
+                                    }
+                                    
+                                    // Guardar los datos para la pantalla de registro
+                                    Log.d("GOOGLE_AUTH_DEBUG", "Preparando datos para registro: Email=$userEmail, Nombre=$userName")
+                                    saveGoogleUserDataForRegistration(
+                                        email = userEmail,
+                                        nombre = userName,
+                                        apellido1 = userApellido1,
+                                        googleToken = accessToken
+                                    )
+                                    
+                                    // Establecer navegación diferida para asegurar que los datos se hayan guardado
+                                    viewModelScope.launch {
+                                        delay(100) // Breve retraso para asegurar que los datos se guarden
+                                        Log.d("GOOGLE_AUTH_DEBUG", "Ejecutando navegación a pantalla de registro de participante")
+                                        _shouldNavigateToParticipanteRegister.value = true
+                                    }
                                 }
                                 
                                 clearFields()
@@ -488,6 +540,14 @@ class LoginViewModel : ViewModel() {
         googleToken: String?
     ) {
         try {
+            // Validar datos antes de guardarlos
+            if (email.isBlank() || nombre.isBlank()) {
+                Log.e("GOOGLE_AUTH_DEBUG", "ERROR: Datos inválidos para registro - Email: $email, Nombre: $nombre")
+                return
+            }
+            
+            Log.d("GOOGLE_AUTH_DEBUG", "Guardando datos para registro - Email: $email, Nombre: $nombre, Apellido1: $apellido1")
+            
             // Guardar en preferencias compartidas para pasar a la pantalla de registro
             val sharedPrefs = com.example.app.MyApplication.appContext.getSharedPreferences(
                 "GoogleAuthData",
@@ -495,17 +555,38 @@ class LoginViewModel : ViewModel() {
             )
             
             with(sharedPrefs.edit()) {
+                clear() // Limpiar datos anteriores
                 putString("google_email", email)
                 putString("google_nombre", nombre)
                 putString("google_apellido1", apellido1)
                 putString("google_token", googleToken)
                 putBoolean("is_from_google", true)
-                apply()
+                commit() // Usar commit en lugar de apply para asegurar escritura inmediata
             }
             
-            Log.d("GOOGLE_AUTH_DEBUG", "Datos de Google guardados en preferencias para registro")
+            // Verificar que los datos se guardaron correctamente
+            val savedEmail = sharedPrefs.getString("google_email", "")
+            val savedNombre = sharedPrefs.getString("google_nombre", "")
+            val isFromGoogle = sharedPrefs.getBoolean("is_from_google", false)
+            
+            Log.d("GOOGLE_AUTH_DEBUG", "Verificación de guardado - Email: $savedEmail, Nombre: $savedNombre, isFromGoogle: $isFromGoogle")
+            Log.d("GOOGLE_AUTH_DEBUG", "Datos de Google guardados en preferencias para registro: email=$email, nombre=$nombre, apellido1=$apellido1, token=${googleToken?.take(10)}...")
         } catch (e: Exception) {
-            Log.e("GOOGLE_AUTH_DEBUG", "Error al guardar datos de Google: ${e.message}")
+            Log.e("GOOGLE_AUTH_DEBUG", "Error al guardar datos de Google: ${e.message}", e)
         }
+    }
+
+    /**
+     * Reinicia el estado de login exitoso
+     */
+    fun resetLoginState() {
+        _isLoginSuccessful.value = false
+    }
+
+    /**
+     * Reinicia el estado de navegación a participante
+     */
+    fun resetNavigationState() {
+        _shouldNavigateToParticipanteRegister.value = false
     }
 }
